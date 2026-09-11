@@ -98,7 +98,12 @@ pub struct EntryRow {
     pub is_hidden: bool,
     pub accessible: bool,
     /// Share of the parent directory's subtree size, in the range 0.0..=1.0.
+    /// Computed from attributed bytes, so the shares within a folder sum to one.
     pub share_of_parent: f64,
+    /// True when this file's bytes are shared with another name for the same
+    /// inode and are therefore counted against that other name. The row still
+    /// reports the file's real size.
+    pub shares_storage: bool,
 }
 
 /// One row of the file-type breakdown.

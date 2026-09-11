@@ -26,7 +26,12 @@ impl ScanStatus {
         }
     }
 
-    pub fn from_str(value: &str) -> Self {
+    /// Read a status back from the index.
+    ///
+    /// Not `FromStr`: this conversion cannot fail. A value the index does not
+    /// recognise means the row predates this build or was written by a crashed
+    /// process, and `Interrupted` is the truthful reading of that.
+    pub fn from_stored(value: &str) -> Self {
         match value {
             "running" => Self::Running,
             "completed" => Self::Completed,
@@ -122,7 +127,9 @@ impl ScanErrorKind {
         }
     }
 
-    pub fn from_str(value: &str) -> Self {
+    /// Read an error kind back from the index. Infallible by design; anything
+    /// unrecognised is an I/O error, which is the least specific claim.
+    pub fn from_stored(value: &str) -> Self {
         match value {
             "permissionDenied" => Self::PermissionDenied,
             "notFound" => Self::NotFound,

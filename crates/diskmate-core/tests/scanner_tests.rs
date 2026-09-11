@@ -359,8 +359,14 @@ fn hard_links_are_counted_once() {
 
     let children = harness.root_children(summary.scan_id);
     assert_eq!(children.len(), 3, "every name is still listed");
-    let total: i64 = children.iter().map(|row| row.size).sum();
-    assert_eq!(total, 5_000, "attributed bytes never exceed what is on disk");
+    for row in &children {
+        assert_eq!(row.size, 5_000, "each name reports the size of the file it points at");
+    }
+
+    // The folder total is the invariant that must not double count: three names
+    // for one 5 KB file is 5 KB of storage, not 15 KB.
+    let root = harness.service.snapshot(summary.scan_id).unwrap().root;
+    assert_eq!(root.size, 5_000, "attributed bytes never exceed what is on disk");
 }
 
 #[test]
@@ -525,4 +531,55 @@ fn a_second_scan_cannot_start_while_one_is_running() {
 
     assert!(rejected.load(std::sync::atomic::Ordering::SeqCst));
     assert!(harness.service.active_scan().is_none(), "the slot is released afterwards");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_hard_link_reports_its_real_size_and_says_the_bytes_are_shared() {
+    let harness = Harness::new();
+    let original = file(&harness.tree, "original.bin", 5_000);
+    std::fs::hard_link(&original, harness.path("copy.bin")).unwrap();
+
+    let summary = harness.scan();
+    let children = harness.root_children(summary.scan_id);
+    let shared: Vec<_> = children.iter().filter(|row| row.shares_storage).collect();
+
+    assert_eq!(shared.len(), 1, "exactly one of the two names is the repeat");
+    assert_eq!(shared[0].size, 5_000, "it still reports what the file is");
+    assert_eq!(shared[0].share_of_parent, 0.0, "but it claims none of the folder");
+
+    let total_share: f64 = children.iter().map(|row| row.share_of_parent).sum();
+    assert!((total_share - 1.0).abs() < 1e-9, "shares still sum to one");
+}
+
+#[test]
+fn largest_folders_skips_folders_that_only_contain_one_big_folder() {
+    let harness = Harness::new();
+    // A chain of containers ending in a folder where the space spreads out.
+    file(&harness.tree, "a/b/c/part-one.bin", 600_000);
+    file(&harness.tree, "a/b/c/part-two.bin", 500_000);
+    // An unrelated folder, so the list has something to compare against.
+    file(&harness.tree, "other/single.bin", 100_000);
+
+    let summary = harness.scan();
+    let folders = harness.service.snapshot(summary.scan_id).unwrap().largest_folders;
+    let names: Vec<&str> = folders.iter().map(|row| row.name.as_str()).collect();
+
+    assert!(names.contains(&"c"), "the folder where the space spreads out is listed");
+    assert!(!names.contains(&"a"), "a pass-through container is not");
+    assert!(!names.contains(&"b"), "nor is the next one down");
+    assert!(names.contains(&"other"));
+}
+
+#[test]
+fn a_directory_reports_its_subtree_total_while_a_file_reports_itself() {
+    let harness = Harness::new();
+    file(&harness.tree, "folder/inner.bin", 900);
+    file(&harness.tree, "loose.bin", 300);
+
+    let summary = harness.scan();
+    let root = harness.service.snapshot(summary.scan_id).unwrap().root;
+
+    assert_eq!(harness.child_named(summary.scan_id, root.id, "folder").size, 900);
+    assert_eq!(harness.child_named(summary.scan_id, root.id, "loose.bin").size, 300);
 }

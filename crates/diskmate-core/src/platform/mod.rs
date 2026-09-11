@@ -78,10 +78,14 @@ pub(crate) mod unix_util {
     }
 
     /// Name a volume the way a person would: the last path component of the
-    /// mount point, or the root's own name.
+    /// mount point.
+    ///
+    /// The root has no such component. macOS resolves its real name separately
+    /// (see `platform::macos::volumes`); elsewhere "System" is accurate and
+    /// does not pretend to be a Mac.
     pub(crate) fn volume_name(mount_point: &str) -> String {
         if mount_point == "/" {
-            return "Macintosh HD".to_string();
+            return "System".to_string();
         }
         Path::new(mount_point)
             .file_name()

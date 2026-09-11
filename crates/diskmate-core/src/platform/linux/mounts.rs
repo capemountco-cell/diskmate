@@ -12,6 +12,10 @@ const SYNTHETIC: &[&str] = &[
     "autofs", "bpf", "cgroup", "cgroup2", "configfs", "debugfs", "devpts", "devtmpfs",
     "efivarfs", "fuse.gvfsd-fuse", "fusectl", "hugetlbfs", "mqueue", "proc", "pstore",
     "ramfs", "securityfs", "sysfs", "tracefs",
+    // Memory-backed and image-backed mounts. They are real filesystems, but
+    // they are not storage anyone manages, and listing them would bury the two
+    // or three volumes that matter.
+    "tmpfs", "squashfs", "overlay", "erofs",
 ];
 
 const NETWORK: &[&str] = &["nfs", "nfs4", "cifs", "smbfs", "sshfs", "afs", "ceph"];

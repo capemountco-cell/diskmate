@@ -8,12 +8,11 @@ mod scan;
 mod storage;
 mod system;
 
-pub use scan::{active_scan, cancel_scan, start_scan};
-pub use storage::{
-    app_info, directory_by_path, entry_ancestors, latest_scan, list_children, list_volumes,
-    recent_scans, scan_errors, storage_snapshot,
-};
-pub use system::{memory_report, startup_report};
+// Glob re-exports, not named ones: `#[tauri::command]` generates hidden items
+// alongside each function, and `generate_handler!` needs them in this module.
+pub use scan::*;
+pub use storage::*;
+pub use system::*;
 
 /// Result type for commands. Tauri needs a serialisable error.
 pub type CommandResult<T> = Result<T, String>;

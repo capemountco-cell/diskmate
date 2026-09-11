@@ -109,21 +109,28 @@ pub struct StorageQueries;
 
 /// Shared projection. `e` is the entry, `p` its parent directory.
 ///
-/// `size` uses `subtree_logical_size` for every kind: the scanner stores an
-/// entry's own size there for non-directories, so one column means one index
-/// can order a mixed listing.
+/// Two different sizes matter here, because they answer different questions:
+///
+/// * `size` is what the entry *is*: a directory's subtree total, or a file's
+///   own length. It is what a person expects to read next to a name.
+/// * `share` comes from the *attributed* bytes, which exclude hard-link
+///   repeats. That is what keeps the shares within a folder summing to one
+///   when two of its names point at the same inode.
 const ENTRY_SELECT: &str = "
     SELECT e.id, e.parent_id, e.name,
            COALESCE(e.path,
                     CASE WHEN p.path = '/' THEN '/' || e.name
                          ELSE p.path || '/' || e.name END,
                     e.name) AS full_path,
-           e.kind, e.depth, e.subtree_logical_size, e.subtree_allocated_size,
+           e.kind, e.depth,
+           CASE WHEN e.kind = 1 THEN e.subtree_logical_size ELSE e.logical_size END AS size,
+           e.subtree_allocated_size,
            e.subtree_file_count, e.subtree_dir_count, e.extension, e.modified_at,
            e.category, e.is_hidden, e.accessible,
            CASE WHEN p.subtree_logical_size > 0
                 THEN CAST(e.subtree_logical_size AS REAL) / p.subtree_logical_size
-                ELSE 0.0 END AS share
+                ELSE 0.0 END AS share,
+           e.hardlink_dup
       FROM fs_entries e
       LEFT JOIN fs_entries p ON p.id = e.parent_id";
 
@@ -145,6 +152,7 @@ fn map_entry_row(row: &Row<'_>) -> rusqlite::Result<EntryRow> {
         is_hidden: row.get::<_, i64>(13)? != 0,
         accessible: row.get::<_, i64>(14)? != 0,
         share_of_parent: row.get::<_, f64>(15)?.clamp(0.0, 1.0),
+        shares_storage: row.get::<_, i64>(16)? != 0,
     })
 }
 
@@ -245,11 +253,21 @@ impl StorageQueries {
         Ok(rows)
     }
 
-    /// Largest directories by subtree size.
+    /// Largest directories by subtree size, with pass-through folders removed.
     ///
-    /// Every ancestor of a big folder is also big, so an unfiltered list is
-    /// dominated by the root's parent chain. `min_depth` lets the caller skip
-    /// past the root; the UI asks for the level below the scan root.
+    /// Every ancestor of a big folder is also big, so the naive query returns
+    /// the same bytes five times over as a parent chain: `home`, `user`,
+    /// `project`, `target`, `debug`. None of those rows except the last tells
+    /// anyone anything.
+    ///
+    /// A folder is excluded when a single child folder accounts for nearly all
+    /// of it, because then the parent is a container rather than the thing
+    /// using the space. What survives is the deepest folder where the space
+    /// actually spreads out, which is the folder a person would open.
+    ///
+    /// The `NOT EXISTS` is an index seek on `idx_entries_children` per
+    /// candidate, and candidates are visited in size order, so this typically
+    /// touches a few dozen rows before the limit is met.
     pub fn largest_directories(
         conn: &Connection,
         scan_id: i64,
@@ -257,7 +275,16 @@ impl StorageQueries {
         min_depth: i32,
     ) -> Result<Vec<EntryRow>> {
         let sql = format!(
-            "{ENTRY_SELECT} WHERE e.scan_id = ?1 AND e.kind = 1 AND e.depth >= ?3
+            "{ENTRY_SELECT}
+              WHERE e.scan_id = ?1 AND e.kind = 1 AND e.depth >= ?3
+                AND e.subtree_logical_size > 0
+                AND NOT EXISTS (
+                      SELECT 1 FROM fs_entries c
+                       WHERE c.scan_id = e.scan_id
+                         AND c.parent_id = e.id
+                         AND c.kind = 1
+                         AND c.subtree_logical_size * 100 >= e.subtree_logical_size * 85
+                    )
              ORDER BY e.subtree_logical_size DESC LIMIT ?2"
         );
         let mut stmt = conn.prepare_cached(&sql)?;
@@ -313,7 +340,7 @@ impl StorageQueries {
             .query_map(params![scan_id, limit.clamp(1, 5_000)], |row| {
                 Ok(ScanError {
                     path: row.get(0)?,
-                    kind: ScanErrorKind::from_str(&row.get::<_, String>(1)?),
+                    kind: ScanErrorKind::from_stored(&row.get::<_, String>(1)?),
                     code: row.get(2)?,
                     message: row.get(3)?,
                 })
@@ -330,7 +357,7 @@ impl StorageQueries {
         )?;
         let rows = stmt
             .query_map(params![scan_id], |row| {
-                Ok((ScanErrorKind::from_str(&row.get::<_, String>(0)?), row.get(1)?))
+                Ok((ScanErrorKind::from_stored(&row.get::<_, String>(0)?), row.get(1)?))
             })?
             .collect::<rusqlite::Result<Vec<_>>>()?;
         Ok(rows)
@@ -427,7 +454,7 @@ fn map_scan_summary(row: &Row<'_>) -> rusqlite::Result<ScanSummary> {
         scan_id: row.get(0)?,
         volume_id: row.get(1)?,
         root_path: row.get(2)?,
-        status: ScanStatus::from_str(&row.get::<_, String>(3)?),
+        status: ScanStatus::from_stored(&row.get::<_, String>(3)?),
         started_at: row.get(4)?,
         finished_at: row.get(5)?,
         duration_ms: row.get(6)?,
