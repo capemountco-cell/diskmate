@@ -1,10 +1,21 @@
 name: CI
 
 on:
+  # Pushes to a branch with an open pull request are already covered by the
+  # `pull_request` trigger. Listening to both meant every commit produced two
+  # identical runs, which doubled the Mac runner time and made a single failure
+  # look like two.
   push:
-    branches: ["main", "claude/**"]
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
+
+# Supersede in-flight runs for the same ref. Without this a quick follow-up
+# commit leaves the previous run grinding through a full macOS build only to
+# report on code nobody is looking at any more.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -84,22 +95,30 @@ jobs:
 
       # The runner is Apple silicon, so the artifact name says so. An Intel Mac
       # needs a local `./scripts/build-dmg.sh --universal` build instead.
+      # Locate the image rather than assuming where it lands, and say where we
+      # looked if it is not there. A silent path assumption is what broke this
+      # step the first time the build actually succeeded.
       - name: Name the disk image
         run: |
-          mv src-tauri/target/release/bundle/dmg/DiskMate_*.dmg \
-             src-tauri/target/release/bundle/dmg/DiskMate.dmg
-          shasum -a 256 src-tauri/target/release/bundle/dmg/DiskMate.dmg
+          dmg="$(find target/release/bundle/dmg -name 'DiskMate_*.dmg' -print -quit 2>/dev/null || true)"
+          if [ -z "$dmg" ]; then
+            echo "::error::the build produced no .dmg; contents of target/release/bundle:"
+            ls -R target/release/bundle || true
+            exit 1
+          fi
+          mv "$dmg" target/release/bundle/dmg/DiskMate.dmg
+          shasum -a 256 target/release/bundle/dmg/DiskMate.dmg
 
       - name: Upload DiskMate.dmg
         uses: actions/upload-artifact@v4
         with:
           name: DiskMate-dmg-unsigned-arm64
-          path: src-tauri/target/release/bundle/dmg/DiskMate.dmg
+          path: target/release/bundle/dmg/DiskMate.dmg
           if-no-files-found: error
 
       - name: Upload DiskMate.app
         uses: actions/upload-artifact@v4
         with:
           name: DiskMate-app-unsigned-arm64
-          path: src-tauri/target/release/bundle/macos/DiskMate.app
+          path: target/release/bundle/macos/DiskMate.app
           if-no-files-found: error

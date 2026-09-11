@@ -63,7 +63,7 @@ npm run build                 # DiskMate.app and DiskMate.dmg
 ./scripts/build-macos.sh --universal   # Apple silicon and Intel in one bundle
 ```
 
-The built artefacts land under `src-tauri/target/release/bundle/`.
+The built artefacts land under `target/release/bundle/`.
 See [INSTALL.md](INSTALL.md) for a step-by-step walkthrough.
 
 ## How it is put together

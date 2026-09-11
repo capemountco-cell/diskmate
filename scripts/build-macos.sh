@@ -59,9 +59,13 @@ fi
 echo "==> Building the bundle"
 npm run tauri -- build --bundles app "${TARGET_ARGS[@]}"
 
-APP="$(find src-tauri/target -name 'DiskMate.app' -maxdepth 5 -print -quit)"
+# Searched rather than assumed: this is a Cargo workspace, so the bundle lands
+# in the workspace target directory, not under src-tauri as a single-crate Tauri
+# project would put it.
+APP="$(find . -type d -path '*/release/bundle/macos/DiskMate.app' -print -quit)"
 if [[ -z "$APP" ]]; then
   echo "error: the build finished but DiskMate.app was not found." >&2
+  echo "       looked for */release/bundle/macos/DiskMate.app under $PWD" >&2
   exit 1
 fi
 

@@ -35,9 +35,12 @@ cargo test --workspace --release
 echo "==> Building the disk image"
 npm run tauri -- build --bundles dmg "${TARGET_ARGS[@]}"
 
-DMG="$(find src-tauri/target -name 'DiskMate_*.dmg' -maxdepth 5 -print -quit)"
+# Searched rather than assumed: in a Cargo workspace the bundle lands in the
+# workspace target directory, not under src-tauri.
+DMG="$(find . -type f -path '*/release/bundle/dmg/DiskMate_*.dmg' -print -quit)"
 if [[ -z "$DMG" ]]; then
   echo "error: the build finished but no .dmg was found." >&2
+  echo "       looked for */release/bundle/dmg/DiskMate_*.dmg under $PWD" >&2
   exit 1
 fi
 

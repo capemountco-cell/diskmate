@@ -154,7 +154,7 @@ first run; later builds take a minute or two because Rust caches its work.
 When it finishes it prints the path and a checksum:
 
 ```
-Built src-tauri/target/release/bundle/dmg/DiskMate.dmg
+Built ./target/release/bundle/dmg/DiskMate.dmg
   size   8.4M
   sha256 …
 ```
@@ -162,7 +162,7 @@ Built src-tauri/target/release/bundle/dmg/DiskMate.dmg
 ### 8. Install it
 
 ```sh
-open src-tauri/target/release/bundle/dmg/DiskMate.dmg
+open target/release/bundle/dmg/DiskMate.dmg
 ```
 
 Drag **DiskMate** onto **Applications**, then eject the disk image.
@@ -174,7 +174,7 @@ double-click with no warning.
 
 ```sh
 ./scripts/build-macos.sh
-open src-tauri/target/release/bundle/macos/
+open target/release/bundle/macos/
 ```
 
 Drag `DiskMate.app` to Applications yourself.

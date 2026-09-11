@@ -50,7 +50,7 @@ ordinary executable, and the environment override.
 ./scripts/build-macos.sh
 
 # Lay out a drive
-cp -R src-tauri/target/release/bundle/macos/DiskMate.app /Volumes/DISKMATE/
+cp -R target/release/bundle/macos/DiskMate.app /Volumes/DISKMATE/
 mkdir -p "/Volumes/DISKMATE/DiskMate Data" "/Volumes/DISKMATE/DiskMate Logs"
 
 # Run it from the drive
