@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      DiskMate is not sandboxed. A sandboxed app cannot read the whole disk
+      even with Full Disk Access granted, which would make the product unable
+      to do its one job. This also means DiskMate is not a Mac App Store app,
+      which is a deliberate decision recorded in docs/permissions.md.
+    -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+    <!-- No network entitlement: the product does not use the network. -->
+</dict>
+</plist>

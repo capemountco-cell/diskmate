@@ -1,0 +1,176 @@
+/*
+ * DiskMate design tokens.
+ *
+ * The palette is deliberately narrow and desaturated. DiskMate should read like
+ * a system utility, so colour carries meaning (a category, a selection) rather
+ * than decoration, and there is no state in the product that is communicated by
+ * making something large and red.
+ *
+ * Light is the primary appearance; dark is defined in the same terms so both
+ * stay in step. Both are derived from a single neutral ramp plus one accent.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Neutral ramp, cool grey to match macOS system surfaces. */
+  --grey-0: #ffffff;
+  --grey-1: #fbfbfd;
+  --grey-2: #f4f4f7;
+  --grey-3: #ececf0;
+  --grey-4: #dedee4;
+  --grey-5: #c4c4cd;
+  --grey-6: #9a9aa6;
+  --grey-7: #6e6e7a;
+  --grey-8: #48484f;
+  --grey-9: #1d1d20;
+
+  --accent: #2f6fd0;
+  --accent-strong: #245bb0;
+  --accent-soft: #e7effb;
+  --accent-contrast: #ffffff;
+
+  /* Surfaces */
+  --surface-window: var(--grey-1);
+  --surface-sidebar: rgba(244, 244, 247, 0.86);
+  --surface-panel: var(--grey-0);
+  --surface-raised: var(--grey-0);
+  --surface-sunken: var(--grey-2);
+  --surface-hover: rgba(0, 0, 0, 0.035);
+  --surface-selected: var(--accent-soft);
+
+  /* Text */
+  --text-primary: var(--grey-9);
+  --text-secondary: var(--grey-7);
+  --text-tertiary: var(--grey-6);
+  --text-on-accent: var(--accent-contrast);
+
+  /* Lines. One hairline weight everywhere; DiskMate separates with space. */
+  --line: rgba(0, 0, 0, 0.09);
+  --line-strong: rgba(0, 0, 0, 0.16);
+
+  /* Category colours. Muted, distinguishable, and stable across appearances. */
+  --cat-applications: #5b7cc4;
+  --cat-documents: #6fa38a;
+  --cat-media: #b08bc4;
+  --cat-downloads: #c9a15c;
+  --cat-developer: #7d8fa8;
+  --cat-caches: #9aa0ab;
+  --cat-system: #8d8d99;
+  --cat-other: #b9bcc4;
+  --cat-unknown: #c8cad1;
+
+  /* Status. Used for text and small marks only, never as a full-bleed alarm. */
+  --status-info: #2f6fd0;
+  --status-caution: #a8762a;
+  --status-serious: #b04a3e;
+
+  /* Typography: the system UI face, which is SF on macOS. */
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", system-ui,
+    sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 15px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --text-2xl: 34px;
+
+  /* Spacing, on a 4px grid. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Depth is almost absent by design: one soft shadow, used sparingly. */
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.05), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+
+  --duration-fast: 110ms;
+  --duration-base: 180ms;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-appearance="light"]) {
+    color-scheme: dark;
+
+    --grey-0: #1c1c1f;
+    --grey-1: #212125;
+    --grey-2: #26262b;
+    --grey-3: #2e2e34;
+    --grey-4: #3a3a42;
+    --grey-5: #4d4d57;
+    --grey-6: #7c7c88;
+    --grey-7: #a2a2ad;
+    --grey-8: #cfcfd6;
+    --grey-9: #f2f2f5;
+
+    --accent: #62a0f0;
+    --accent-strong: #7db2f6;
+    --accent-soft: #1e2c41;
+    --accent-contrast: #10131a;
+
+    --surface-window: #191a1d;
+    --surface-sidebar: rgba(33, 33, 37, 0.86);
+    --surface-panel: var(--grey-1);
+    --surface-raised: var(--grey-2);
+    --surface-sunken: #161619;
+    --surface-hover: rgba(255, 255, 255, 0.05);
+    --surface-selected: var(--accent-soft);
+
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.17);
+
+    --status-caution: #d2a052;
+    --status-serious: #e07a6c;
+
+    --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* Explicit override, so a future appearance preference wins in both directions. */
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+
+  --grey-0: #1c1c1f;
+  --grey-1: #212125;
+  --grey-2: #26262b;
+  --grey-3: #2e2e34;
+  --grey-4: #3a3a42;
+  --grey-5: #4d4d57;
+  --grey-6: #7c7c88;
+  --grey-7: #a2a2ad;
+  --grey-8: #cfcfd6;
+  --grey-9: #f2f2f5;
+
+  --accent: #62a0f0;
+  --accent-strong: #7db2f6;
+  --accent-soft: #1e2c41;
+  --accent-contrast: #10131a;
+
+  --surface-window: #191a1d;
+  --surface-sidebar: rgba(33, 33, 37, 0.86);
+  --surface-panel: var(--grey-1);
+  --surface-raised: var(--grey-2);
+  --surface-sunken: #161619;
+  --surface-hover: rgba(255, 255, 255, 0.05);
+  --surface-selected: var(--accent-soft);
+
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.17);
+
+  --status-caution: #d2a052;
+  --status-serious: #e07a6c;
+
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+}

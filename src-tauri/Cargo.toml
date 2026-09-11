@@ -1,0 +1,29 @@
+[package]
+name = "diskmate"
+description = "DiskMate - storage and system-resource manager for macOS"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "diskmate_app"
+# `cdylib` is required for mobile targets, `rlib` so integration tests and the
+# binary can both link the app.
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+diskmate-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+
+[features]
+# Enabled by `tauri dev`/`tauri build`; keeps the custom protocol available.
+custom-protocol = ["tauri/custom-protocol"]

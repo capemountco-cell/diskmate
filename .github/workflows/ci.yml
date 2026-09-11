@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  # Pushes to a branch with an open pull request are already covered by the
+  # `pull_request` trigger. Listening to both meant every commit produced two
+  # identical runs, which doubled the Mac runner time and made a single failure
+  # look like two.
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+# Supersede in-flight runs for the same ref. Without this a quick follow-up
+# commit leaves the previous run grinding through a full macOS build only to
+# report on code nobody is looking at any more.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  engine:
+    name: Engine (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      # The engine has no Tauri dependency, so it lints and tests on Linux with
+      # a real platform implementation rather than a stub.
+      - name: Clippy
+        run: cargo clippy -p diskmate-core --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test -p diskmate-core --release
+
+      # The macOS build is the one thing Linux cannot produce. This lints the
+      # part of it that is pure Rust - libc bindings, statfs fields, the Mach VM
+      # structures, plist parsing - with the same `-D warnings` the macOS job
+      # uses, so a mistake there does not wait for a Mac.
+      - name: Lint the macOS platform code
+        run: ./scripts/check-macos-target.sh
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build:web
+
+  macos:
+    name: App (macOS)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Clippy (whole workspace, including the Tauri adapter)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace --release
+
+      # Unsigned on purpose: no Apple Developer Program membership is used in
+      # this phase, and development is not blocked waiting for a certificate.
+      - name: Build DiskMate.app and DiskMate.dmg
+        run: npm run tauri -- build --bundles app dmg
+
+      # The runner is Apple silicon, so the artifact name says so. An Intel Mac
+      # needs a local `./scripts/build-dmg.sh --universal` build instead.
+      # Locate the image rather than assuming where it lands, and say where we
+      # looked if it is not there. A silent path assumption is what broke this
+      # step the first time the build actually succeeded.
+      - name: Name the disk image
+        run: |
+          dmg="$(find target/release/bundle/dmg -name 'DiskMate_*.dmg' -print -quit 2>/dev/null || true)"
+          if [ -z "$dmg" ]; then
+            echo "::error::the build produced no .dmg; contents of target/release/bundle:"
+            ls -R target/release/bundle || true
+            exit 1
+          fi
+          mv "$dmg" target/release/bundle/dmg/DiskMate.dmg
+          shasum -a 256 target/release/bundle/dmg/DiskMate.dmg
+
+      - name: Upload DiskMate.dmg
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiskMate-dmg-unsigned-arm64
+          path: target/release/bundle/dmg/DiskMate.dmg
+          if-no-files-found: error
+
+      - name: Upload DiskMate.app
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiskMate-app-unsigned-arm64
+          path: target/release/bundle/macos/DiskMate.app
+          if-no-files-found: error
