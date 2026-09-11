@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = ["crates/diskmate-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT"
+repository = "https://github.com/capemountco-cell/diskmate"
+authors = ["DiskMate"]
+
+[workspace.dependencies]
+diskmate-core = { path = "crates/diskmate-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Scanning is I/O and syscall bound; a debug scanner is unusably slow, so give
+# dependencies (and our own code under `bench`) real optimisation while testing.
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.bench]
+inherits = "release"
+debug = true
+strip = false
