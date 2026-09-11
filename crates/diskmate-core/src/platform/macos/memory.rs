@@ -12,12 +12,14 @@
 //! almost no "free" memory and normal pressure is a Mac working correctly, and
 //! DiskMate says so instead of offering to fix it.
 
+use std::ffi::CStr;
+
 use crate::error::{CoreError, Result};
 use crate::model::{MemoryPressure, MemorySnapshot};
 
 pub fn snapshot() -> Result<MemorySnapshot> {
     let page_size = page_size();
-    let total = sysctl_u64(b"hw.memsize\0")
+    let total = sysctl_u64(c"hw.memsize")
         .ok_or_else(|| CoreError::invalid("hw.memsize is unavailable"))? as i64;
     let vm = vm_statistics()?;
 
@@ -124,13 +126,14 @@ fn vm_statistics() -> Result<VmStatistics64> {
     Ok(stats)
 }
 
-fn sysctl_u64(name: &[u8]) -> Option<u64> {
+fn sysctl_u64(name: &CStr) -> Option<u64> {
     let mut value: u64 = 0;
     let mut size = std::mem::size_of::<u64>();
-    // SAFETY: `name` is NUL-terminated, and the output buffer matches `size`.
+    // SAFETY: `CStr` guarantees NUL termination, and the output buffer matches
+    // the size handed to the kernel.
     let status = unsafe {
         libc::sysctlbyname(
-            name.as_ptr() as *const libc::c_char,
+            name.as_ptr(),
             &mut value as *mut u64 as *mut libc::c_void,
             &mut size,
             std::ptr::null_mut(),
@@ -158,7 +161,7 @@ fn swap_usage() -> (Option<i64>, Option<i64>) {
     // `vm.swapusage`.
     let status = unsafe {
         libc::sysctlbyname(
-            b"vm.swapusage\0".as_ptr() as *const libc::c_char,
+            c"vm.swapusage".as_ptr(),
             &mut usage as *mut XswUsage as *mut libc::c_void,
             &mut size,
             std::ptr::null_mut(),
@@ -174,7 +177,7 @@ fn swap_usage() -> (Option<i64>, Option<i64>) {
 /// macOS publishes its own pressure level. DiskMate reports that value rather
 /// than deriving one, so the app and Activity Monitor never disagree.
 fn pressure_level() -> MemoryPressure {
-    match sysctl_u64(b"kern.memorystatus_vm_pressure_level\0") {
+    match sysctl_u64(c"kern.memorystatus_vm_pressure_level") {
         Some(1) => MemoryPressure::Normal,
         Some(2) => MemoryPressure::Warning,
         Some(4) => MemoryPressure::Critical,

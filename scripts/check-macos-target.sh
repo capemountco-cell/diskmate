@@ -11,10 +11,19 @@
 #
 # So this assembles a scratch crate that compiles the real
 # `src/platform/macos/*.rs` files with stand-ins for the parts of the engine
-# that pull in SQLite, and checks that for aarch64-apple-darwin.
+# that pull in SQLite, and lints that for aarch64-apple-darwin.
+#
+# It runs clippy with warnings denied rather than a plain `cargo check`, because
+# the macOS CI job does, and a lint that only fires on files Linux never
+# compiles is exactly the failure this script is for.
 #
 # It is not a substitute for building on a Mac. It catches the class of mistake
 # that is otherwise invisible until someone opens the project on one.
+#
+# Keep your toolchain current before trusting a pass: clippy gains lints with
+# each release, and CI uses whatever `stable` is on the day. A local toolchain
+# several releases behind will report clean on code CI rejects.
+#   rustup update stable
 #
 set -euo pipefail
 
@@ -26,6 +35,11 @@ TARGET="${1:-aarch64-apple-darwin}"
 if ! rustup target list --installed | grep -qx "$TARGET"; then
   echo "==> Installing the $TARGET standard library"
   rustup target add "$TARGET"
+fi
+
+if ! cargo clippy --version >/dev/null 2>&1; then
+  echo "error: clippy is not installed. Run: rustup component add clippy" >&2
+  exit 1
 fi
 
 WORK="$(mktemp -d)"
@@ -118,10 +132,10 @@ pub mod platform {
 }
 EOF
 
-echo "==> Type-checking src/platform/macos for $TARGET"
+echo "==> Linting src/platform/macos for $TARGET"
 cd "$WORK"
-cargo check --target "$TARGET"
+cargo clippy --target "$TARGET" --all-targets -- -D warnings
 
 echo
-echo "macOS platform code type-checks for $TARGET."
+echo "macOS platform code type-checks and lints clean for $TARGET."
 echo "Building the app itself still requires a Mac with the Xcode Command Line Tools."

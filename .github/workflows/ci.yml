@@ -33,10 +33,11 @@ jobs:
       - name: Tests
         run: cargo test -p diskmate-core --release
 
-      # The macOS build is the one thing Linux cannot produce. This checks the
+      # The macOS build is the one thing Linux cannot produce. This lints the
       # part of it that is pure Rust - libc bindings, statfs fields, the Mach VM
-      # structures, plist parsing - so a mistake there does not wait for a Mac.
-      - name: Type-check the macOS platform code
+      # structures, plist parsing - with the same `-D warnings` the macOS job
+      # uses, so a mistake there does not wait for a Mac.
+      - name: Lint the macOS platform code
         run: ./scripts/check-macos-target.sh
 
   frontend:

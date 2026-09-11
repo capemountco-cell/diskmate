@@ -103,11 +103,14 @@ pub fn volumes() -> Result<Vec<VolumeInfo>> {
             continue;
         }
 
+        // Three independent signals for the same thing: the kernel says the
+        // volume is removable, the kernel says it is not local storage, or it
+        // is mounted where macOS mounts everything that is not the boot disk.
+        let external =
+            mount.is_removable || !mount.is_local || mount.mount_point.starts_with("/Volumes/");
         let kind = if NETWORK_FS.contains(&mount.fs_type.as_str()) {
             VolumeKind::Network
-        } else if mount.is_removable || !mount.is_local {
-            VolumeKind::External
-        } else if mount.mount_point.starts_with("/Volumes/") {
+        } else if external {
             VolumeKind::External
         } else {
             VolumeKind::Internal
