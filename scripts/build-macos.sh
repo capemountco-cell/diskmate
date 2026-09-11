@@ -69,5 +69,6 @@ echo
 echo "Built $APP"
 echo "  size $(du -sh "$APP" | cut -f1)"
 echo
-echo "This bundle is unsigned. The first launch needs Finder's right-click >"
-echo "Open, because double-clicking an unsigned app is refused by Gatekeeper."
+echo "This bundle is unsigned, but you built it here, so macOS did not"
+echo "quarantine it: drag it to /Applications and open it normally."
+echo "A copy you send elsewhere will need the steps in INSTALL.md."

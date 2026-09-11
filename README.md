@@ -64,6 +64,7 @@ npm run build                 # DiskMate.app and DiskMate.dmg
 ```
 
 The built artefacts land under `src-tauri/target/release/bundle/`.
+See [INSTALL.md](INSTALL.md) for a step-by-step walkthrough.
 
 ## How it is put together
 
@@ -92,6 +93,7 @@ as "the hundred largest immediate children of this folder".
 
 Further reading:
 
+- [INSTALL.md](INSTALL.md) — installing it on a Mac, step by step
 - [ARCHITECTURE.md](ARCHITECTURE.md) — the layers and why they are separated
 - [docs/scanner.md](docs/scanner.md) — traversal, aggregation, and measurements
 - [docs/database.md](docs/database.md) — schema and the reasoning behind it
@@ -111,8 +113,9 @@ Your files are none of our business.
 ## Known limitations
 
 - **Unsigned builds.** No Apple Developer Program membership is used in this
-  phase, so the app is not signed or notarized. The first launch needs Finder's
-  right-click → Open. See [docs/permissions.md](docs/permissions.md).
+  phase, so the app is not signed or notarized. A build you made yourself opens
+  normally; one you downloaded needs a one-time approval in System Settings.
+  See [INSTALL.md](INSTALL.md).
 - **Full Disk Access.** Without it macOS hides parts of the disk from every app,
   DiskMate included. Folders it cannot read are reported as *not readable*
   rather than counted as empty, and the totals say what was left out. Choosing a

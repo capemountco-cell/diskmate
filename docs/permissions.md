@@ -79,21 +79,32 @@ misleadingly small size of its own), and allows a scan of `/` to cross onto the
 data volume while skipping every *other* mount. Treating a device change as a
 hard boundary would report a Mac as using ten gigabytes.
 
-## Signing and notarization
+## Opening an unsigned build
 
 Builds in this phase are **unsigned and un-notarized**. No Apple Developer
 Program membership is used, which is a deliberate decision for the initial
 product rather than an oversight.
 
-What that means for someone running a build:
+What happens on first launch depends on where the app came from, because macOS
+only applies Gatekeeper's quarantine to files that arrived from elsewhere.
 
-- Double-clicking the app is refused by Gatekeeper. The first launch needs
-  Finder's right-click → **Open**, then **Open** in the dialog. After that it
-  opens normally.
-- A `.dmg` downloaded through a browser carries the quarantine attribute, which
-  makes the same dialog appear. `xattr -d com.apple.quarantine /path/to/DiskMate.app`
-  removes it for someone who prefers that.
-- Full Disk Access can still be granted to an unsigned app.
+**Built on the machine you are running it on.** Nothing special happens. There
+is no quarantine attribute, so DiskMate opens on a double-click like any other
+application.
+
+**Downloaded** — a `.dmg` from a browser, or a CI artifact zip. The file carries
+`com.apple.quarantine`, and the first launch is refused with "Apple could not
+verify DiskMate is free of malware".
+
+| macOS | How to open it |
+| --- | --- |
+| 15 Sequoia and later | Double-click and let it be refused. Then System Settings → Privacy & Security → scroll to Security → **Open Anyway**, and authenticate. The older right-click → Open bypass no longer works. |
+| 14 Sonoma and earlier | Right-click the app → **Open** → **Open**. |
+| Any version | `xattr -dr com.apple.quarantine /Applications/DiskMate.app` removes the attribute directly, if you prefer the terminal. |
+
+Either way it is a once-per-copy step. After that DiskMate opens normally.
+
+Full Disk Access can still be granted to an unsigned app.
 
 When a Developer ID is available, `scripts/build-macos.sh` and
 `scripts/build-dmg.sh` are where signing and notarization slot in. Nothing else

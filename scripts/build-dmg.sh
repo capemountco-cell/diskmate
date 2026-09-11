@@ -49,5 +49,6 @@ echo "Built $FINAL"
 echo "  size   $(du -sh "$FINAL" | cut -f1)"
 echo "  sha256 $(shasum -a 256 "$FINAL" | cut -d' ' -f1)"
 echo
-echo "Unsigned and un-notarized. Anyone opening it will need Finder's"
-echo "right-click > Open on first launch. See docs/permissions.md."
+echo "Unsigned and un-notarized. Opening it on the machine that built it is"
+echo "normal; anyone who downloads it needs a one-time approval in System"
+echo "Settings > Privacy & Security. See INSTALL.md."
