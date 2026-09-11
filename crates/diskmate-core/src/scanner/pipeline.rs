@@ -65,8 +65,21 @@ pub fn run_scan(
     database_path: Option<&std::path::Path>,
     progress: ProgressSink<'_>,
 ) -> Result<(Connection, ScanSummary)> {
-    let options = &request.options;
     let started = Instant::now();
+
+    // Resolve the root once, here, and use the resolved form everywhere.
+    //
+    // The walker canonicalises too, so without this the scan row would record
+    // the path the caller typed while the root entry recorded the path the
+    // filesystem resolved it to. On macOS those differ for anything under
+    // `/tmp` or `/var`, both of which are symlinks into `/private`, and a later
+    // `latest_scan_for_root` would fail to find the scan it had just written.
+    let mut options = request.options.clone();
+    options.root = options
+        .root
+        .canonicalize()
+        .map_err(|e| crate::CoreError::io(&options.root, e))?;
+    let options = &options;
 
     let options_json = serde_json::to_string(options).unwrap_or_else(|_| "{}".into());
     let root_display = options.root.to_string_lossy().into_owned();

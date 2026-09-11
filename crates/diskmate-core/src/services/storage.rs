@@ -216,9 +216,13 @@ impl StorageService {
     }
 
     /// The most recent usable scan for a root, if one exists.
+    ///
+    /// Resolved the same way the scanner resolves it, so that a volume reached
+    /// through a symlink finds the scan that was stored under the real path.
     pub fn latest_scan(&self, root: &Path) -> Result<Option<ScanSummary>> {
-        let root = root.to_string_lossy().into_owned();
-        self.with_conn(|conn| StorageQueries::latest_scan_for_root(conn, &root))
+        let resolved = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+        let resolved = resolved.to_string_lossy().into_owned();
+        self.with_conn(|conn| StorageQueries::latest_scan_for_root(conn, &resolved))
     }
 
     pub fn recent_scans(&self, limit: u32) -> Result<Vec<ScanSummary>> {

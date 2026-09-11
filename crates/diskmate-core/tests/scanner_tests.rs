@@ -233,15 +233,28 @@ fn unusual_and_unicode_filenames_survive_indexing() {
 
 #[cfg(unix)]
 #[test]
-fn a_filename_that_is_not_valid_utf8_is_still_indexed() {
+fn a_filename_that_is_not_valid_utf8_is_indexed_where_the_filesystem_allows_one() {
     use std::ffi::OsStr;
     use std::os::unix::ffi::OsStrExt;
 
     let harness = Harness::new();
-    // 0xFF is never valid UTF-8. The file is real and takes real space, so
-    // dropping it would under-report the volume.
+    // 0xFF is never valid UTF-8. Linux filenames are arbitrary bytes, so this
+    // file can exist; APFS and HFS+ enforce valid UTF-8 and refuse it outright.
     let raw = OsStr::from_bytes(b"broken-\xFF-name.bin");
-    std::fs::write(harness.tree.join(raw), vec![b'x'; 321]).unwrap();
+    let created = std::fs::write(harness.tree.join(raw), vec![b'x'; 321]);
+
+    if let Err(error) = created {
+        // The filesystem rejected the name. Assert that is what happened rather
+        // than passing quietly, so this stays a statement about the platform.
+        assert_eq!(
+            error.raw_os_error(),
+            Some(libc::EILSEQ),
+            "a name should only ever be refused for being an illegal byte \
+             sequence, which is APFS and HFS+ enforcing valid UTF-8; any other \
+             error means something else went wrong"
+        );
+        return;
+    }
 
     let summary = harness.scan();
 
@@ -250,7 +263,7 @@ fn a_filename_that_is_not_valid_utf8_is_still_indexed() {
     let children = harness.root_children(summary.scan_id);
     assert!(
         children[0].name.contains('\u{FFFD}'),
-        "name is stored lossily, not dropped"
+        "the name is stored lossily rather than the entry being dropped"
     );
 }
 
@@ -696,4 +709,43 @@ fn a_directory_reports_its_subtree_total_while_a_file_reports_itself() {
             .size,
         300
     );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_root_reached_through_a_symlink_resolves_consistently() {
+    // Reproduces the macOS layout on any platform: there, `/tmp` and `/var` are
+    // symlinks into `/private`, so a scan root typed one way resolves another.
+    // The scan row, the root entry and the lookup must all agree, or the app
+    // rescans every launch because it cannot find the index it just wrote.
+    let harness = Harness::new();
+    file(&harness.tree, "payload.bin", 4_096);
+
+    let link_parent = tempfile::tempdir().unwrap();
+    let link = link_parent.path().join("alias");
+    symlink(&harness.tree, &link);
+
+    let mut options = harness.options();
+    options.root = link.clone();
+    let summary = harness.scan_with(options);
+
+    let real_root = harness.tree.to_string_lossy().into_owned();
+    assert_eq!(
+        summary.root_path, real_root,
+        "the scan row records the resolved path"
+    );
+
+    let root = harness.service.snapshot(summary.scan_id).unwrap().root;
+    assert_eq!(root.path, real_root, "and so does the root entry");
+    assert_eq!(root.size, 4_096);
+
+    // Both spellings must find the same scan.
+    for spelling in [&harness.tree, &link] {
+        let found = harness
+            .service
+            .latest_scan(spelling)
+            .unwrap()
+            .unwrap_or_else(|| panic!("no scan found for {}", spelling.display()));
+        assert_eq!(found.scan_id, summary.scan_id);
+    }
 }

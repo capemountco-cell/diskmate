@@ -31,9 +31,14 @@ impl Harness {
         let paths =
             AppPaths::resolve(None, Some(data.path().join("state"))).expect("resolve app paths");
         let service = StorageService::new(paths).expect("open index");
+        // Canonicalised, because the scanner canonicalises its root and macOS
+        // hands out temp directories under `/var`, which is a symlink to
+        // `/private/var`. Without this the tests compare two spellings of one
+        // path, and only notice on a Mac.
+        let tree_path = tree.path().canonicalize().expect("canonicalise tree");
         Self {
             service,
-            tree: tree.path().to_path_buf(),
+            tree: tree_path,
             _data: data,
             _tree: tree,
         }
