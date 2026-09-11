@@ -36,9 +36,7 @@ export function ScanStatusBar({
         <span>{formatBytes(progress?.bytesIndexed ?? 0)} indexed</span>
         <span>{formatDuration(progress?.elapsedMs ?? 0)}</span>
         {progress && progress.entriesPerSecond > 0 && (
-          <span className="faint">
-            {formatCount(progress.entriesPerSecond)} entries/second
-          </span>
+          <span className="faint">{formatCount(progress.entriesPerSecond)} entries/second</span>
         )}
         {progress && progress.errors > 0 && (
           <span className="faint">{formatCount(progress.errors)} skipped</span>

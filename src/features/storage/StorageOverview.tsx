@@ -120,7 +120,10 @@ function TopList({
                       {row.name}
                     </span>
                   </div>
-                  <div className="faint table__name-text" style={{ fontSize: "var(--text-xs)" }}>
+                  <div
+                    className="faint table__name-text"
+                    style={{ fontSize: "var(--text-xs)" }}
+                  >
                     {parentOf(row.path)}
                   </div>
                 </td>

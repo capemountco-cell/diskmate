@@ -27,7 +27,11 @@ export function EntryTable({
   emptyMessage: string;
 }) {
   if (rows.length === 0) {
-    return <p className="muted" style={{ padding: "var(--space-5)" }}>{emptyMessage}</p>;
+    return (
+      <p className="muted" style={{ padding: "var(--space-5)" }}>
+        {emptyMessage}
+      </p>
+    );
   }
 
   return (
@@ -35,10 +39,30 @@ export function EntryTable({
       <table className="table">
         <thead>
           <tr>
-            <SortableHeader label="Name" column="name" sort={sort} direction={direction} onSort={onSort} />
-            <SortableHeader label="Size" column="size" sort={sort} direction={direction} onSort={onSort} numeric />
+            <SortableHeader
+              label="Name"
+              column="name"
+              sort={sort}
+              direction={direction}
+              onSort={onSort}
+            />
+            <SortableHeader
+              label="Size"
+              column="size"
+              sort={sort}
+              direction={direction}
+              onSort={onSort}
+              numeric
+            />
             <th className="table__numeric">Share</th>
-            <SortableHeader label="Items" column="items" sort={sort} direction={direction} onSort={onSort} numeric />
+            <SortableHeader
+              label="Items"
+              column="items"
+              sort={sort}
+              direction={direction}
+              onSort={onSort}
+              numeric
+            />
             <SortableHeader
               label="Modified"
               column="modified"

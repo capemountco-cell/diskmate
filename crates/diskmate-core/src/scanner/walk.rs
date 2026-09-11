@@ -32,9 +32,7 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use crossbeam_channel::Sender;
 
-use crate::model::{
-    Category, EntryKind, EntryRecord, ScanError, ScanErrorKind, ScanOptions,
-};
+use crate::model::{Category, EntryKind, EntryRecord, ScanError, ScanErrorKind, ScanOptions};
 
 use super::aggregate::{DirIndex, DirListing};
 use super::cancel::CancellationToken;
@@ -82,7 +80,11 @@ struct QueueState {
 impl WorkQueue {
     fn new() -> Self {
         Self {
-            inner: Mutex::new(QueueState { stack: Vec::new(), active: 0, shutdown: false }),
+            inner: Mutex::new(QueueState {
+                stack: Vec::new(),
+                active: 0,
+                shutdown: false,
+            }),
             ready: Condvar::new(),
         }
     }
@@ -200,8 +202,7 @@ pub fn start(
         .root
         .canonicalize()
         .map_err(|e| crate::CoreError::io(&options.root, e))?;
-    let metadata =
-        std::fs::symlink_metadata(&root).map_err(|e| crate::CoreError::io(&root, e))?;
+    let metadata = std::fs::symlink_metadata(&root).map_err(|e| crate::CoreError::io(&root, e))?;
     if !metadata.is_dir() {
         return Err(crate::CoreError::NotADirectory(root));
     }
@@ -212,8 +213,7 @@ pub fn start(
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| root_path.clone());
-    let root_category =
-        crate::model::classify_directory(&root_name, &root_path, Category::Unknown);
+    let root_category = crate::model::classify_directory(&root_name, &root_path, Category::Unknown);
 
     let root_record = build_record(
         root_entry_id,
@@ -269,7 +269,11 @@ pub fn start(
     // worker, which is how the consumer learns the walk is over.
     drop(shared);
 
-    Ok(WalkHandle { root_record, root_index: 0, workers })
+    Ok(WalkHandle {
+        root_record,
+        root_index: 0,
+        workers,
+    })
 }
 
 fn worker_loop(shared: Arc<WalkShared>) {
@@ -291,7 +295,9 @@ fn worker_loop(shared: Arc<WalkShared>) {
 /// Read one directory and emit its batch. Returns the child directories to
 /// enqueue.
 fn read_directory(shared: &Arc<WalkShared>, task: &DirTask) -> Vec<DirTask> {
-    shared.counters.set_current_path(&task.path.to_string_lossy());
+    shared
+        .counters
+        .set_current_path(&task.path.to_string_lossy());
 
     let read_dir = match std::fs::read_dir(&task.path) {
         Ok(iter) => iter,
@@ -424,8 +430,12 @@ fn read_directory(shared: &Arc<WalkShared>, task: &DirTask) -> Vec<DirTask> {
     // Ids are handed out in one block per directory rather than one at a time,
     // so a scan costs two atomic increments per directory instead of one per
     // entry.
-    let first_id = shared.next_entry_id.fetch_add(staged.len() as i64, Ordering::Relaxed);
-    let first_dir_index = shared.next_dir_index.fetch_add(child_dirs, Ordering::Relaxed);
+    let first_id = shared
+        .next_entry_id
+        .fetch_add(staged.len() as i64, Ordering::Relaxed);
+    let first_dir_index = shared
+        .next_dir_index
+        .fetch_add(child_dirs, Ordering::Relaxed);
 
     let mut entries = Vec::with_capacity(staged.len());
     let mut next_tasks = Vec::with_capacity(child_dirs as usize);
@@ -438,8 +448,8 @@ fn read_directory(shared: &Arc<WalkShared>, task: &DirTask) -> Vec<DirTask> {
     for (offset, item) in staged.into_iter().enumerate() {
         let id = first_id + offset as i64;
         let child_path = task.path.join(&item.name);
-        let path = (item.kind == EntryKind::Directory)
-            .then(|| child_path.to_string_lossy().into_owned());
+        let path =
+            (item.kind == EntryKind::Directory).then(|| child_path.to_string_lossy().into_owned());
 
         match item.kind {
             EntryKind::File => files += 1,
@@ -477,12 +487,24 @@ fn read_directory(shared: &Arc<WalkShared>, task: &DirTask) -> Vec<DirTask> {
     shared.counters.files.fetch_add(files, Ordering::Relaxed);
     // The root counted itself at start-up; here we count directories we will
     // actually descend into plus the ones we recorded but skipped.
-    shared.counters.directories.fetch_add(dirs, Ordering::Relaxed);
-    shared.counters.symlinks.fetch_add(symlinks, Ordering::Relaxed);
+    shared
+        .counters
+        .directories
+        .fetch_add(dirs, Ordering::Relaxed);
+    shared
+        .counters
+        .symlinks
+        .fetch_add(symlinks, Ordering::Relaxed);
     shared.counters.others.fetch_add(others, Ordering::Relaxed);
-    shared.counters.bytes.fetch_add(own_logical.max(0) as u64, Ordering::Relaxed);
+    shared
+        .counters
+        .bytes
+        .fetch_add(own_logical.max(0) as u64, Ordering::Relaxed);
     if !errors.is_empty() {
-        shared.counters.errors.fetch_add(errors.len() as u64, Ordering::Relaxed);
+        shared
+            .counters
+            .errors
+            .fetch_add(errors.len() as u64, Ordering::Relaxed);
     }
 
     send(

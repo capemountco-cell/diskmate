@@ -12,15 +12,8 @@ import { useStorage } from "./useStorage";
 
 export function StoragePage() {
   const storage = useStorage();
-  const {
-    snapshot,
-    phase,
-    selectedVolume,
-    currentDirectory,
-    ancestors,
-    children,
-    childTotal,
-  } = storage;
+  const { snapshot, phase, selectedVolume, currentDirectory, ancestors, children, childTotal } =
+    storage;
 
   if (!engineAvailable()) {
     return (
@@ -103,11 +96,7 @@ export function StoragePage() {
           {atRoot ? (
             <>
               <StorageOverview snapshot={snapshot} onOpen={storage.openDirectory} />
-              <Panel
-                title="Browse"
-                note="Double-click a folder to look inside."
-                flush
-              >
+              <Panel title="Browse" note="Double-click a folder to look inside." flush>
                 <ExplorerBody storage={storage} rows={children} total={childTotal} />
               </Panel>
             </>
@@ -146,8 +135,8 @@ function ExplorerBody({
   if (directory && !directory.accessible) {
     return (
       <p className="muted" style={{ padding: "var(--space-5)" }}>
-        DiskMate could not read inside this folder, so its contents are not in the index. This is
-        not the same as the folder being empty.
+        DiskMate could not read inside this folder, so its contents are not in the index. This
+        is not the same as the folder being empty.
       </p>
     );
   }

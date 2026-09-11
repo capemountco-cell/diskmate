@@ -61,9 +61,21 @@ fn parse_args() -> Config {
             args.get(*index).cloned()
         };
         match args[index].as_str() {
-            "--files" => config.files = take(&mut index).and_then(|v| v.parse().ok()).unwrap_or(config.files),
-            "--dirs" => config.dirs = take(&mut index).and_then(|v| v.parse().ok()).unwrap_or(config.dirs),
-            "--depth" => config.depth = take(&mut index).and_then(|v| v.parse().ok()).unwrap_or(config.depth),
+            "--files" => {
+                config.files = take(&mut index)
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(config.files)
+            }
+            "--dirs" => {
+                config.dirs = take(&mut index)
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(config.dirs)
+            }
+            "--depth" => {
+                config.depth = take(&mut index)
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(config.depth)
+            }
             "--threads" => {
                 if let Some(value) = take(&mut index) {
                     config.threads = value.split(',').filter_map(|v| v.parse().ok()).collect();
@@ -92,7 +104,9 @@ fn main() {
         diskmate_core::ENGINE_VERSION,
         std::env::consts::OS,
         std::env::consts::ARCH,
-        std::thread::available_parallelism().map(|n| n.get()).unwrap_or(0),
+        std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(0),
     );
 
     let (tree, _keep_alive) = match &config.path {
@@ -116,7 +130,15 @@ fn main() {
 
     println!(
         "\n{:<8} {:>7} {:>7} {:>12} {:>12} {:>12} {:>10} {:>10} {:>8}",
-        "label", "threads", "batch", "entries", "duration", "entries/s", "indexed", "index db", "errors"
+        "label",
+        "threads",
+        "batch",
+        "entries",
+        "duration",
+        "entries/s",
+        "indexed",
+        "index db",
+        "errors"
     );
 
     for &threads in &config.threads {
@@ -147,8 +169,7 @@ fn measure(tree: &Path, threads: usize, batch_size: usize) -> ScanSummary {
     // Each run gets its own index so one run never reads another's page cache
     // or pays for another's rows.
     let data = tempfile::tempdir().expect("temp data");
-    let paths =
-        AppPaths::resolve(None, Some(data.path().join("state"))).expect("resolve paths");
+    let paths = AppPaths::resolve(None, Some(data.path().join("state"))).expect("resolve paths");
     let service = StorageService::new(paths).expect("open index");
 
     let mut options = ScanOptions::new(tree);
@@ -170,7 +191,11 @@ fn build_tree(root: &Path, files: usize, dirs: usize, depth: usize) {
     while directories.len() < dirs {
         let parent = directories[index % directories.len()].clone();
         let level = parent.components().count() - root.components().count();
-        let target = if level >= depth { root.to_path_buf() } else { parent };
+        let target = if level >= depth {
+            root.to_path_buf()
+        } else {
+            parent
+        };
         let child = target.join(format!("dir-{:05}", directories.len()));
         std::fs::create_dir_all(&child).expect("create dir");
         directories.push(child);

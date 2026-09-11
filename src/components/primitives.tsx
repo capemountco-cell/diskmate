@@ -61,7 +61,9 @@ export function Button({
   variant = "default",
   children,
   ...props
-}: { variant?: "default" | "primary" | "quiet" } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+}: {
+  variant?: "default" | "primary" | "quiet";
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const className = ["button", variant !== "default" ? `button--${variant}` : ""]
     .filter(Boolean)
     .join(" ");
@@ -118,5 +120,7 @@ export function Badge({
   tone?: "neutral" | "accent" | "caution";
   children: ReactNode;
 }) {
-  return <span className={tone === "neutral" ? "badge" : `badge badge--${tone}`}>{children}</span>;
+  return (
+    <span className={tone === "neutral" ? "badge" : `badge badge--${tone}`}>{children}</span>
+  );
 }

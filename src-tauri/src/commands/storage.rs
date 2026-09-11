@@ -93,7 +93,10 @@ pub fn entry_ancestors(
     scan_id: i64,
     entry_id: i64,
 ) -> CommandResult<Vec<EntryRow>> {
-    state.storage.ancestors(scan_id, entry_id).map_err(to_command_error)
+    state
+        .storage
+        .ancestors(scan_id, entry_id)
+        .map_err(to_command_error)
 }
 
 #[tauri::command]
@@ -102,7 +105,10 @@ pub fn directory_by_path(
     scan_id: i64,
     path: String,
 ) -> CommandResult<Option<EntryRow>> {
-    state.storage.directory_by_path(scan_id, &path).map_err(to_command_error)
+    state
+        .storage
+        .directory_by_path(scan_id, &path)
+        .map_err(to_command_error)
 }
 
 #[tauri::command]
@@ -111,5 +117,8 @@ pub fn scan_errors(
     scan_id: i64,
     limit: u32,
 ) -> CommandResult<Vec<ScanError>> {
-    state.storage.scan_errors(scan_id, limit).map_err(to_command_error)
+    state
+        .storage
+        .scan_errors(scan_id, limit)
+        .map_err(to_command_error)
 }

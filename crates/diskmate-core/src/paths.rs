@@ -70,7 +70,10 @@ impl AppPaths {
     /// Resolve paths using the running executable's location.
     pub fn discover() -> Result<Self> {
         let exe = std::env::current_exe().ok();
-        Self::resolve(exe.as_deref(), std::env::var_os(DATA_DIR_ENV).map(PathBuf::from))
+        Self::resolve(
+            exe.as_deref(),
+            std::env::var_os(DATA_DIR_ENV).map(PathBuf::from),
+        )
     }
 
     /// Resolve paths from explicit inputs. Split out from [`Self::discover`] so
@@ -109,7 +112,13 @@ impl AppPaths {
         std::fs::create_dir_all(&data_dir).map_err(|e| CoreError::io(&data_dir, e))?;
         std::fs::create_dir_all(&logs_dir).map_err(|e| CoreError::io(&logs_dir, e))?;
         let database = data_dir.join(DB_FILE_NAME);
-        Ok(Self { kind, data_dir, logs_dir, database, portable_fallback_reason })
+        Ok(Self {
+            kind,
+            data_dir,
+            logs_dir,
+            database,
+            portable_fallback_reason,
+        })
     }
 
     pub fn is_portable(&self) -> bool {
@@ -137,7 +146,10 @@ fn portable_root(executable: &Path) -> Option<PathBuf> {
 #[cfg(target_os = "macos")]
 fn installed_data_dir() -> Result<PathBuf> {
     let home = home_dir()?;
-    Ok(home.join("Library").join("Application Support").join(APP_DIR_NAME))
+    Ok(home
+        .join("Library")
+        .join("Application Support")
+        .join(APP_DIR_NAME))
 }
 
 #[cfg(not(target_os = "macos"))]

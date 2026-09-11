@@ -52,7 +52,9 @@ fn read_mounts() -> Result<Vec<Mount>> {
     // returns the element count. We only read within that count and copy out.
     let count = unsafe { libc::getmntinfo(&mut raw, libc::MNT_NOWAIT) };
     if count <= 0 || raw.is_null() {
-        return Err(CoreError::invalid("getmntinfo returned no mounted filesystems"));
+        return Err(CoreError::invalid(
+            "getmntinfo returned no mounted filesystems",
+        ));
     }
     // SAFETY: bounded by the count libc just reported.
     let slice = unsafe { std::slice::from_raw_parts(raw, count as usize) };
@@ -170,7 +172,9 @@ pub fn volumes() -> Result<Vec<VolumeInfo>> {
 /// a device node.
 fn boot_volume_name() -> String {
     const DEFAULT: &str = "Macintosh HD";
-    let Ok(entries) = std::fs::read_dir("/Volumes") else { return DEFAULT.to_string() };
+    let Ok(entries) = std::fs::read_dir("/Volumes") else {
+        return DEFAULT.to_string();
+    };
     for entry in entries.flatten() {
         let path = entry.path();
         if !path.is_symlink() {
@@ -189,7 +193,9 @@ fn boot_volume_name() -> String {
 /// the same logical disk, reached through firmlinks, and excluding it would
 /// report a Mac as using ten gigabytes.
 pub fn skip_mount_points(root: &Path) -> Vec<PathBuf> {
-    let Ok(mounts) = read_mounts() else { return Vec::new() };
+    let Ok(mounts) = read_mounts() else {
+        return Vec::new();
+    };
     let root_text = root.to_string_lossy().into_owned();
     let scanning_boot_volume = root_text == "/";
 

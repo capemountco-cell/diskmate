@@ -147,7 +147,11 @@ pub fn build_record(
     // The row still records the real `logical_size` in both cases, so nothing
     // is hidden; it is only the roll-up that excludes them.
     let counts_towards_totals = kind == EntryKind::File && !hardlink_dup;
-    let attributed = if counts_towards_totals { meta.logical_size } else { 0 };
+    let attributed = if counts_towards_totals {
+        meta.logical_size
+    } else {
+        0
+    };
     // Allocated blocks are real disk cost whatever the entry is, so a symlink
     // that occupies a block is counted. Fast symlinks occupy none.
     let attributed_alloc = if kind == EntryKind::Directory || hardlink_dup {
@@ -228,36 +232,94 @@ mod tests {
             Some("/Users/ada/Movies".into()),
             1,
             EntryKind::Directory,
-            RawMeta { logical_size: 4096, allocated_size: 4096, ..RawMeta::default() },
+            RawMeta {
+                logical_size: 4096,
+                allocated_size: 4096,
+                ..RawMeta::default()
+            },
             Category::Media,
             false,
             true,
         );
-        assert_eq!(record.logical_size, 4096, "the directory inode's own size is kept");
-        assert_eq!(record.subtree_logical_size, 0, "totals come from the aggregator");
+        assert_eq!(
+            record.logical_size, 4096,
+            "the directory inode's own size is kept"
+        );
+        assert_eq!(
+            record.subtree_logical_size, 0,
+            "totals come from the aggregator"
+        );
     }
 
     #[test]
     fn symlinks_contribute_no_bytes_to_a_folder_total() {
         // `lstat` reports a symlink's size as its target path length.
-        let meta = RawMeta { logical_size: 42, allocated_size: 0, ..RawMeta::default() };
+        let meta = RawMeta {
+            logical_size: 42,
+            allocated_size: 0,
+            ..RawMeta::default()
+        };
         let link = build_record(
-            1, Some(0), "alias".into(), None, 1, EntryKind::Symlink, meta,
-            Category::Other, false, true,
+            1,
+            Some(0),
+            "alias".into(),
+            None,
+            1,
+            EntryKind::Symlink,
+            meta,
+            Category::Other,
+            false,
+            true,
         );
-        assert_eq!(link.logical_size, 42, "the row keeps what the filesystem said");
+        assert_eq!(
+            link.logical_size, 42,
+            "the row keeps what the filesystem said"
+        );
         assert_eq!(link.subtree_logical_size, 0, "but it is not storage");
         assert_eq!(link.subtree_file_count, 0);
     }
 
     #[test]
     fn hard_link_repeats_are_attributed_no_bytes() {
-        let meta = RawMeta { logical_size: 5_000, allocated_size: 5_120, nlink: 2, ..RawMeta::default() };
-        let first = build_record(1, Some(0), "a.bin".into(), None, 1, EntryKind::File, meta, Category::Other, false, true);
-        let repeat = build_record(2, Some(0), "b.bin".into(), None, 1, EntryKind::File, meta, Category::Other, true, true);
+        let meta = RawMeta {
+            logical_size: 5_000,
+            allocated_size: 5_120,
+            nlink: 2,
+            ..RawMeta::default()
+        };
+        let first = build_record(
+            1,
+            Some(0),
+            "a.bin".into(),
+            None,
+            1,
+            EntryKind::File,
+            meta,
+            Category::Other,
+            false,
+            true,
+        );
+        let repeat = build_record(
+            2,
+            Some(0),
+            "b.bin".into(),
+            None,
+            1,
+            EntryKind::File,
+            meta,
+            Category::Other,
+            true,
+            true,
+        );
         assert_eq!(first.subtree_logical_size, 5_000);
         assert_eq!(repeat.subtree_logical_size, 0);
-        assert_eq!(repeat.logical_size, 5_000, "the real size is still reported");
-        assert_eq!(repeat.subtree_file_count, 1, "the name is still a real entry");
+        assert_eq!(
+            repeat.logical_size, 5_000,
+            "the real size is still reported"
+        );
+        assert_eq!(
+            repeat.subtree_file_count, 1,
+            "the name is still a real entry"
+        );
     }
 }

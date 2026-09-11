@@ -163,13 +163,22 @@ impl StorageQueries {
             "{ENTRY_SELECT}
               WHERE e.scan_id = ?1 AND e.parent_id = ?2 {hidden}
               {order} LIMIT ?3 OFFSET ?4",
-            hidden = if query.hide_hidden { "AND e.is_hidden = 0" } else { "" },
+            hidden = if query.hide_hidden {
+                "AND e.is_hidden = 0"
+            } else {
+                ""
+            },
             order = query.order_clause(),
         );
         let mut stmt = conn.prepare_cached(&sql)?;
         let rows = stmt
             .query_map(
-                params![query.scan_id, query.parent_id, query.clamped_limit(), query.offset],
+                params![
+                    query.scan_id,
+                    query.parent_id,
+                    query.clamped_limit(),
+                    query.offset
+                ],
                 map_entry_row,
             )?
             .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -177,13 +186,20 @@ impl StorageQueries {
     }
 
     /// Number of immediate children, for pagination.
-    pub fn child_count(conn: &Connection, scan_id: i64, parent_id: i64, hide_hidden: bool) -> Result<i64> {
+    pub fn child_count(
+        conn: &Connection,
+        scan_id: i64,
+        parent_id: i64,
+        hide_hidden: bool,
+    ) -> Result<i64> {
         let sql = if hide_hidden {
             "SELECT count(*) FROM fs_entries WHERE scan_id = ?1 AND parent_id = ?2 AND is_hidden = 0"
         } else {
             "SELECT count(*) FROM fs_entries WHERE scan_id = ?1 AND parent_id = ?2"
         };
-        Ok(conn.prepare_cached(sql)?.query_row(params![scan_id, parent_id], |r| r.get(0))?)
+        Ok(conn
+            .prepare_cached(sql)?
+            .query_row(params![scan_id, parent_id], |r| r.get(0))?)
     }
 
     pub fn entry_by_id(conn: &Connection, scan_id: i64, entry_id: i64) -> Result<EntryRow> {
@@ -198,7 +214,11 @@ impl StorageQueries {
 
     /// Look up a directory by absolute path. Only directories store a path, so
     /// this is the navigation entry point (deep links, rescans, breadcrumbs).
-    pub fn directory_by_path(conn: &Connection, scan_id: i64, path: &str) -> Result<Option<EntryRow>> {
+    pub fn directory_by_path(
+        conn: &Connection,
+        scan_id: i64,
+        path: &str,
+    ) -> Result<Option<EntryRow>> {
         let sql = format!("{ENTRY_SELECT} WHERE e.scan_id = ?1 AND e.path = ?2");
         let mut stmt = conn.prepare_cached(&sql)?;
         let mut rows = stmt.query_map(params![scan_id, path], map_entry_row)?;
@@ -289,7 +309,10 @@ impl StorageQueries {
         );
         let mut stmt = conn.prepare_cached(&sql)?;
         let rows = stmt
-            .query_map(params![scan_id, limit.clamp(1, 1_000), min_depth], map_entry_row)?
+            .query_map(
+                params![scan_id, limit.clamp(1, 1_000), min_depth],
+                map_entry_row,
+            )?
             .collect::<rusqlite::Result<Vec<_>>>()?;
         Ok(rows)
     }
@@ -308,7 +331,11 @@ impl StorageQueries {
             .query_map(params![scan_id, limit.clamp(1, 500)], |row| {
                 let extension: String = row.get(0)?;
                 Ok(ExtensionBucket {
-                    extension: if extension.is_empty() { None } else { Some(extension) },
+                    extension: if extension.is_empty() {
+                        None
+                    } else {
+                        Some(extension)
+                    },
                     file_count: row.get(1)?,
                     total_size: row.get(2)?,
                 })
@@ -317,7 +344,10 @@ impl StorageQueries {
         Ok(rows)
     }
 
-    pub fn category_breakdown(conn: &Connection, scan_id: i64) -> Result<Vec<(Category, i64, i64)>> {
+    pub fn category_breakdown(
+        conn: &Connection,
+        scan_id: i64,
+    ) -> Result<Vec<(Category, i64, i64)>> {
         let mut stmt = conn.prepare_cached(
             "SELECT category, file_count, total_bytes FROM scan_categories
               WHERE scan_id = ?1 ORDER BY total_bytes DESC",
@@ -357,7 +387,10 @@ impl StorageQueries {
         )?;
         let rows = stmt
             .query_map(params![scan_id], |row| {
-                Ok((ScanErrorKind::from_stored(&row.get::<_, String>(0)?), row.get(1)?))
+                Ok((
+                    ScanErrorKind::from_stored(&row.get::<_, String>(0)?),
+                    row.get(1)?,
+                ))
             })?
             .collect::<rusqlite::Result<Vec<_>>>()?;
         Ok(rows)
@@ -365,10 +398,11 @@ impl StorageQueries {
 
     pub fn scan_summary(conn: &Connection, scan_id: i64) -> Result<ScanSummary> {
         let mut stmt = conn.prepare_cached(&format!("{SCAN_SELECT} WHERE id = ?1"))?;
-        stmt.query_row(params![scan_id], map_scan_summary).map_err(|err| match err {
-            rusqlite::Error::QueryReturnedNoRows => CoreError::UnknownScan(scan_id),
-            other => other.into(),
-        })
+        stmt.query_row(params![scan_id], map_scan_summary)
+            .map_err(|err| match err {
+                rusqlite::Error::QueryReturnedNoRows => CoreError::UnknownScan(scan_id),
+                other => other.into(),
+            })
     }
 
     /// Most recent completed or cancelled scan for a root path. Cancelled scans
@@ -384,8 +418,9 @@ impl StorageQueries {
     }
 
     pub fn recent_scans(conn: &Connection, limit: u32) -> Result<Vec<ScanSummary>> {
-        let mut stmt = conn
-            .prepare_cached(&format!("{SCAN_SELECT} ORDER BY started_at DESC, id DESC LIMIT ?1"))?;
+        let mut stmt = conn.prepare_cached(&format!(
+            "{SCAN_SELECT} ORDER BY started_at DESC, id DESC LIMIT ?1"
+        ))?;
         let rows = stmt
             .query_map(params![limit.clamp(1, 200)], map_scan_summary)?
             .collect::<rusqlite::Result<Vec<_>>>()?;

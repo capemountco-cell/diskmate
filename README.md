@@ -1,24 +1,126 @@
-# DiskMate Placeholder
+# DiskMate
 
-Create a deliberately minimal placeholder web app named DiskMate. This project exists primarily to bootstrap a GitHub repository for a native macOS application that will later replace this scaffold. Keep it extremely simple: a clean white page with the word “DiskMate” centered and a small subtitle “Storage, understood.” Do not add Supabase, Lovable Cloud features, authentication, databases, APIs, complex components, dependencies, or extra pages. Do not over-engineer it. The important goal is a tiny clean repository that can be connected to GitHub and subsequently taken over by Claude Code.
+A storage and system-resource manager for macOS.
 
-This project was built with [Lovable](https://lovable.dev).
+DiskMate answers one question: **what is using my Mac's resources, and what can I
+safely do about it?** It reads your disk, explains what it found, and keeps
+everything it learns on your machine.
 
-## Build with Lovable
+It is not a "Mac cleaner". There are no invented problem counts, no fabricated
+performance claims, and no button that promises to make your Mac faster.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/c4c868fb-4549-4701-9eab-caa1f4e3ade4).
+## Status: Milestone 01
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+Milestone 01 is **read-only**. Nothing in this codebase deletes, moves, or
+modifies a file, changes a launch item, or signals a process.
 
-## Development
+| Area    | State                                                                     |
+| ------- | ------------------------------------------------------------------------- |
+| Storage | Working. Volumes, scanning, breakdowns, largest folders and files, browsing |
+| Cleanup | Not started. The page says so and shows no numbers                         |
+| Startup | Read-only. Launch agents and daemons are listed; impact is not measured    |
+| Memory  | Read-only. Pressure, usage, cache and swap, with an explanation            |
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## Requirements
+
+| Tool                | Version    | Why                                        |
+| ------------------- | ---------- | ------------------------------------------ |
+| macOS               | 12 or later| The app's deployment target                |
+| Xcode CLT           | any        | Linker and SDK (`xcode-select --install`)  |
+| Rust                | 1.82+      | The engine (`rustup` recommended)          |
+| Node.js             | 20+        | The frontend build                         |
+
+SQLite is compiled into the binary, so there is nothing to install for it.
+
+## Commands
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+# Install JavaScript dependencies
+npm install
+
+# Run the app in development (starts Vite, then the Tauri window)
 npm run dev
+
+# Rust: tests, lints, formatting
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all --check
+
+# Frontend: types, tests, lint
+npm run typecheck
+npm run test
+npm run lint
+
+# Scanner benchmark, recorded under bench-results/
+./scripts/bench.sh
+./scripts/bench.sh --files 500000 --dirs 8000
+./scripts/bench.sh --path ~/Library --label library
+
+# Production build
+npm run build                 # DiskMate.app and DiskMate.dmg
+./scripts/build-macos.sh      # DiskMate.app only
+./scripts/build-dmg.sh        # DiskMate.dmg
+./scripts/build-macos.sh --universal   # Apple silicon and Intel in one bundle
 ```
+
+The built artefacts land under `src-tauri/target/release/bundle/`.
+
+## How it is put together
+
+```
+React + TypeScript          presentation only
+        |  Tauri commands and events
+Application services        one decision-making layer
+        |
+Rust core                   scanner, aggregation, platform abstraction
+        |
+SQLite index                the source of truth for filesystem knowledge
+        |
+macOS filesystem and system APIs
+```
+
+Two crates:
+
+- **`crates/diskmate-core`** — everything that is not presentation. It has no
+  dependency on Tauri, so it builds and its tests run on any Unix host.
+- **`src-tauri`** — the adapter. Each command deserialises its arguments, calls
+  one service method, and serialises the result.
+
+The UI never receives a filesystem tree. A Mac can hold millions of entries, so
+the index is the source of truth and the UI asks bounded questions of it, such
+as "the hundred largest immediate children of this folder".
+
+Further reading:
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — the layers and why they are separated
+- [docs/scanner.md](docs/scanner.md) — traversal, aggregation, and measurements
+- [docs/database.md](docs/database.md) — schema and the reasoning behind it
+- [docs/security.md](docs/security.md) — the safety model for future cleanup
+- [docs/permissions.md](docs/permissions.md) — what macOS does and does not allow
+- [docs/portable-mode.md](docs/portable-mode.md) — running from a USB drive
+
+## Privacy
+
+DiskMate's filesystem intelligence runs entirely on your Mac. It does not
+upload file names, paths, folder structures, file contents, hashes, application
+lists, scan databases, or process information, and it does not need an internet
+connection. The app declares no network entitlement.
+
+Your files are none of our business.
+
+## Known limitations
+
+- **Unsigned builds.** No Apple Developer Program membership is used in this
+  phase, so the app is not signed or notarized. The first launch needs Finder's
+  right-click → Open. See [docs/permissions.md](docs/permissions.md).
+- **Full Disk Access.** Without it macOS hides parts of the disk from every app,
+  DiskMate included. Folders it cannot read are reported as *not readable*
+  rather than counted as empty, and the totals say what was left out. Choosing a
+  folder in the picker grants access to that folder without any setting.
+- **Login Items are not listed.** Modern macOS keeps them in a private store
+  with no supported read interface. DiskMate lists launch agents and daemons and
+  says that the list is partial, rather than guessing from legacy locations.
+- **Startup impact is not measured.** Every item reports *unmeasured*. There is
+  no code path that invents a launch-time figure.
+- **One scan at a time**, per application instance.
+- **No treemap yet.** The engine was the priority for Milestone 01.

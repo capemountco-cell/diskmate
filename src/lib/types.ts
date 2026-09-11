@@ -22,12 +22,7 @@ export type Category =
 export type ScanStatus = "running" | "completed" | "cancelled" | "failed" | "interrupted";
 
 export type ScanErrorKind =
-  | "permissionDenied"
-  | "notFound"
-  | "vanished"
-  | "traversalLoop"
-  | "crossDevice"
-  | "io";
+  "permissionDenied" | "notFound" | "vanished" | "traversalLoop" | "crossDevice" | "io";
 
 export type VolumeKind = "internal" | "external" | "network" | "virtual" | "unknown";
 

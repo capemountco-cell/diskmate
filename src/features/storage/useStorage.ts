@@ -75,7 +75,13 @@ type Action =
   | { type: "scan/ready"; snapshot: StorageSnapshot }
   | { type: "scan/none" }
   | { type: "children/loading" }
-  | { type: "children/loaded"; directory: EntryRow; ancestors: EntryRow[]; rows: EntryRow[]; total: number }
+  | {
+      type: "children/loaded";
+      directory: EntryRow;
+      ancestors: EntryRow[];
+      rows: EntryRow[];
+      total: number;
+    }
   | { type: "sort/set"; sort: SortKey; direction: SortDirection }
   | { type: "hidden/toggle" };
 
@@ -109,7 +115,12 @@ function reducer(state: State, action: Action): State {
         action.volumes.find((volume) => volume.mountPoint === "/")?.mountPoint ??
         action.volumes[0]?.mountPoint ??
         null;
-      return { ...state, volumes: action.volumes, selectedRoot: preferred, loadingVolumes: false };
+      return {
+        ...state,
+        volumes: action.volumes,
+        selectedRoot: preferred,
+        loadingVolumes: false,
+      };
     }
     case "volumes/failed":
       return { ...state, loadingVolumes: false, volumesError: action.message };
@@ -142,7 +153,13 @@ function reducer(state: State, action: Action): State {
         ancestors: [action.snapshot.root],
       };
     case "scan/none":
-      return { ...state, phase: "idle", snapshot: null, progress: null, currentDirectory: null };
+      return {
+        ...state,
+        phase: "idle",
+        snapshot: null,
+        progress: null,
+        currentDirectory: null,
+      };
     case "children/loading":
       return { ...state, loadingChildren: true };
     case "children/loaded":
@@ -214,12 +231,13 @@ export function useStorage() {
   // scan outlives any single command call.
   useEffect(() => {
     const unlisteners: Array<() => void> = [];
-    void onScanProgress((progress) => dispatch({ type: "scan/progress", progress })).then((fn) =>
-      unlisteners.push(fn),
+    void onScanProgress((progress) => dispatch({ type: "scan/progress", progress })).then(
+      (fn) => unlisteners.push(fn),
     );
     void onScanFinished((result) => {
       if (result.summary) void loadSnapshot(result.summary.scanId);
-      else dispatch({ type: "scan/failed", message: result.error ?? "The scan did not finish." });
+      else
+        dispatch({ type: "scan/failed", message: result.error ?? "The scan did not finish." });
     }).then((fn) => unlisteners.push(fn));
     return () => unlisteners.forEach((fn) => fn());
   }, [loadSnapshot]);
@@ -316,7 +334,11 @@ export function useStorage() {
 
   const chooseFolder = useCallback(async () => {
     try {
-      const chosen = await open({ directory: true, multiple: false, title: "Choose a folder to scan" });
+      const chosen = await open({
+        directory: true,
+        multiple: false,
+        title: "Choose a folder to scan",
+      });
       if (typeof chosen === "string") dispatch({ type: "root/select", root: chosen });
     } catch (error) {
       dispatch({ type: "scan/failed", message: describeError(error) });

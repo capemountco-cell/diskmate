@@ -20,7 +20,13 @@ use crate::platform::startup_locations::{standard_locations, LocationRole};
 pub fn items() -> Result<Vec<StartupItem>> {
     let mut items = Vec::new();
     for location in standard_locations(std::env::var_os("HOME").map(PathBuf::from).as_deref()) {
-        collect(&location.path, location.source, location.scope, location.role, &mut items);
+        collect(
+            &location.path,
+            location.source,
+            location.scope,
+            location.role,
+            &mut items,
+        );
     }
     items.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     Ok(items)
@@ -36,7 +42,9 @@ fn collect(
     // A missing or unreadable directory is normal: `~/Library/LaunchAgents`
     // does not exist on a clean install, and system locations may need Full
     // Disk Access. Neither is an error.
-    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
     for entry in entries.flatten() {
         let path = entry.path();
         if path.extension().and_then(|e| e.to_str()) != Some("plist") {
@@ -90,7 +98,10 @@ fn read_job(path: &Path) -> LaunchJob {
                 .map(str::to_owned)
         });
     LaunchJob {
-        label: dict.get("Label").and_then(|value| value.as_string()).map(str::to_owned),
+        label: dict
+            .get("Label")
+            .and_then(|value| value.as_string())
+            .map(str::to_owned),
         program,
         run_at_load: dict.get("RunAtLoad").and_then(|value| value.as_boolean()),
         disabled: dict.get("Disabled").and_then(|value| value.as_boolean()),

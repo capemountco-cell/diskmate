@@ -20,7 +20,10 @@ export function StartupPage() {
       setError("The DiskMate engine is not running.");
       return;
     }
-    engine.startupReport().then(setReport).catch((cause) => setError(describeError(cause)));
+    engine
+      .startupReport()
+      .then(setReport)
+      .catch((cause) => setError(describeError(cause)));
   }, []);
 
   if (error) return <Note tone="caution">{error}</Note>;

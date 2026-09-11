@@ -1,9 +1,4 @@
-import {
-  CleanupIcon,
-  MemoryIcon,
-  StartupIcon,
-  StorageIcon,
-} from "../components/icons";
+import { CleanupIcon, MemoryIcon, StartupIcon, StorageIcon } from "../components/icons";
 import type { AppInfo } from "../lib/types";
 
 export type SectionId = "storage" | "cleanup" | "startup" | "memory";

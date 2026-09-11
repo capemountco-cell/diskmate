@@ -14,8 +14,6 @@ mod volume;
 pub use classify::{classify_directory, Category, SafetyClass};
 pub use entry::{EntryKind, EntryRecord, EntryRow, ExtensionBucket};
 pub use memory::{MemoryPressure, MemorySnapshot, ProcessMemory};
-pub use scan::{
-    ScanError, ScanErrorKind, ScanOptions, ScanProgress, ScanStatus, ScanSummary,
-};
+pub use scan::{ScanError, ScanErrorKind, ScanOptions, ScanProgress, ScanStatus, ScanSummary};
 pub use startup::{StartupImpact, StartupItem, StartupScope, StartupSource};
 pub use volume::{VolumeInfo, VolumeKind};

@@ -10,9 +10,7 @@ mod queries;
 pub mod writer;
 
 pub use migrations::{current_schema_version, migrate, SCHEMA_VERSION};
-pub use queries::{
-    ChildQuery, SortDirection, SortKey, StorageQueries, VolumeUsage,
-};
+pub use queries::{ChildQuery, SortDirection, SortKey, StorageQueries, VolumeUsage};
 pub use writer::{DirAggregate, IndexWriter, WriterStats};
 
 use std::path::Path;

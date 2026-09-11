@@ -50,7 +50,8 @@ describe("truncatePath", () => {
   });
 
   it("keeps both ends of a long path", () => {
-    const long = "/Users/ada/Library/Developer/Xcode/DerivedData/SomeProject/Build/Products/Debug";
+    const long =
+      "/Users/ada/Library/Developer/Xcode/DerivedData/SomeProject/Build/Products/Debug";
     const result = truncatePath(long, 40);
     expect(result.startsWith("/Users")).toBe(true);
     expect(result.endsWith("Products/Debug")).toBe(true);

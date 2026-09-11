@@ -62,7 +62,10 @@ impl ProgressThrottle {
     pub fn new(interval_ms: u64) -> Self {
         // Never emit faster than ~60 Hz even if a caller asks for 0.
         let interval = std::time::Duration::from_millis(interval_ms.max(16));
-        Self { interval, last_emit: std::time::Instant::now() - interval }
+        Self {
+            interval,
+            last_emit: std::time::Instant::now() - interval,
+        }
     }
 
     /// `true` when enough time has passed to emit another event.

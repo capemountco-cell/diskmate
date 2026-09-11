@@ -66,8 +66,9 @@
   --status-serious: #b04a3e;
 
   /* Typography: the system UI face, which is SF on macOS. */
-  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue",
-    system-ui, sans-serif;
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", system-ui,
+    sans-serif;
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
 
   --text-xs: 11px;

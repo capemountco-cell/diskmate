@@ -148,7 +148,10 @@ impl StorageService {
         mut on_progress: impl FnMut(ScanProgress),
     ) -> Result<ScanSummary> {
         let token = CancellationToken::new();
-        let handle = ScanHandle { scan_root: options.root.clone(), token: token.clone() };
+        let handle = ScanHandle {
+            scan_root: options.root.clone(),
+            token: token.clone(),
+        };
         {
             let mut active = self.active_scan.lock().expect("scan mutex poisoned");
             if active.is_some() {
@@ -164,7 +167,11 @@ impl StorageService {
             .take()
             .ok_or_else(|| CoreError::invalid("the index is busy"))?;
 
-        let request = ScanRequest { options, volume_id: None, cancel: token };
+        let request = ScanRequest {
+            options,
+            volume_id: None,
+            cancel: token,
+        };
         let outcome = run_scan(conn, &request, Some(&self.paths.database), &mut on_progress);
 
         // The connection goes back whether the scan succeeded or not; losing it
@@ -186,7 +193,12 @@ impl StorageService {
     }
 
     pub fn cancel_active_scan(&self) -> bool {
-        match self.active_scan.lock().expect("scan mutex poisoned").as_ref() {
+        match self
+            .active_scan
+            .lock()
+            .expect("scan mutex poisoned")
+            .as_ref()
+        {
             Some(handle) => {
                 handle.cancel();
                 true
@@ -234,7 +246,11 @@ impl StorageService {
                 extensions: StorageQueries::extension_breakdown(conn, scan_id, 12)?,
                 errors: StorageQueries::error_summary(conn, scan_id)?
                     .into_iter()
-                    .map(|(kind, count)| ErrorBucket { kind, count, explanation: explain(kind) })
+                    .map(|(kind, count)| ErrorBucket {
+                        kind,
+                        count,
+                        explanation: explain(kind),
+                    })
                     .collect(),
                 scan,
                 root,

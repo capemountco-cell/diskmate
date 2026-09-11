@@ -45,8 +45,18 @@ export function MemoryPage() {
 
   const { snapshot, headline, detail } = report;
   const segments = [
-    { id: "used", label: "App memory and wired", value: snapshot.usedBytes, color: "var(--accent)" },
-    { id: "cached", label: "Cached files", value: snapshot.cachedBytes, color: "var(--cat-documents)" },
+    {
+      id: "used",
+      label: "App memory and wired",
+      value: snapshot.usedBytes,
+      color: "var(--accent)",
+    },
+    {
+      id: "cached",
+      label: "Cached files",
+      value: snapshot.cachedBytes,
+      color: "var(--cat-documents)",
+    },
   ];
 
   return (
@@ -81,8 +91,8 @@ export function MemoryPage() {
 
       <Note tone="info" title="Cached memory is not wasted memory.">
         Your Mac keeps recently used files in memory that nothing else needs right now. That is
-        why a healthy machine reports very little free memory, and why DiskMate does not offer to
-        empty it.
+        why a healthy machine reports very little free memory, and why DiskMate does not offer
+        to empty it.
       </Note>
 
       <p className="faint">

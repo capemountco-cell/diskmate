@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  engine:
+    name: Engine (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      # The engine has no Tauri dependency, so it lints and tests on Linux with
+      # a real platform implementation rather than a stub.
+      - name: Clippy
+        run: cargo clippy -p diskmate-core --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test -p diskmate-core --release
+
+      # The macOS build is the one thing Linux cannot produce. This checks the
+      # part of it that is pure Rust - libc bindings, statfs fields, the Mach VM
+      # structures, plist parsing - so a mistake there does not wait for a Mac.
+      - name: Type-check the macOS platform code
+        run: ./scripts/check-macos-target.sh
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build:web
+
+  macos:
+    name: App (macOS)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Clippy (whole workspace, including the Tauri adapter)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace --release
+
+      # Unsigned on purpose: no Apple Developer Program membership is used in
+      # this phase, and development is not blocked waiting for a certificate.
+      - name: Build DiskMate.app
+        run: npm run tauri -- build --bundles app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DiskMate-app-unsigned
+          path: src-tauri/target/release/bundle/macos/DiskMate.app
+          if-no-files-found: error

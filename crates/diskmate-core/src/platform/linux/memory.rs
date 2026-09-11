@@ -94,7 +94,8 @@ mod tests {
     #[test]
     fn a_field_prefix_does_not_match_a_longer_name() {
         // "MemTotal" must not be satisfied by "MemTotalFoo".
-        let snapshot = parse_meminfo("MemTotalFoo: 1 kB\nMemTotal: 2048 kB\nMemAvailable: 1024 kB\n");
+        let snapshot =
+            parse_meminfo("MemTotalFoo: 1 kB\nMemTotal: 2048 kB\nMemAvailable: 1024 kB\n");
         assert_eq!(snapshot.total_bytes, 2048 * 1024);
     }
 }

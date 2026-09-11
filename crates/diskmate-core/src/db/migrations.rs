@@ -40,7 +40,9 @@ pub fn current_schema_version(conn: &Connection) -> Result<i64> {
         return Ok(0);
     }
     let version: Option<i64> =
-        conn.query_row("SELECT max(version) FROM schema_migrations", [], |row| row.get(0))?;
+        conn.query_row("SELECT max(version) FROM schema_migrations", [], |row| {
+            row.get(0)
+        })?;
     Ok(version.unwrap_or(0))
 }
 
@@ -69,7 +71,10 @@ pub fn migrate(conn: &Connection) -> Result<()> {
             }
             Err(source) => {
                 let _ = conn.execute_batch("ROLLBACK");
-                return Err(CoreError::Migration { version: migration.version, source });
+                return Err(CoreError::Migration {
+                    version: migration.version,
+                    source,
+                });
             }
         }
     }

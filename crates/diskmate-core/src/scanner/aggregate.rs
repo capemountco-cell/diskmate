@@ -160,10 +160,7 @@ impl DirAggregator {
         self.cascade.push(start);
         while let Some(index) = self.cascade.pop() {
             let node = self.nodes[index as usize];
-            if node.finalised
-                || !node.listed
-                || node.completed_children < node.expected_children
-            {
+            if node.finalised || !node.listed || node.completed_children < node.expected_children {
                 continue;
             }
             self.nodes[index as usize].finalised = true;
@@ -219,7 +216,13 @@ impl DirAggregator {
 mod tests {
     use super::*;
 
-    fn listing(index: DirIndex, parent: Option<DirIndex>, bytes: i64, files: i64, child_dirs: u32) -> DirListing {
+    fn listing(
+        index: DirIndex,
+        parent: Option<DirIndex>,
+        bytes: i64,
+        files: i64,
+        child_dirs: u32,
+    ) -> DirListing {
         DirListing {
             index,
             entry_id: index as i64 + 1,

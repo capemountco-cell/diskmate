@@ -28,10 +28,15 @@ impl Harness {
     pub fn new() -> Self {
         let data = tempfile::tempdir().expect("temp data dir");
         let tree = tempfile::tempdir().expect("temp tree dir");
-        let paths = AppPaths::resolve(None, Some(data.path().join("state")))
-            .expect("resolve app paths");
+        let paths =
+            AppPaths::resolve(None, Some(data.path().join("state"))).expect("resolve app paths");
         let service = StorageService::new(paths).expect("open index");
-        Self { service, tree: tree.path().to_path_buf(), _data: data, _tree: tree }
+        Self {
+            service,
+            tree: tree.path().to_path_buf(),
+            _data: data,
+            _tree: tree,
+        }
     }
 
     pub fn options(&self) -> ScanOptions {
@@ -50,10 +55,15 @@ impl Harness {
     }
 
     pub fn scan_with(&self, options: ScanOptions) -> ScanSummary {
-        self.service.scan(options, |_| {}).expect("scan should succeed")
+        self.service
+            .scan(options, |_| {})
+            .expect("scan should succeed")
     }
 
-    pub fn scan_collecting_progress(&self, options: ScanOptions) -> (ScanSummary, Vec<ScanProgress>) {
+    pub fn scan_collecting_progress(
+        &self,
+        options: ScanOptions,
+    ) -> (ScanSummary, Vec<ScanProgress>) {
         let collected = std::sync::Mutex::new(Vec::new());
         let summary = self
             .service
@@ -72,7 +82,10 @@ impl Harness {
 
     pub fn child_named(&self, scan_id: i64, parent_id: i64, name: &str) -> EntryRow {
         self.service
-            .children(&ChildQuery { limit: 1_000, ..ChildQuery::new(scan_id, parent_id) })
+            .children(&ChildQuery {
+                limit: 1_000,
+                ..ChildQuery::new(scan_id, parent_id)
+            })
             .expect("children")
             .into_iter()
             .find(|row| row.name == name)

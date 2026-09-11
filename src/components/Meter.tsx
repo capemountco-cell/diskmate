@@ -48,7 +48,10 @@ export function Meter({
           />
         ))}
         {remainder > 0 && (
-          <div className="meter__segment" style={{ flexGrow: remainder, background: "transparent" }} />
+          <div
+            className="meter__segment"
+            style={{ flexGrow: remainder, background: "transparent" }}
+          />
         )}
       </div>
 

@@ -74,7 +74,9 @@ pub(crate) mod unix_util {
     pub(crate) fn c_string(raw: &[libc::c_char]) -> String {
         // SAFETY: the kernel guarantees these fields are NUL-terminated within
         // their fixed-size buffer.
-        unsafe { CStr::from_ptr(raw.as_ptr()) }.to_string_lossy().into_owned()
+        unsafe { CStr::from_ptr(raw.as_ptr()) }
+            .to_string_lossy()
+            .into_owned()
     }
 
     /// Name a volume the way a person would: the last path component of the

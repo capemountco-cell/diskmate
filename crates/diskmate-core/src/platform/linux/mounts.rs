@@ -9,13 +9,32 @@ use crate::platform::unix_util;
 /// Filesystems that are kernel interfaces rather than storage. They are never
 /// offered as scan targets and never descended into.
 const SYNTHETIC: &[&str] = &[
-    "autofs", "bpf", "cgroup", "cgroup2", "configfs", "debugfs", "devpts", "devtmpfs",
-    "efivarfs", "fuse.gvfsd-fuse", "fusectl", "hugetlbfs", "mqueue", "proc", "pstore",
-    "ramfs", "securityfs", "sysfs", "tracefs",
+    "autofs",
+    "bpf",
+    "cgroup",
+    "cgroup2",
+    "configfs",
+    "debugfs",
+    "devpts",
+    "devtmpfs",
+    "efivarfs",
+    "fuse.gvfsd-fuse",
+    "fusectl",
+    "hugetlbfs",
+    "mqueue",
+    "proc",
+    "pstore",
+    "ramfs",
+    "securityfs",
+    "sysfs",
+    "tracefs",
     // Memory-backed and image-backed mounts. They are real filesystems, but
     // they are not storage anyone manages, and listing them would bury the two
     // or three volumes that matter.
-    "tmpfs", "squashfs", "overlay", "erofs",
+    "tmpfs",
+    "squashfs",
+    "overlay",
+    "erofs",
 ];
 
 const NETWORK: &[&str] = &["nfs", "nfs4", "cifs", "smbfs", "sshfs", "afs", "ceph"];
@@ -33,7 +52,9 @@ fn read_mounts() -> Result<Vec<Mount>> {
     let mut mounts = Vec::new();
     for line in text.lines() {
         // mountinfo: id parent major:minor root mount-point options - fstype source super-opts
-        let Some((left, right)) = line.split_once(" - ") else { continue };
+        let Some((left, right)) = line.split_once(" - ") else {
+            continue;
+        };
         let left_fields: Vec<&str> = left.split(' ').collect();
         let right_fields: Vec<&str> = right.split(' ').collect();
         if left_fields.len() < 6 || right_fields.len() < 2 {
@@ -118,14 +139,20 @@ pub fn volumes() -> Result<Vec<VolumeInfo>> {
 }
 
 fn capacity(mount_point: &str) -> (Option<i64>, Option<i64>) {
-    let Ok(path) = std::ffi::CString::new(mount_point) else { return (None, None) };
+    let Ok(path) = std::ffi::CString::new(mount_point) else {
+        return (None, None);
+    };
     let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
     // SAFETY: `path` is a valid NUL-terminated string and `stat` is a correctly
     // sized, writable `statvfs`.
     if unsafe { libc::statvfs(path.as_ptr(), &mut stat) } != 0 {
         return (None, None);
     }
-    let block = if stat.f_frsize > 0 { stat.f_frsize } else { stat.f_bsize } as i64;
+    let block = if stat.f_frsize > 0 {
+        stat.f_frsize
+    } else {
+        stat.f_bsize
+    } as i64;
     (
         Some(stat.f_blocks as i64 * block),
         Some(stat.f_bavail as i64 * block),
@@ -134,7 +161,9 @@ fn capacity(mount_point: &str) -> (Option<i64>, Option<i64>) {
 
 /// Mount points nested under `root` that a scan should not descend into.
 pub fn skip_mount_points(root: &Path) -> Vec<PathBuf> {
-    let Ok(mounts) = read_mounts() else { return Vec::new() };
+    let Ok(mounts) = read_mounts() else {
+        return Vec::new();
+    };
     let root_text = root.to_string_lossy().into_owned();
     mounts
         .into_iter()

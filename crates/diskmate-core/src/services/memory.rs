@@ -34,7 +34,9 @@ impl Default for MemoryService {
 
 impl MemoryService {
     pub fn new() -> Self {
-        Self { probe: platform::probe() }
+        Self {
+            probe: platform::probe(),
+        }
     }
 
     pub fn snapshot(&self) -> Result<MemorySnapshot> {
@@ -44,7 +46,11 @@ impl MemoryService {
     pub fn report(&self) -> Result<MemoryReport> {
         let snapshot = self.probe.memory()?;
         let (headline, detail) = describe(&snapshot);
-        Ok(MemoryReport { snapshot, headline, detail })
+        Ok(MemoryReport {
+            snapshot,
+            headline,
+            detail,
+        })
     }
 }
 
@@ -112,7 +118,14 @@ mod tests {
         ] {
             let (headline, detail) = describe(&snapshot(pressure));
             let text = format!("{headline} {detail}").to_lowercase();
-            for forbidden in ["free ram", "free up memory", "purge", "optimize", "boost", "clean"] {
+            for forbidden in [
+                "free ram",
+                "free up memory",
+                "purge",
+                "optimize",
+                "boost",
+                "clean",
+            ] {
                 assert!(!text.contains(forbidden), "{pressure:?} says {forbidden:?}");
             }
         }

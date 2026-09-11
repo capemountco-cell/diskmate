@@ -11,6 +11,4 @@ mod storage;
 
 pub use memory::{MemoryReport, MemoryService};
 pub use startup::{StartupReport, StartupService};
-pub use storage::{
-    CategoryBucket, ErrorBucket, ScanHandle, StorageService, StorageSnapshot,
-};
+pub use storage::{CategoryBucket, ErrorBucket, ScanHandle, StorageService, StorageSnapshot};

@@ -109,10 +109,8 @@ pub fn classify_directory(name: &str, absolute_path: &str, parent: Category) -> 
 
     match name {
         "Caches" | "cache" | "Cache" | ".cache" => return Category::Caches,
-        "node_modules" | "target" | ".gradle" | ".cargo" | "DerivedData" | "Pods"
-        | ".venv" | "venv" | "__pycache__" | ".next" | "build" | "dist" => {
-            return Category::Developer
-        }
+        "node_modules" | "target" | ".gradle" | ".cargo" | "DerivedData" | "Pods" | ".venv"
+        | "venv" | "__pycache__" | ".next" | "build" | "dist" => return Category::Developer,
         _ => {}
     }
 
@@ -216,7 +214,11 @@ mod tests {
     #[test]
     fn nested_folders_inherit_the_parent_category() {
         assert_eq!(
-            classify_directory("invoices", "/Users/ada/Downloads/invoices", Category::Downloads),
+            classify_directory(
+                "invoices",
+                "/Users/ada/Downloads/invoices",
+                Category::Downloads
+            ),
             Category::Downloads
         );
     }
@@ -231,11 +233,19 @@ mod tests {
     #[test]
     fn developer_artifacts_are_recognised_by_name() {
         assert_eq!(
-            classify_directory("node_modules", "/Users/ada/code/app/node_modules", Category::Other),
+            classify_directory(
+                "node_modules",
+                "/Users/ada/code/app/node_modules",
+                Category::Other
+            ),
             Category::Developer
         );
         assert_eq!(
-            classify_directory("DerivedData", "/Users/ada/Library/Developer/Xcode/DerivedData", Category::Developer),
+            classify_directory(
+                "DerivedData",
+                "/Users/ada/Library/Developer/Xcode/DerivedData",
+                Category::Developer
+            ),
             Category::Developer
         );
     }

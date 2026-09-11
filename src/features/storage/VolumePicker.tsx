@@ -20,7 +20,8 @@ export function VolumePicker({
   onRefresh: () => void;
   onChooseFolder: () => void;
 }) {
-  const folderSelected = selectedRoot !== null && !volumes.some((v) => v.mountPoint === selectedRoot);
+  const folderSelected =
+    selectedRoot !== null && !volumes.some((v) => v.mountPoint === selectedRoot);
 
   return (
     <Panel
@@ -38,7 +39,9 @@ export function VolumePicker({
     >
       {error && <Note tone="caution">{error}</Note>}
 
-      {!error && loading && volumes.length === 0 && <p className="muted">Looking for volumes…</p>}
+      {!error && loading && volumes.length === 0 && (
+        <p className="muted">Looking for volumes…</p>
+      )}
 
       {!error && !loading && volumes.length === 0 && (
         <EmptyState title="No volumes found">

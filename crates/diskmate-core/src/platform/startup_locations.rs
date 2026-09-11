@@ -71,7 +71,9 @@ impl LocationRole {
     /// Classify a configuration file by where it lives.
     pub fn from_path(path: &Path) -> Self {
         let text = path.to_string_lossy();
-        if text.starts_with("/System/") || text.starts_with("/usr/lib/") || text.starts_with("/lib/")
+        if text.starts_with("/System/")
+            || text.starts_with("/usr/lib/")
+            || text.starts_with("/lib/")
         {
             Self::Os
         } else if text.starts_with("/Library/") || text.starts_with("/etc/") {

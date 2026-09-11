@@ -18,8 +18,8 @@ export function CleanupPage() {
 
       <Note tone="info" title="How this will work.">
         Every candidate will arrive with a reason and a risk level, and nothing will be removed
-        without you choosing it. Items that can be regenerated are treated differently from items
-        that cannot, and anything DiskMate protects is never offered at all.
+        without you choosing it. Items that can be regenerated are treated differently from
+        items that cannot, and anything DiskMate protects is never offered at all.
       </Note>
 
       <div>

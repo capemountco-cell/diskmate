@@ -66,7 +66,13 @@ pub struct IndexWriter {
 impl IndexWriter {
     /// Take ownership of a connection for the duration of one scan.
     pub fn new(conn: Connection, scan_id: i64) -> Self {
-        Self { conn, scan_id, in_transaction: false, since_commit: 0, stats: WriterStats::default() }
+        Self {
+            conn,
+            scan_id,
+            in_transaction: false,
+            since_commit: 0,
+            stats: WriterStats::default(),
+        }
     }
 
     pub fn stats(&self) -> WriterStats {
@@ -103,7 +109,8 @@ impl IndexWriter {
     /// Highest `fs_entries.id` in the database, so a new scan can continue the
     /// id sequence without colliding with a retained earlier scan.
     pub fn max_entry_id(conn: &Connection) -> Result<i64> {
-        let max: Option<i64> = conn.query_row("SELECT max(id) FROM fs_entries", [], |r| r.get(0))?;
+        let max: Option<i64> =
+            conn.query_row("SELECT max(id) FROM fs_entries", [], |r| r.get(0))?;
         Ok(max.unwrap_or(0))
     }
 
@@ -202,7 +209,13 @@ impl IndexWriter {
         {
             let mut stmt = tx.prepare("INSERT INTO dir_agg VALUES (?1, ?2, ?3, ?4, ?5)")?;
             for agg in aggregates {
-                stmt.execute(params![agg.id, agg.logical, agg.allocated, agg.files, agg.dirs])?;
+                stmt.execute(params![
+                    agg.id,
+                    agg.logical,
+                    agg.allocated,
+                    agg.files,
+                    agg.dirs
+                ])?;
             }
         }
         tx.execute(
@@ -388,11 +401,7 @@ fn entry_insert_sql(rows: usize) -> String {
     sql
 }
 
-fn push_entry_values(
-    out: &mut Vec<rusqlite::types::Value>,
-    scan_id: i64,
-    record: &EntryRecord,
-) {
+fn push_entry_values(out: &mut Vec<rusqlite::types::Value>, scan_id: i64, record: &EntryRecord) {
     use rusqlite::types::Value;
     out.push(Value::Integer(record.id));
     out.push(Value::Integer(scan_id));
@@ -407,10 +416,26 @@ fn push_entry_values(
     out.push(Value::Integer(record.subtree_allocated_size));
     out.push(Value::Integer(record.subtree_file_count));
     out.push(Value::Integer(record.subtree_dir_count));
-    out.push(record.extension.clone().map(Value::Text).unwrap_or(Value::Null));
-    out.push(record.modified_at.map(Value::Integer).unwrap_or(Value::Null));
+    out.push(
+        record
+            .extension
+            .clone()
+            .map(Value::Text)
+            .unwrap_or(Value::Null),
+    );
+    out.push(
+        record
+            .modified_at
+            .map(Value::Integer)
+            .unwrap_or(Value::Null),
+    );
     out.push(record.created_at.map(Value::Integer).unwrap_or(Value::Null));
-    out.push(record.accessed_at.map(Value::Integer).unwrap_or(Value::Null));
+    out.push(
+        record
+            .accessed_at
+            .map(Value::Integer)
+            .unwrap_or(Value::Null),
+    );
     out.push(Value::Integer(record.mode));
     out.push(Value::Integer(record.uid));
     out.push(Value::Integer(record.gid));

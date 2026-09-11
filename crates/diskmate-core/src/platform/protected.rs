@@ -70,11 +70,17 @@ pub fn is_protected_path(path: &Path) -> bool {
         // ever act on.
         return true;
     };
-    if protected_prefixes().iter().any(|prefix| has_prefix(text, prefix)) {
+    if protected_prefixes()
+        .iter()
+        .any(|prefix| has_prefix(text, prefix))
+    {
         return true;
     }
     if let Some(relative) = home_relative(text) {
-        if protected_home_suffixes().iter().any(|suffix| has_prefix(relative, suffix)) {
+        if protected_home_suffixes()
+            .iter()
+            .any(|suffix| has_prefix(relative, suffix))
+        {
             return true;
         }
     }
@@ -102,8 +108,16 @@ mod tests {
 
     #[test]
     fn system_locations_are_protected() {
-        for path in ["/System", "/System/Library/CoreServices", "/usr/bin", "/Applications/Mail.app"] {
-            assert!(is_protected_path(&PathBuf::from(path)), "{path} should be protected");
+        for path in [
+            "/System",
+            "/System/Library/CoreServices",
+            "/usr/bin",
+            "/Applications/Mail.app",
+        ] {
+            assert!(
+                is_protected_path(&PathBuf::from(path)),
+                "{path} should be protected"
+            );
         }
     }
 
@@ -115,20 +129,31 @@ mod tests {
             "/Users/ada/.ssh/id_ed25519",
             "/home/ada/Pictures",
         ] {
-            assert!(is_protected_path(&PathBuf::from(path)), "{path} should be protected");
+            assert!(
+                is_protected_path(&PathBuf::from(path)),
+                "{path} should be protected"
+            );
         }
     }
 
     #[test]
     fn ordinary_caches_are_not_protected() {
-        for path in ["/Users/ada/Library/Caches/Chromium", "/Users/ada/Downloads/installer.dmg"] {
-            assert!(!is_protected_path(&PathBuf::from(path)), "{path} should not be protected");
+        for path in [
+            "/Users/ada/Library/Caches/Chromium",
+            "/Users/ada/Downloads/installer.dmg",
+        ] {
+            assert!(
+                !is_protected_path(&PathBuf::from(path)),
+                "{path} should not be protected"
+            );
         }
     }
 
     #[test]
     fn similar_names_do_not_match_a_protected_prefix() {
-        assert!(!is_protected_path(&PathBuf::from("/Users/ada/Documents-old")));
+        assert!(!is_protected_path(&PathBuf::from(
+            "/Users/ada/Documents-old"
+        )));
         assert!(!is_protected_path(&PathBuf::from("/usrdata")));
     }
 }

@@ -34,7 +34,11 @@ pub struct ScanFinished {
 /// arrives as events, so the UI thread is never blocked on a walk that may run
 /// for minutes.
 #[tauri::command]
-pub fn start_scan(app: AppHandle, state: State<'_, AppState>, root: String) -> CommandResult<ScanStarted> {
+pub fn start_scan(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    root: String,
+) -> CommandResult<ScanStarted> {
     let root_path = PathBuf::from(&root);
     if state.storage.active_scan().is_some() {
         return Err("a scan is already running".to_string());
@@ -84,7 +88,10 @@ pub fn cancel_scan(state: State<'_, AppState>) -> bool {
 
 #[tauri::command]
 pub fn active_scan(state: State<'_, AppState>) -> Option<String> {
-    state.storage.active_scan().map(|path| path.to_string_lossy().into_owned())
+    state
+        .storage
+        .active_scan()
+        .map(|path| path.to_string_lossy().into_owned())
 }
 
 /// Kept so `Manager` stays in scope for the `app.state()` pattern used by

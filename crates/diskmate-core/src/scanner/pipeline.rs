@@ -26,9 +26,7 @@ use rusqlite::Connection;
 use crate::db::writer::IndexWriter;
 use crate::db::{index_size_bytes, StorageQueries};
 use crate::error::Result;
-use crate::model::{
-    Category, EntryKind, ScanOptions, ScanProgress, ScanStatus, ScanSummary,
-};
+use crate::model::{Category, EntryKind, ScanOptions, ScanProgress, ScanStatus, ScanSummary};
 use crate::ENGINE_VERSION;
 
 use super::aggregate::DirAggregator;
@@ -49,7 +47,11 @@ pub struct ScanRequest {
 
 impl ScanRequest {
     pub fn new(options: ScanOptions) -> Self {
-        Self { options, volume_id: None, cancel: CancellationToken::new() }
+        Self {
+            options,
+            volume_id: None,
+            cancel: CancellationToken::new(),
+        }
     }
 }
 
@@ -173,7 +175,9 @@ pub fn run_scan(
     let totals = aggregator.root_totals(root_index);
     let duration_ms = started.elapsed().as_millis() as i64;
     let files = counters.files.load(std::sync::atomic::Ordering::Relaxed) as i64;
-    let dirs = counters.directories.load(std::sync::atomic::Ordering::Relaxed) as i64;
+    let dirs = counters
+        .directories
+        .load(std::sync::atomic::Ordering::Relaxed) as i64;
     let symlinks = counters.symlinks.load(std::sync::atomic::Ordering::Relaxed) as i64;
     let others = counters.others.load(std::sync::atomic::Ordering::Relaxed) as i64;
     let errors = counters.errors.load(std::sync::atomic::Ordering::Relaxed) as i64;
@@ -224,7 +228,11 @@ fn accumulate_breakdowns(
         }
         // Counted either way; a hard-link repeat contributes no bytes, matching
         // how the directory roll-up treats it.
-        let bytes = if entry.hardlink_dup { 0 } else { entry.logical_size };
+        let bytes = if entry.hardlink_dup {
+            0
+        } else {
+            entry.logical_size
+        };
 
         let bucket = categories.entry(entry.category).or_insert((0, 0));
         bucket.0 += 1;

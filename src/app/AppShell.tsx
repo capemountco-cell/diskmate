@@ -16,7 +16,10 @@ export function AppShell() {
 
   useEffect(() => {
     if (!engineAvailable()) return;
-    engine.appInfo().then(setInfo).catch(() => setInfo(null));
+    engine
+      .appInfo()
+      .then(setInfo)
+      .catch(() => setInfo(null));
   }, []);
 
   const current = SECTIONS.find((entry) => entry.id === section) ?? SECTIONS[0]!;

@@ -36,7 +36,9 @@ impl Default for StartupService {
 
 impl StartupService {
     pub fn new() -> Self {
-        Self { probe: platform::probe() }
+        Self {
+            probe: platform::probe(),
+        }
     }
 
     pub fn report(&self) -> Result<StartupReport> {
@@ -46,17 +48,29 @@ impl StartupService {
 }
 
 pub(crate) fn summarise(items: Vec<StartupItem>) -> StartupReport {
-    let user_count = items.iter().filter(|i| i.scope == StartupScope::User).count();
-    let system_count = items.iter().filter(|i| i.scope == StartupScope::System).count();
+    let user_count = items
+        .iter()
+        .filter(|i| i.scope == StartupScope::User)
+        .count();
+    let system_count = items
+        .iter()
+        .filter(|i| i.scope == StartupScope::System)
+        .count();
     let os_count = items.iter().filter(|i| i.scope == StartupScope::Os).count();
     let impact_unavailable = items.iter().all(|i| i.impact == StartupImpact::Unmeasured);
-    StartupReport { items, user_count, system_count, os_count, impact_unavailable }
+    StartupReport {
+        items,
+        user_count,
+        system_count,
+        os_count,
+        impact_unavailable,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{StartupSource};
+    use crate::model::StartupSource;
 
     fn item(scope: StartupScope) -> StartupItem {
         StartupItem {
@@ -90,6 +104,9 @@ mod tests {
     fn impact_is_reported_as_unavailable_rather_than_guessed() {
         let report = summarise(vec![item(StartupScope::User)]);
         assert!(report.impact_unavailable);
-        assert!(report.items.iter().all(|i| i.impact == StartupImpact::Unmeasured));
+        assert!(report
+            .items
+            .iter()
+            .all(|i| i.impact == StartupImpact::Unmeasured));
     }
 }
