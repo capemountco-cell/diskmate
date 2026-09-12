@@ -7,12 +7,14 @@
 
 mod cleanup;
 mod memory;
+mod monitor;
 mod rules;
 mod startup;
 mod storage;
 
 pub use cleanup::{CleanupService, DryRunRemover, Remover, TrashRemover};
 pub use memory::{MemoryReport, MemoryService};
+pub use monitor::{MonitorReport, MonitorService, Sample};
 pub use rules::CleanupRules;
 pub use startup::{StartupReport, StartupService};
 pub use storage::{CategoryBucket, ErrorBucket, ScanHandle, StorageService, StorageSnapshot};
