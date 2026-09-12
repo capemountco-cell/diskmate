@@ -452,3 +452,61 @@ fn rules_never_propose_anything_protected() {
     }
     let _ = CleanupRules::propose;
 }
+
+#[test]
+fn a_removed_candidate_stops_being_offered() {
+    let (dir, conn) = fixture();
+    let trash = tempfile::tempdir().unwrap();
+    let going = file(dir.path(), "going.bin", 2_000_000);
+    let staying = file(dir.path(), "staying.bin", 3_000_000);
+
+    CleanupService::record_candidates(
+        &conn,
+        &[
+            candidate(&going, 2_000_000, SafetyClass::Safe),
+            candidate(&staying, 3_000_000, SafetyClass::Safe),
+        ],
+    )
+    .unwrap();
+
+    let all = CleanupService::candidates(&conn, 1, None, 100).unwrap();
+    assert_eq!(all.len(), 2);
+    let doomed = all
+        .iter()
+        .find(|c| c.path == going.to_string_lossy())
+        .expect("the candidate we are about to remove");
+
+    CleanupService::stage(&conn, &[doomed.id]).unwrap();
+    let service =
+        CleanupService::with_remover(Arc::new(TempTrash::new(trash.path().to_path_buf())));
+    let report = service
+        .remove_approved(
+            &conn,
+            &Confirmation {
+                candidate_ids: vec![doomed.id],
+                expected_total_bytes: doomed.bytes,
+            },
+        )
+        .unwrap();
+    assert_eq!(report.removed_count, 1);
+
+    // The point of the test: what is gone is not still on offer, and the
+    // listing agrees with the group counts rather than contradicting them.
+    let remaining = CleanupService::candidates(&conn, 1, None, 100).unwrap();
+    assert_eq!(remaining.len(), 1, "the removed candidate must be gone");
+    assert_eq!(remaining[0].path, staying.to_string_lossy());
+
+    let groups = CleanupService::groups(&conn, 1).unwrap();
+    let counted: i64 = groups.iter().map(|g| g.count).sum();
+    assert_eq!(
+        counted,
+        remaining.len() as i64,
+        "the group counts and the listing must describe the same set"
+    );
+
+    // Re-proposing must not resurrect it: the decision has been acted on.
+    CleanupService::record_candidates(&conn, &[candidate(&going, 2_000_000, SafetyClass::Safe)])
+        .unwrap();
+    let after = CleanupService::candidates(&conn, 1, None, 100).unwrap();
+    assert_eq!(after.len(), 1, "a removed candidate is never re-proposed");
+}

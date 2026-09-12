@@ -529,6 +529,9 @@ impl StorageQueries {
     pub fn delete_scan(conn: &Connection, scan_id: i64) -> Result<()> {
         let tx = conn.unchecked_transaction()?;
         for sql in [
+            "DELETE FROM duplicate_group_members WHERE group_id IN
+                 (SELECT id FROM duplicate_groups WHERE scan_id = ?1)",
+            "DELETE FROM duplicate_groups WHERE scan_id = ?1",
             "DELETE FROM fs_entries WHERE scan_id = ?1",
             "DELETE FROM scan_errors WHERE scan_id = ?1",
             "DELETE FROM scan_categories WHERE scan_id = ?1",
@@ -546,8 +549,10 @@ impl StorageQueries {
 
     /// Keep only the newest `keep` scans per root path.
     ///
-    /// Without this the index grows without bound across rescans. Snapshots and
-    /// scan comparisons will later pin the scans they need.
+    /// Without this the index grows without bound across rescans. A scan a
+    /// snapshot points at is kept regardless of its age: a snapshot stores
+    /// totals, not a copy of the tree, so pruning its scan would turn it into a
+    /// row that cannot be compared with anything.
     pub fn prune_scans(conn: &Connection, keep_per_root: u32) -> Result<usize> {
         let stale: Vec<i64> = conn
             .prepare(
@@ -555,7 +560,8 @@ impl StorageQueries {
                      SELECT id, row_number() OVER (
                          PARTITION BY root_path ORDER BY started_at DESC, id DESC
                      ) AS rank FROM scans
-                 ) WHERE rank > ?1",
+                 ) WHERE rank > ?1
+                   AND id NOT IN (SELECT scan_id FROM snapshots WHERE scan_id IS NOT NULL)",
             )?
             .query_map(params![keep_per_root.max(1)], |row| row.get(0))?
             .collect::<rusqlite::Result<Vec<_>>>()?;

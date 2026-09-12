@@ -9,17 +9,22 @@ everything it learns on your machine.
 It is not a "Mac cleaner". There are no invented problem counts, no fabricated
 performance claims, and no button that promises to make your Mac faster.
 
-## Status: Milestone 01
+## Status: Milestone 02
 
-Milestone 01 is **read-only**. Nothing in this codebase deletes, moves, or
-modifies a file, changes a launch item, or signals a process.
+Milestone 02 adds the one thing Milestone 01 deliberately withheld: the ability
+to remove something. It is narrow on purpose. Every removal in the application
+goes through one service, moves files to the Trash rather than deleting them,
+and happens only for items you put in a queue and approved by total.
 
-| Area    | State                                                                     |
-| ------- | ------------------------------------------------------------------------- |
-| Storage | Working. Volumes, scanning, breakdowns, largest folders and files, browsing |
-| Cleanup | Not started. The page says so and shows no numbers                         |
-| Startup | Read-only. Launch agents and daemons are listed; impact is not measured    |
-| Memory  | Read-only. Pressure, usage, cache and swap, with an explanation            |
+| Area    | State                                                                        |
+| ------- | ---------------------------------------------------------------------------- |
+| Storage | Volumes, scanning, treemap, sunburst, age map, browser, snapshots and diffs   |
+| Cleanup | Suggestions, duplicate finder, application uninstaller, staged removal queue  |
+| Startup | Read-only. Launch agents and daemons are listed; impact is not measured       |
+| Memory  | Read-only monitor. Pressure, usage, cache and swap over time                  |
+
+Still not implemented, by choice: enabling or disabling launch items, killing
+processes, purging memory, and permanent deletion of anything.
 
 ## Requirements
 
@@ -97,7 +102,7 @@ Further reading:
 - [ARCHITECTURE.md](ARCHITECTURE.md) — the layers and why they are separated
 - [docs/scanner.md](docs/scanner.md) — traversal, aggregation, and measurements
 - [docs/database.md](docs/database.md) — schema and the reasoning behind it
-- [docs/security.md](docs/security.md) — the safety model for future cleanup
+- [docs/security.md](docs/security.md) — the safety model, and how removal works
 - [docs/permissions.md](docs/permissions.md) — what macOS does and does not allow
 - [docs/portable-mode.md](docs/portable-mode.md) — running from a USB drive
 
@@ -126,4 +131,9 @@ Your files are none of our business.
 - **Startup impact is not measured.** Every item reports *unmeasured*. There is
   no code path that invents a launch-time figure.
 - **One scan at a time**, per application instance.
-- **No treemap yet.** The engine was the priority for Milestone 01.
+- **Launch items are read-only.** DiskMate lists them and explains them; it
+  does not enable, disable or remove any of them.
+- **Duplicates are found within one scan.** Comparing two separately scanned
+  volumes is not implemented.
+- **Removal is Trash-only.** There is no permanent-delete path, and there is no
+  code that empties the Trash.

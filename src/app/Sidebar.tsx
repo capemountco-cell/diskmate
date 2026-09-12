@@ -22,9 +22,8 @@ export const SECTIONS: Array<{
     id: "cleanup",
     label: "Cleanup",
     title: "Cleanup",
-    subtitle: "What you can safely remove.",
+    subtitle: "What you can safely remove, and why.",
     icon: CleanupIcon,
-    status: "Soon",
   },
   {
     id: "startup",
@@ -37,7 +36,7 @@ export const SECTIONS: Array<{
     id: "memory",
     label: "Memory",
     title: "Memory",
-    subtitle: "How your Mac is using its memory.",
+    subtitle: "How your Mac is using its memory, as it happens.",
     icon: MemoryIcon,
   },
 ];

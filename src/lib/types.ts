@@ -219,3 +219,199 @@ export interface StartupReport {
   osCount: number;
   impactUnavailable: boolean;
 }
+
+// ------------------------------------------------------------- cleanup --
+
+export type CandidateKind =
+  | "trash"
+  | "cache"
+  | "developerArtifact"
+  | "oldDownload"
+  | "bigAndUntouched"
+  | "duplicateCopy"
+  | "appLeftover"
+  | "appBundle"
+  | "log"
+  | "other";
+
+export type CandidateState =
+  "proposed" | "staged" | "removed" | "refused" | "failed" | "vanished";
+
+export type SafetyClass = "safe" | "review" | "protected";
+
+export interface CleanupCandidate {
+  id: number;
+  scanId: number;
+  entryId: number | null;
+  path: string;
+  name: string;
+  kind: CandidateKind;
+  safety: SafetyClass;
+  rule: string;
+  /** Why this was proposed, in a sentence. Never empty. */
+  reason: string;
+  detail: string | null;
+  bytes: number;
+  modifiedAt: number | null;
+  state: CandidateState;
+  groupKey: string | null;
+}
+
+export interface CandidateGroup {
+  kind: CandidateKind;
+  label: string;
+  safety: SafetyClass;
+  count: number;
+  bytes: number;
+  summary: string;
+}
+
+/** Exactly what the user reviewed. The engine refuses if it no longer matches. */
+export interface Confirmation {
+  candidateIds: number[];
+  expectedTotalBytes: number;
+}
+
+export interface RemovalOutcome {
+  candidateId: number;
+  path: string;
+  state: CandidateState;
+  bytes: number;
+  detail: string | null;
+}
+
+export interface RemovalReport {
+  outcomes: RemovalOutcome[];
+  removedCount: number;
+  removedBytes: number;
+  refusedCount: number;
+  failedCount: number;
+}
+
+// ---------------------------------------------------------- duplicates --
+
+export interface DuplicateMember {
+  entryId: number;
+  path: string;
+  name: string;
+  modifiedAt: number | null;
+  isKeeper: boolean;
+}
+
+export interface DuplicateGroup {
+  id: number;
+  logicalSize: number;
+  memberCount: number;
+  reclaimable: number;
+  members: DuplicateMember[];
+}
+
+export interface DuplicateStats {
+  sizeCandidates: number;
+  partiallyHashed: number;
+  fullyHashed: number;
+  groups: number;
+  reclaimableBytes: number;
+  bytesRead: number;
+}
+
+export interface DuplicateProgress {
+  stage: string;
+  done: number;
+  total: number;
+}
+
+// -------------------------------------------------------- applications --
+
+export interface Application {
+  id: number;
+  name: string;
+  bundleId: string | null;
+  path: string;
+  version: string | null;
+  bundleBytes: number;
+  leftoverBytes: number;
+  leftoverCount: number;
+  lastUsedAt: number | null;
+  isOsProvided: boolean;
+}
+
+export interface Leftover {
+  path: string;
+  location: string;
+  bytes: number;
+  safety: SafetyClass;
+  reason: string;
+}
+
+// ----------------------------------------------------------- snapshots --
+
+export interface Snapshot {
+  id: number;
+  scanId: number;
+  label: string;
+  rootPath: string;
+  capturedAt: number;
+  indexedBytes: number;
+  entryCount: number;
+  fileCount: number;
+  dirCount: number;
+  totalBytes: number | null;
+  usedBytes: number | null;
+}
+
+export type ChangeKind = "grew" | "shrank" | "added" | "removed";
+
+export interface Delta {
+  path: string;
+  name: string;
+  change: ChangeKind;
+  beforeBytes: number;
+  afterBytes: number;
+  deltaBytes: number;
+}
+
+export interface Comparison {
+  id: number;
+  base: Snapshot;
+  target: Snapshot;
+  bytesAdded: number;
+  bytesRemoved: number;
+  entriesAdded: number;
+  entriesRemoved: number;
+  netBytes: number;
+  deltas: Delta[];
+}
+
+// ------------------------------------------------------------- monitor --
+
+export interface Sample {
+  at: number;
+  memoryUsedBytes: number;
+  memoryCachedBytes: number;
+  memoryTotalBytes: number;
+  swapUsedBytes: number | null;
+  pressure: MemoryPressure;
+  diskAvailableBytes: number | null;
+}
+
+export interface MonitorReport {
+  running: boolean;
+  intervalMs: number;
+  samples: Sample[];
+  latest: Sample | null;
+  /** Highest pressure across the window, so a spike that passed is not lost. */
+  peakPressure: MemoryPressure;
+  headline: string;
+  detail: string;
+}
+
+// ----------------------------------------------------------- age & map --
+
+export interface AgeBucket {
+  label: string;
+  fromDays: number;
+  toDays: number;
+  fileCount: number;
+  totalSize: number;
+}

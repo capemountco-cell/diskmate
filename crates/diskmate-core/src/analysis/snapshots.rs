@@ -90,6 +90,39 @@ pub struct Comparison {
 /// Folders smaller than this are noise in a comparison.
 const MIN_DELTA_BYTES: i64 = 1000 * 1000;
 
+/// How much of a folder's change one folder inside it has to account for
+/// before the outer folder stops being a separate finding. Not 100%, because
+/// a chain rarely matches to the byte once small files move around it.
+const EXPLAINED_SHARE: i64 = 90;
+
+/// Drop folders whose change is already explained by something inside them.
+///
+/// A 400 MB file appearing in `/tmp/growth` makes `/tmp`, `/`, and every
+/// folder between them grow by 400 MB too. Reported verbatim that is six rows
+/// of the same number, with the one folder that actually changed buried among
+/// its own ancestors. Only the innermost folder is the finding. The scan root
+/// goes too: the comparison header already says what the whole tree did.
+fn collapse_ancestor_chains(root_path: &str, deltas: Vec<Delta>) -> Vec<Delta> {
+    let explained = |outer: &Delta| {
+        deltas.iter().any(|inner| {
+            inner.path.len() > outer.path.len()
+                && inner.path.starts_with(outer.path.trim_end_matches('/'))
+                && inner.path.as_bytes()[outer.path.trim_end_matches('/').len()] == b'/'
+                && inner.delta_bytes.signum() == outer.delta_bytes.signum()
+                && inner.delta_bytes.saturating_abs().saturating_mul(100)
+                    >= outer
+                        .delta_bytes
+                        .saturating_abs()
+                        .saturating_mul(EXPLAINED_SHARE)
+        })
+    };
+    deltas
+        .iter()
+        .filter(|delta| delta.path != root_path && !explained(delta))
+        .cloned()
+        .collect()
+}
+
 pub struct Snapshots;
 
 impl Snapshots {
@@ -230,6 +263,7 @@ impl Snapshots {
                 },
             )?
             .collect::<rusqlite::Result<Vec<_>>>()?;
+        let deltas = collapse_ancestor_chains(&target.root_path, deltas);
 
         let bytes_added: i64 = deltas
             .iter()

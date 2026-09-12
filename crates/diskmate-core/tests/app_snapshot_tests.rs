@@ -303,3 +303,116 @@ fn comparing_snapshots_of_different_folders_is_refused() {
     // Same root, so this must succeed.
     assert!(harness.service.compare_snapshots(one.id, two.id).is_ok());
 }
+
+#[test]
+fn a_change_is_reported_once_rather_than_at_every_level_above_it() {
+    let harness = Harness::new();
+    file(&harness.tree, "a/b/c/keep.bin", 1_000_000);
+    let first = harness.scan();
+    let before = harness
+        .service
+        .capture_snapshot(first.scan_id, "before")
+        .unwrap();
+
+    // One folder deep in a chain grows. Every folder above it grows by the
+    // same amount, but only the innermost one is the finding.
+    file(&harness.tree, "a/b/c/big.bin", 40_000_000);
+    let second = harness.scan();
+    let after = harness
+        .service
+        .capture_snapshot(second.scan_id, "after")
+        .unwrap();
+
+    let comparison = harness
+        .service
+        .compare_snapshots(before.id, after.id)
+        .unwrap();
+
+    let names: Vec<&str> = comparison.deltas.iter().map(|d| d.name.as_str()).collect();
+    assert_eq!(
+        names,
+        vec!["c"],
+        "only the folder that actually changed should be listed, got {names:?}"
+    );
+    assert_eq!(comparison.deltas[0].delta_bytes, 40_000_000);
+    // The headline still accounts for the whole tree.
+    assert_eq!(comparison.net_bytes, 40_000_000);
+}
+
+#[test]
+fn two_separate_changes_under_one_parent_still_list_the_parent() {
+    let harness = Harness::new();
+    file(&harness.tree, "work/seed.bin", 1_000_000);
+    let first = harness.scan();
+    let before = harness
+        .service
+        .capture_snapshot(first.scan_id, "before")
+        .unwrap();
+
+    // Neither child explains `work` on its own, so `work` is a real finding:
+    // it is the smallest folder that accounts for both.
+    file(&harness.tree, "work/one/a.bin", 20_000_000);
+    file(&harness.tree, "work/two/b.bin", 20_000_000);
+    let second = harness.scan();
+    let after = harness
+        .service
+        .capture_snapshot(second.scan_id, "after")
+        .unwrap();
+
+    let comparison = harness
+        .service
+        .compare_snapshots(before.id, after.id)
+        .unwrap();
+
+    let names: Vec<&str> = comparison.deltas.iter().map(|d| d.name.as_str()).collect();
+    assert!(names.contains(&"work"), "got {names:?}");
+    assert!(names.contains(&"one"), "got {names:?}");
+    assert!(names.contains(&"two"), "got {names:?}");
+}
+
+#[test]
+fn pruning_never_removes_a_scan_a_snapshot_points_at() {
+    let harness = Harness::new();
+    file(&harness.tree, "data.bin", 2_000_000);
+
+    let first = harness.scan();
+    let snapshot = harness
+        .service
+        .capture_snapshot(first.scan_id, "kept")
+        .unwrap();
+
+    // Two more scans of the same root. With keep = 1 the first scan is the
+    // oldest and would ordinarily be pruned, but a snapshot needs it: a
+    // snapshot stores totals, not a copy of the tree.
+    let second = harness.scan();
+    let third = harness.scan();
+
+    harness.service.prune(1).unwrap();
+
+    let surviving: Vec<i64> = harness
+        .service
+        .recent_scans(50)
+        .unwrap()
+        .iter()
+        .map(|scan| scan.scan_id)
+        .collect();
+    assert!(
+        surviving.contains(&first.scan_id),
+        "the snapshot's scan must survive pruning, got {surviving:?}"
+    );
+    assert!(surviving.contains(&third.scan_id));
+    assert!(
+        !surviving.contains(&second.scan_id),
+        "a scan nothing points at is still pruned, got {surviving:?}"
+    );
+
+    // And the snapshot is still comparable, which is the point.
+    let later = harness
+        .service
+        .capture_snapshot(third.scan_id, "later")
+        .unwrap();
+    assert!(harness
+        .service
+        .compare_snapshots(snapshot.id, later.id)
+        .is_ok());
+}

@@ -49,15 +49,27 @@
   --line: rgba(0, 0, 0, 0.09);
   --line-strong: rgba(0, 0, 0, 0.16);
 
-  /* Category colours. Muted, distinguishable, and stable across appearances. */
-  --cat-applications: #5b7cc4;
-  --cat-documents: #6fa38a;
-  --cat-media: #b08bc4;
-  --cat-downloads: #c9a15c;
-  --cat-developer: #7d8fa8;
-  --cat-caches: #9aa0ab;
-  --cat-system: #8d8d99;
-  --cat-other: #b9bcc4;
+  /*
+   * Category colours.
+   *
+   * Muted, but genuinely separated by hue. An earlier version kept everything
+   * within a few degrees of grey, which looked calm in a mockup and was useless
+   * on a real disk: Developer, System, Caches and Other were four greys, and
+   * those are exactly the four categories a full disk is made of.
+   *
+   * Saturation stays low so a treemap reads as a system utility rather than a
+   * pie chart, but each hue is far enough from its neighbours to name without
+   * consulting the legend. System and Other stay neutral on purpose - they are
+   * the "not yours to manage" categories and should recede.
+   */
+  --cat-applications: #5878c2;
+  --cat-documents: #4f9e79;
+  --cat-media: #a06cc0;
+  --cat-downloads: #cf9440;
+  --cat-developer: #3e9ea6;
+  --cat-caches: #a8927a;
+  --cat-system: #78808f;
+  --cat-other: #b4b8c1;
   --cat-unknown: #c8cad1;
 
   /* Status. Used for text and small marks only, never as a full-bleed alarm. */
@@ -134,6 +146,17 @@
     --status-caution: #d2a052;
     --status-serious: #e07a6c;
 
+    /* Lifted for a dark ground: the same hues, more luminance. */
+    --cat-applications: #7d99dd;
+    --cat-documents: #6dba94;
+    --cat-media: #bb8bd8;
+    --cat-downloads: #e0aa5e;
+    --cat-developer: #58b9c1;
+    --cat-caches: #c0ab92;
+    --cat-system: #8f97a6;
+    --cat-other: #6e7380;
+    --cat-unknown: #5c606b;
+
     --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
   }
 }
@@ -171,6 +194,16 @@
 
   --status-caution: #d2a052;
   --status-serious: #e07a6c;
+
+  --cat-applications: #7d99dd;
+  --cat-documents: #6dba94;
+  --cat-media: #bb8bd8;
+  --cat-downloads: #e0aa5e;
+  --cat-developer: #58b9c1;
+  --cat-caches: #c0ab92;
+  --cat-system: #8f97a6;
+  --cat-other: #6e7380;
+  --cat-unknown: #5c606b;
 
   --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
 }

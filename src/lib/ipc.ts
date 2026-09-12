@@ -15,14 +15,30 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type {
+  AgeBucket,
+  Application,
   AppInfo,
+  CandidateGroup,
+  CandidateState,
   ChildPage,
   ChildQuery,
+  CleanupCandidate,
+  Comparison,
+  Confirmation,
+  DuplicateGroup,
+  DuplicateProgress,
+  DuplicateStats,
   EntryRow,
+  Leftover,
   MemoryReport,
+  MonitorReport,
+  RemovalOutcome,
+  RemovalReport,
+  Sample,
   ScanFinished,
   ScanProgress,
   ScanSummary,
+  Snapshot,
   StartupReport,
   StorageSnapshot,
   VolumeInfo,
@@ -30,6 +46,9 @@ import type {
 
 export const EVENT_SCAN_PROGRESS = "diskmate://scan-progress";
 export const EVENT_SCAN_FINISHED = "diskmate://scan-finished";
+export const EVENT_DUPLICATE_PROGRESS = "diskmate://duplicate-progress";
+export const EVENT_DUPLICATE_FINISHED = "diskmate://duplicate-finished";
+export const EVENT_DUPLICATE_FAILED = "diskmate://duplicate-failed";
 
 /** True when the app is running inside its Tauri window. */
 export function engineAvailable(): boolean {
@@ -71,7 +90,75 @@ export const engine = {
 
   memoryReport: () => call<MemoryReport>("memory_report"),
   startupReport: () => call<StartupReport>("startup_report"),
+
+  // Visualisations. Both are bounded queries, not tree dumps.
+  subtree: (scanId: number, rootId: number, maxDepth: number, fanOut: number) =>
+    call<EntryRow[]>("subtree", { scanId, rootId, maxDepth, fanOut }),
+  ageBreakdown: (scanId: number) => call<AgeBucket[]>("age_breakdown", { scanId }),
+
+  // Cleanup. Only `removeApproved` removes anything, and the engine checks the
+  // confirmation against the queue before it does.
+  proposeCleanup: (scanId: number) => call<CleanupCandidate[]>("propose_cleanup", { scanId }),
+  cleanupGroups: (scanId: number) => call<CandidateGroup[]>("cleanup_groups", { scanId }),
+  cleanupCandidates: (scanId: number, stateFilter: CandidateState | null, limit: number) =>
+    call<CleanupCandidate[]>("cleanup_candidates", { scanId, stateFilter, limit }),
+  stageCleanup: (ids: number[]) => call<number>("stage_cleanup", { ids }),
+  unstageCleanup: (ids: number[]) => call<number>("unstage_cleanup", { ids }),
+  stagedCleanup: () => call<CleanupCandidate[]>("staged_cleanup"),
+  removeApproved: (confirmation: Confirmation) =>
+    call<RemovalReport>("remove_approved", { confirmation }),
+  cleanupHistory: (limit: number) => call<RemovalOutcome[]>("cleanup_history", { limit }),
+
+  // Duplicates.
+  startDuplicateSearch: (scanId: number) => call<void>("start_duplicate_search", { scanId }),
+  cancelDuplicateSearch: () => call<void>("cancel_duplicate_search"),
+  duplicateGroups: (scanId: number, limit: number) =>
+    call<DuplicateGroup[]>("duplicate_groups", { scanId, limit }),
+
+  // Applications and the uninstaller.
+  inspectApplications: () => call<Application[]>("inspect_applications"),
+  applications: () => call<Application[]>("applications"),
+  applicationLeftovers: (applicationId: number) =>
+    call<Leftover[]>("application_leftovers", { applicationId }),
+  proposeUninstall: (applicationId: number) =>
+    call<CleanupCandidate[]>("propose_uninstall", { applicationId }),
+
+  // Snapshots.
+  captureSnapshot: (scanId: number, label: string) =>
+    call<Snapshot>("capture_snapshot", { scanId, label }),
+  snapshots: (limit: number) => call<Snapshot[]>("snapshots", { limit }),
+  deleteSnapshot: (id: number) => call<void>("delete_snapshot", { id }),
+  compareSnapshots: (baseId: number, targetId: number) =>
+    call<Comparison>("compare_snapshots", { baseId, targetId }),
+
+  // The live monitor.
+  monitorStart: (intervalMs: number, watchPath: string | null) =>
+    call<void>("monitor_start", { intervalMs, watchPath }),
+  monitorStop: () => call<void>("monitor_stop"),
+  monitorReport: () => call<MonitorReport>("monitor_report"),
+  monitorSample: () => call<Sample>("monitor_sample"),
 };
+
+/** Subscribe to duplicate-search progress. */
+export function onDuplicateProgress(
+  handler: (progress: DuplicateProgress) => void,
+): Promise<UnlistenFn> {
+  if (!engineAvailable()) return Promise.resolve(() => {});
+  return listen<DuplicateProgress>(EVENT_DUPLICATE_PROGRESS, (event) => handler(event.payload));
+}
+
+/** Subscribe to the end of a duplicate search. */
+export function onDuplicateFinished(
+  handler: (stats: DuplicateStats) => void,
+): Promise<UnlistenFn> {
+  if (!engineAvailable()) return Promise.resolve(() => {});
+  return listen<DuplicateStats>(EVENT_DUPLICATE_FINISHED, (event) => handler(event.payload));
+}
+
+export function onDuplicateFailed(handler: (message: string) => void): Promise<UnlistenFn> {
+  if (!engineAvailable()) return Promise.resolve(() => {});
+  return listen<string>(EVENT_DUPLICATE_FAILED, (event) => handler(event.payload));
+}
 
 /** Subscribe to coalesced scan progress. Returns an unsubscribe function. */
 export function onScanProgress(handler: (progress: ScanProgress) => void): Promise<UnlistenFn> {

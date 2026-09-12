@@ -208,6 +208,10 @@ impl CleanupService {
         state: Option<CandidateState>,
         limit: u32,
     ) -> Result<Vec<CleanupCandidate>> {
+        // No state filter means "everything still actionable", not "every row
+        // ever written". A candidate that has been removed is history: leaving
+        // it in the list would offer the user a path that is no longer there,
+        // and would disagree with the counts `groups` reports.
         let sql = format!(
             "SELECT id, scan_id, entry_id, path, kind, safety, rule, reason, detail,
                     reclaimable_bytes, modified_at, state, group_key
@@ -216,7 +220,7 @@ impl CleanupService {
               ORDER BY reclaimable_bytes DESC LIMIT ?2",
             filter = match state {
                 Some(_) => "AND state = ?3",
-                None => "",
+                None => "AND state IN ('proposed', 'staged')",
             }
         );
         let mut stmt = conn.prepare(&sql)?;

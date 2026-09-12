@@ -3,9 +3,9 @@
 DiskMate should be able to live on a USB drive and run from it, so a technician
 can plug into a Mac, understand its storage, and leave nothing behind.
 
-Milestone 01 implements the part that has to be right from the start: **nothing
-in the engine assumes its state lives in a fixed directory under the user's
-home.** Every consumer asks `paths::AppPaths`.
+The part that has to be right from the start is already done: **nothing in the
+engine assumes its state lives in a fixed directory under the user's home.**
+Every consumer asks `paths::AppPaths`, the cleanup audit log included.
 
 ## The layout
 
@@ -76,7 +76,7 @@ application.
 
 A future *optional* installed helper could notice a DiskMate drive being mounted
 and offer to open the copy on it. That is a user-installed, user-consented
-convenience, and it is not Milestone 01.
+convenience, and it is not built.
 
 ## Permissions on a borrowed Mac
 
