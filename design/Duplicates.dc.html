@@ -1,0 +1,219 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap");
+
+    .dm {
+      --grey-0:#ffffff; --grey-1:#fbfbfd; --grey-2:#f4f4f7; --grey-3:#ececf0;
+      --grey-4:#dedee4; --grey-5:#c4c4cd; --grey-6:#9a9aa6; --grey-7:#6e6e7a;
+      --grey-8:#48484f; --grey-9:#1d1d20;
+      --accent:#2f6fd0; --accent-strong:#245bb0; --accent-soft:#e7effb; --accent-contrast:#ffffff;
+      --surface-window:var(--grey-1); --surface-panel:var(--grey-0); --surface-sunken:var(--grey-2);
+      --text-primary:var(--grey-9); --text-secondary:var(--grey-7); --text-tertiary:var(--grey-6);
+      --line:rgba(0,0,0,0.09); --line-strong:rgba(0,0,0,0.16);
+      --cat-media:#a06cc0; --cat-documents:#4f9e79; --cat-developer:#3e9ea6; --cat-other:#b4b8c1;
+      --status-caution:#a8762a; --ok-soft:#e8f2ec; --ok-ink:#2f6b4d;
+      --shadow-panel:0 1px 2px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(0,0,0,0.06);
+    }
+    .dm[data-appearance="dark"] {
+      --grey-0:#1c1c1f; --grey-1:#212125; --grey-2:#26262b; --grey-3:#2e2e34;
+      --grey-4:#3a3a42; --grey-5:#4d4d57; --grey-6:#7c7c88; --grey-7:#a2a2ad;
+      --grey-8:#cfcfd6; --grey-9:#f2f2f5;
+      --accent:#62a0f0; --accent-strong:#7db2f6; --accent-soft:#1e2c41; --accent-contrast:#10131a;
+      --surface-window:#191a1d; --surface-panel:var(--grey-1); --surface-sunken:#161619;
+      --line:rgba(255,255,255,0.09); --line-strong:rgba(255,255,255,0.17);
+      --cat-media:#bb8bd8; --cat-documents:#6dba94; --cat-developer:#58b9c1; --cat-other:#6e7380;
+      --status-caution:#d2a052; --ok-soft:#1c2b23; --ok-ink:#7fc79f;
+      --shadow-panel:0 1px 2px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(255,255,255,0.06);
+    }
+
+    body { margin:0; }
+    a { color:var(--accent); text-decoration:none; } a:hover { color:var(--accent-strong); }
+
+    .dm {
+      width:1080px; height:820px; display:flex; flex-direction:column;
+      background:var(--surface-window); color:var(--text-primary);
+      font-family:"Inter Tight", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      font-size:13px; line-height:1.45; overflow:hidden; -webkit-font-smoothing:antialiased;
+    }
+    .lbl { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-tertiary); }
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size:11px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .row { display:flex; align-items:center; gap:8px; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:4px 12px;
+           border:1px solid var(--line-strong); border-radius:5px; background:var(--surface-panel);
+           box-shadow:0 1px 1px rgba(0,0,0,0.04); font-size:13px; color:var(--text-primary); }
+    .btn--primary { border-color:transparent; background:var(--accent); color:var(--accent-contrast); }
+    .panel { background:var(--surface-panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    .chip { font-size:11px; padding:1px 7px; border-radius:4px; border:1px solid var(--line); color:var(--text-secondary); }
+    .chip--keep { background:var(--ok-soft); color:var(--ok-ink); border-color:transparent; font-weight:500; }
+    .chip--extra { background:transparent; color:var(--status-caution); border-color:var(--status-caution); }
+    .box { width:14px; height:14px; border-radius:3px; border:1px solid var(--line-strong); background:var(--surface-panel); flex:none; }
+    .box[data-on="1"] { background:var(--accent); border-color:var(--accent); display:grid; place-items:center; }
+    .copy { display:grid; grid-template-columns:18px 1fr auto; gap:12px; align-items:center; padding:10px 14px; border-radius:8px; }
+  </style>
+</helmet>
+
+<div class="dm" data-appearance="{{appearance}}">
+
+  <div style="display:flex; align-items:center; gap:16px; padding:0 20px; height:52px; flex:none; border-bottom:1px solid var(--line);">
+    <span style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">Duplicates</span>
+    <span style="color:var(--text-tertiary);">Confirmed byte for byte, never by filename.</span>
+    <span class="btn" style="margin-left:auto;">Search again</span>
+  </div>
+
+  <!-- honest accounting of the work done -->
+  <div style="padding:18px 20px 0; flex:none;">
+    <div class="panel">
+      <div style="display:grid; grid-template-columns:repeat(4, 1fr); padding:14px 18px;">
+        <div>
+          <div class="lbl">Sets found</div>
+          <div class="num" style="font-size:22px; font-weight:600; letter-spacing:-0.02em; margin-top:3px;">39</div>
+        </div>
+        <div>
+          <div class="lbl">Held more than once</div>
+          <div class="num" style="font-size:22px; font-weight:600; letter-spacing:-0.02em; margin-top:3px;">2.8 GB</div>
+        </div>
+        <div>
+          <div class="lbl">Read to confirm</div>
+          <div class="num" style="font-size:22px; font-weight:600; letter-spacing:-0.02em; margin-top:3px;">998 MB</div>
+          <div style="font-size:11px; color:var(--text-tertiary);" class="num">of 411 files that shared a size</div>
+        </div>
+        <div>
+          <div class="lbl">Never opened</div>
+          <div class="num" style="font-size:22px; font-weight:600; letter-spacing:-0.02em; margin-top:3px;">117 GB</div>
+          <div style="font-size:11px; color:var(--text-tertiary);">grouped by size alone</div>
+        </div>
+      </div>
+      <div style="padding:10px 18px; border-top:1px solid var(--line); background:var(--surface-sunken); font-size:12px; color:var(--text-secondary);">
+        Files are grouped by size first, then by a sample from each end, and only read in full when they still look identical.
+        <b style="font-weight:600; color:var(--text-primary);">Most of your disk is never opened.</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- one set, shown as a comparison rather than a flat list -->
+  <div style="flex:1; min-height:0; padding:16px 20px 20px; display:flex; flex-direction:column; gap:14px;">
+
+    <div class="panel" style="flex:none;">
+      <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line);">
+        <div>
+          <div class="row" style="gap:8px;">
+            <span style="font-weight:600;">3 identical copies</span>
+            <span class="mono" style="color:var(--text-tertiary);">blake3 &middot; 1f4c…a09b</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-tertiary); margin-top:2px;"><span class="num">612 MB</span> each &middot; <span class="num">1.2 GB</span> held more than once</div>
+        </div>
+        <span class="btn">Add the 2 extra copies</span>
+      </div>
+
+      <div style="padding:10px 16px 14px; display:flex; flex-direction:column; gap:4px;">
+
+        <div class="copy" style="background:var(--ok-soft);">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ok-ink)" stroke-width="1.6"><path d="M3 8.4l3 3.1L13 4.5"/></svg>
+          <div style="min-width:0;">
+            <div class="row" style="gap:8px;"><span style="font-weight:500;">island-sunrise.mov</span><span class="chip chip--keep">Keeping this one</span></div>
+            <div class="mono" style="color:var(--text-secondary); margin-top:2px;">~/Movies/2019/island-sunrise.mov</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="num" style="font-weight:500;">612 MB</div>
+            <div class="num" style="font-size:11px; color:var(--text-tertiary);">Created 12 Aug 2019</div>
+          </div>
+        </div>
+
+        <div class="copy">
+          <div class="box" data-on="1"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="1.8"><path d="M1.6 5.2l2.1 2.2L8.4 2.6"/></svg></div>
+          <div style="min-width:0;">
+            <div class="row" style="gap:8px;"><span style="font-weight:500;">island-sunrise.mov</span><span class="chip chip--extra">Extra copy</span></div>
+            <div class="mono" style="color:var(--text-secondary); margin-top:2px;">~/Desktop/to sort/island-sunrise.mov</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="num" style="font-weight:500;">612 MB</div>
+            <div class="num" style="font-size:11px; color:var(--text-tertiary);">Created 3 Mar 2023</div>
+          </div>
+        </div>
+
+        <div class="copy">
+          <div class="box" data-on="1"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="1.8"><path d="M1.6 5.2l2.1 2.2L8.4 2.6"/></svg></div>
+          <div style="min-width:0;">
+            <div class="row" style="gap:8px;"><span style="font-weight:500;">island-sunrise copy.mov</span><span class="chip chip--extra">Extra copy</span></div>
+            <div class="mono" style="color:var(--text-secondary); margin-top:2px;">~/Downloads/island-sunrise copy.mov</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="num" style="font-weight:500;">612 MB</div>
+            <div class="num" style="font-size:11px; color:var(--text-tertiary);">Created 9 Jan 2025</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; padding:9px 14px 0; font-size:12px; color:var(--text-tertiary); line-height:1.5;">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none; margin-top:2px;"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 5.1v.1"/></svg>
+          <span>The oldest copy is kept because it is the one your other files are most likely to point at. It is never proposed for removal. The names differ; that is not what made these duplicates.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:none;">
+      <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line);">
+        <div>
+          <div class="row" style="gap:8px;">
+            <span style="font-weight:600;">2 identical copies</span>
+            <span class="mono" style="color:var(--text-tertiary);">blake3 &middot; 7ba2…31de</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-tertiary); margin-top:2px;"><span class="num">318 MB</span> each &middot; <span class="num">318 MB</span> held more than once</div>
+        </div>
+        <span class="btn">Add the extra copy</span>
+      </div>
+      <div style="padding:10px 16px 14px; display:flex; flex-direction:column; gap:4px;">
+        <div class="copy" style="background:var(--ok-soft);">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ok-ink)" stroke-width="1.6"><path d="M3 8.4l3 3.1L13 4.5"/></svg>
+          <div style="min-width:0;">
+            <div class="row" style="gap:8px;"><span style="font-weight:500;">Portfolio-2024.sketch</span><span class="chip chip--keep">Keeping this one</span></div>
+            <div class="mono" style="color:var(--text-secondary); margin-top:2px;">~/Documents/Design/Portfolio-2024.sketch</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="num" style="font-weight:500;">318 MB</div>
+            <div class="num" style="font-size:11px; color:var(--text-tertiary);">Created 4 Feb 2024</div>
+          </div>
+        </div>
+        <div class="copy">
+          <div class="box"></div>
+          <div style="min-width:0;">
+            <div class="row" style="gap:8px;"><span style="font-weight:500;">Portfolio-2024.sketch</span><span class="chip chip--extra">Extra copy</span></div>
+            <div class="mono" style="color:var(--text-secondary); margin-top:2px;">~/Desktop/Portfolio-2024.sketch</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="num" style="font-weight:500;">318 MB</div>
+            <div class="num" style="font-size:11px; color:var(--text-tertiary);">Created 21 Nov 2024</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; padding:11px 14px; border-radius:10px; border:1px solid var(--line); background:var(--surface-panel); flex:none;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5" style="flex:none; margin-top:1px;"><path d="M6 3.5h4.5a3 3 0 0 1 0 6H9"/><path d="M10 12.5H5.5a3 3 0 0 1 0-6H7"/></svg>
+      <div style="font-size:12px; line-height:1.5; color:var(--text-secondary);">
+        <b style="font-weight:600; color:var(--text-primary);">Hard links are not duplicates.</b>
+        <span class="num">1,847</span> files share storage with another name on this disk. Removing one of those frees nothing, so they are left out of this list entirely.
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"appearance":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1080,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { appearance: this.props.appearance ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

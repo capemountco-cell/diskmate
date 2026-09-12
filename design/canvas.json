@@ -1,0 +1,31 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",       "title": "Storage",    "x": 0,    "y": 0,    "w": 1440, "h": 900 },
+    { "file": "Cleanup.dc.html",    "title": "Cleanup",    "x": 1560, "y": 0,    "w": 1440, "h": 900 },
+    { "file": "Duplicates.dc.html", "title": "Duplicates", "x": 0,    "y": 1200, "w": 1080, "h": 820 },
+    { "file": "Memory.dc.html",     "title": "Memory",     "x": 1200, "y": 1200, "w": 1080, "h": 760 }
+  ],
+  "annotations": [
+    {
+      "id": "why-map",
+      "x": 0, "y": -320, "w": 640,
+      "text": "STORAGE — what changed and why\n\nDisk Buddy shows top-level folders as a grid of equal pastel cards. Library at 68 GB and .codex at 623 MB get the same rectangle, so the one number that matters is the one you have to read rather than see. Here area IS bytes and colour IS category, consistently, so proportion is the first thing you take in.\n\nThe inspector is borrowed from Disk Buddy and then made to earn its place: instead of one \"Add to Cleanup\" button for everything, it says what DiskMate can and cannot explain about the selection. 9.6 GB of cache gets a reason. 33 GB of Application Support gets an honest \"nothing to suggest here.\""
+    },
+    {
+      "id": "why-queue",
+      "x": 1560, "y": -320, "w": 640,
+      "text": "CLEANUP — the queue is the promise\n\nDisk Buddy's sidebar leads with QUICK WINS. That framing is the whole Mac-cleaner move: it tells you bytes are winnings before it tells you what they are. The same list is here, named \"What was found\", every row carrying the reason and what removing it costs.\n\nThe queue sits open on the right rather than behind a button, because the number on it is a contract: DiskMate removes exactly those items, totalling exactly that, and refuses the whole operation if either has changed. Nothing on this screen deletes; it moves to the Trash."
+    },
+    {
+      "id": "why-dupes",
+      "x": 0, "y": 1010, "w": 640,
+      "text": "DUPLICATES — show the work, not just the verdict\n\nThe top strip reports how much was actually read to prove these are duplicates, and how much was never opened. A set is a comparison, not a checklist: you can see which copy is kept and the date that decided it.\n\nHard links get their own line because they are the easiest way for a tool like this to lie to you about free space."
+    },
+    {
+      "id": "why-memory",
+      "x": 1200, "y": 1010, "w": 640,
+      "text": "MEMORY — a chart that answers the question\n\nPlotting committed memory alone against installed memory draws a flat line near the floor: accurate, useless. Cache is stacked underneath so the shape shows how full memory actually is.\n\nThe closing note is the product's position stated once: there is no button here that frees RAM, and the reason is given rather than implied."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}
