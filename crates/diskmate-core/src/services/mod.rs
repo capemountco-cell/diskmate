@@ -5,10 +5,14 @@
 //! and serialise the result; every decision that is not about IPC lives in this
 //! layer, which is why it can be exercised by tests with no Tauri present.
 
+mod cleanup;
 mod memory;
+mod rules;
 mod startup;
 mod storage;
 
+pub use cleanup::{CleanupService, DryRunRemover, Remover, TrashRemover};
 pub use memory::{MemoryReport, MemoryService};
+pub use rules::CleanupRules;
 pub use startup::{StartupReport, StartupService};
 pub use storage::{CategoryBucket, ErrorBucket, ScanHandle, StorageService, StorageSnapshot};

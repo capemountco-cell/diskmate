@@ -5,6 +5,7 @@
 //! TypeScript layer needs no translation shims.
 
 mod classify;
+mod cleanup;
 mod entry;
 mod memory;
 mod scan;
@@ -12,6 +13,10 @@ mod startup;
 mod volume;
 
 pub use classify::{classify_directory, Category, SafetyClass};
+pub use cleanup::{
+    CandidateGroup, CandidateKind, CandidateState, CleanupCandidate, Confirmation, RemovalOutcome,
+    RemovalReport,
+};
 pub use entry::{EntryKind, EntryRecord, EntryRow, ExtensionBucket};
 pub use memory::{MemoryPressure, MemorySnapshot, ProcessMemory};
 pub use scan::{ScanError, ScanErrorKind, ScanOptions, ScanProgress, ScanStatus, ScanSummary};

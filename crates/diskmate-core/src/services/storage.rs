@@ -8,12 +8,16 @@ use rusqlite::Connection;
 use crate::db::{self, ChildQuery, StorageQueries};
 use crate::error::{CoreError, Result};
 use crate::model::{
-    Category, EntryRow, ExtensionBucket, ScanError, ScanErrorKind, ScanOptions, ScanProgress,
+    CandidateGroup, CandidateState, Category, CleanupCandidate, Confirmation, EntryRow,
+    ExtensionBucket, RemovalReport, ScanError, ScanErrorKind, ScanOptions, ScanProgress,
     ScanSummary, VolumeInfo,
 };
 use crate::paths::AppPaths;
 use crate::platform::{self, SystemProbe};
 use crate::scanner::{run_scan, CancellationToken, ScanRequest};
+
+use super::cleanup::CleanupService;
+use super::rules::CleanupRules;
 
 /// Everything the Storage screen needs after a scan, in one round trip.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -74,6 +78,9 @@ pub struct StorageService {
     conn: Mutex<Option<Connection>>,
     probe: &'static dyn SystemProbe,
     active_scan: Mutex<Option<ScanHandle>>,
+    /// The only thing in DiskMate that removes anything. Held here so every
+    /// caller reaches it through one owner rather than constructing their own.
+    cleanup: CleanupService,
 }
 
 impl StorageService {
@@ -87,6 +94,7 @@ impl StorageService {
             conn: Mutex::new(Some(conn)),
             probe: platform::probe(),
             active_scan: Mutex::new(None),
+            cleanup: CleanupService::new(),
         }))
     }
 
@@ -97,6 +105,7 @@ impl StorageService {
             conn: Mutex::new(Some(db::open_in_memory()?)),
             probe: platform::probe(),
             active_scan: Mutex::new(None),
+            cleanup: CleanupService::new(),
         }))
     }
 
@@ -284,6 +293,57 @@ impl StorageService {
 
     pub fn scan_errors(&self, scan_id: i64, limit: u32) -> Result<Vec<ScanError>> {
         self.with_conn(|conn| StorageQueries::scan_errors(conn, scan_id, limit))
+    }
+
+    // ----------------------------------------------------------- cleanup --
+    //
+    // These are adapters onto the cleanup service. They exist here because
+    // this type owns the index connection, not because any decision is made
+    // in them: the safety rules live in `services::cleanup` and nowhere else.
+
+    /// Run the detection rules over a finished scan and record what they
+    /// propose. Proposing is not staging and is not removal.
+    pub fn propose_cleanup(&self, scan_id: i64) -> Result<Vec<CleanupCandidate>> {
+        self.with_conn(|conn| {
+            let proposed = CleanupRules::propose(conn, scan_id, db::now_unix())?;
+            CleanupService::record_candidates(conn, &proposed)?;
+            CleanupService::candidates(conn, scan_id, Some(CandidateState::Proposed), 2_000)
+        })
+    }
+
+    pub fn cleanup_groups(&self, scan_id: i64) -> Result<Vec<CandidateGroup>> {
+        self.with_conn(|conn| CleanupService::groups(conn, scan_id))
+    }
+
+    pub fn cleanup_candidates(
+        &self,
+        scan_id: i64,
+        state: Option<CandidateState>,
+        limit: u32,
+    ) -> Result<Vec<CleanupCandidate>> {
+        self.with_conn(|conn| CleanupService::candidates(conn, scan_id, state, limit))
+    }
+
+    pub fn stage_cleanup(&self, ids: &[i64]) -> Result<usize> {
+        self.with_conn(|conn| CleanupService::stage(conn, ids))
+    }
+
+    pub fn unstage_cleanup(&self, ids: &[i64]) -> Result<usize> {
+        self.with_conn(|conn| CleanupService::unstage(conn, ids))
+    }
+
+    pub fn staged_cleanup(&self) -> Result<Vec<CleanupCandidate>> {
+        self.with_conn(CleanupService::staged)
+    }
+
+    /// Remove what the user approved. The confirmation is checked against the
+    /// queue before anything is touched.
+    pub fn remove_approved(&self, confirmation: &Confirmation) -> Result<RemovalReport> {
+        self.with_conn(|conn| self.cleanup.remove_approved(conn, confirmation))
+    }
+
+    pub fn cleanup_history(&self, limit: u32) -> Result<Vec<crate::model::RemovalOutcome>> {
+        self.with_conn(|conn| CleanupService::history(conn, limit))
     }
 
     /// Drop old scans so the index does not grow without bound across rescans.

@@ -24,6 +24,14 @@ tracing = { workspace = true }
 rusqlite = { version = "0.37", features = ["bundled", "backup"] }
 crossbeam-channel = "0.5"
 libc = "0.2"
+# Moving to the Trash correctly is not a rename: it needs the volume's own
+# .Trashes, collision handling and the Put Back metadata that lets a person
+# undo it. This is the one place DiskMate will not reimplement the platform.
+trash = "5"
+# Duplicate detection hashes file contents. BLAKE3 is fast enough that the
+# full-hash stage is not the bottleneck the size and partial stages exist to
+# avoid.
+blake3 = "1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # Read-only property-list parsing for LaunchAgents/LaunchDaemons inspection.
