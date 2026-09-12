@@ -19,8 +19,8 @@
       --surface-sunken:var(--grey-2); --surface-selected:var(--accent-soft);
       --text-primary:var(--grey-9); --text-secondary:var(--grey-7); --text-tertiary:var(--grey-6);
       --line:rgba(0,0,0,0.09); --line-strong:rgba(0,0,0,0.16);
-      --cat-applications:#5878c2; --cat-documents:#4f9e79; --cat-media:#a06cc0;
-      --cat-downloads:#cf9440; --cat-developer:#3e9ea6; --cat-caches:#a8927a;
+      --cat-applications:#7897da; --cat-documents:#72bf8e; --cat-media:#7d4e88;
+      --cat-downloads:#bd8846; --cat-developer:#009185; --cat-caches:#865901;
       --cat-system:#78808f; --cat-other:#b4b8c1;
       --status-caution:#a8762a;
       --shadow-panel:0 1px 2px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(0,0,0,0.06);
@@ -33,8 +33,8 @@
       --surface-window:#191a1d; --surface-sidebar:#212125; --surface-panel:var(--grey-1);
       --surface-sunken:#161619;
       --line:rgba(255,255,255,0.09); --line-strong:rgba(255,255,255,0.17);
-      --cat-applications:#7d99dd; --cat-documents:#6dba94; --cat-media:#bb8bd8;
-      --cat-downloads:#e0aa5e; --cat-developer:#58b9c1; --cat-caches:#c0ab92;
+      --cat-applications:#6c85d9; --cat-documents:#007654; --cat-media:#7a4f8c;
+      --cat-downloads:#b3880f; --cat-developer:#28a497; --cat-caches:#895709;
       --cat-system:#8f97a6; --cat-other:#6e7380;
       --status-caution:#d2a052;
       --shadow-panel:0 1px 2px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(255,255,255,0.06);
@@ -300,7 +300,18 @@
 
       <!-- What DiskMate can say. The whole argument of the product. -->
       <div style="padding:14px 18px; border-bottom:1px solid var(--line); flex:none; background:var(--surface-sunken);">
-        <div class="lbl" style="margin-bottom:8px;">What DiskMate can say</div>
+        <div class="lbl" style="margin-bottom:9px;">What DiskMate can say</div>
+
+        <div style="display:flex; gap:2px; height:9px; border-radius:3px; overflow:hidden; margin-bottom:7px;">
+          <div style="flex:6.1; background:var(--cat-caches);"></div>
+          <div style="flex:33.2; background:var(--grey-4);"></div>
+          <div style="flex:3.5; background:var(--grey-3);"></div>
+        </div>
+        <div class="row" style="gap:14px; font-size:11px; color:var(--text-tertiary); margin-bottom:11px;">
+          <span class="row" style="gap:5px;"><i class="dot" style="background:var(--cat-caches);"></i>Can explain <span class="num">6.1 GB</span></span>
+          <span class="row" style="gap:5px;"><i class="dot" style="background:var(--grey-4);"></i>Yours <span class="num">36.7 GB</span></span>
+        </div>
+
         <div style="display:flex; flex-direction:column; gap:9px;">
 
           <div style="display:flex; gap:9px;">

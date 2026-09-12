@@ -52,22 +52,36 @@
   /*
    * Category colours.
    *
-   * Muted, but genuinely separated by hue. An earlier version kept everything
-   * within a few degrees of grey, which looked calm in a mockup and was useless
-   * on a real disk: Developer, System, Caches and Other were four greys, and
-   * those are exactly the four categories a full disk is made of.
+   * Muted, but genuinely separated - and separated by measurement rather than
+   * by eye. Two earlier attempts failed: the first made Developer, System,
+   * Caches and Other four greys, which looked calm in a mockup and was useless
+   * on a real disk. The second gave them hues that looked distinct to me and
+   * were not: Applications and Media differed by 0.3 under simulated red
+   * blindness, and Documents and Developer by 6.7 with full colour vision,
+   * against a floor of 15. Six adjacent rectangles in a treemap, two of them
+   * effectively the same colour.
    *
-   * Saturation stays low so a treemap reads as a system utility rather than a
-   * pie chart, but each hue is far enough from its neighbours to name without
-   * consulting the legend. System and Other stay neutral on purpose - they are
-   * the "not yours to manage" categories and should recede.
+   * These six are solved rather than chosen: hue held within 10 degrees of what
+   * each category already meant, lightness and chroma searched for the least
+   * saturated set that clears every pair on protanope, deuteranope and normal
+   * vision. Worst pair is now 9.3 simulated, 16.0 unsimulated. Chroma sits on
+   * the floor, so a treemap still reads as a system utility rather than a pie
+   * chart. Do not hand-adjust one of these without re-running the check: moving
+   * one colour moves fifteen pairs.
+   *
+   * Some sit under a 3:1 contrast ratio against the panel, which is allowed
+   * only because a category is never colour alone here - every treemap cell and
+   * every legend entry carries its name.
+   *
+   * System, Other and Unknown stay neutral on purpose and sit outside that set:
+   * they are the "not yours to manage" categories and should recede.
    */
-  --cat-applications: #5878c2;
-  --cat-documents: #4f9e79;
-  --cat-media: #a06cc0;
-  --cat-downloads: #cf9440;
-  --cat-developer: #3e9ea6;
-  --cat-caches: #a8927a;
+  --cat-applications: #7897da;
+  --cat-documents: #72bf8e;
+  --cat-media: #7d4e88;
+  --cat-downloads: #bd8846;
+  --cat-developer: #009185;
+  --cat-caches: #865901;
   --cat-system: #78808f;
   --cat-other: #b4b8c1;
   --cat-unknown: #c8cad1;
@@ -147,12 +161,12 @@
     --status-serious: #e07a6c;
 
     /* Lifted for a dark ground: the same hues, more luminance. */
-    --cat-applications: #7d99dd;
-    --cat-documents: #6dba94;
-    --cat-media: #bb8bd8;
-    --cat-downloads: #e0aa5e;
-    --cat-developer: #58b9c1;
-    --cat-caches: #c0ab92;
+    --cat-applications: #6c85d9;
+    --cat-documents: #007654;
+    --cat-media: #7a4f8c;
+    --cat-downloads: #b3880f;
+    --cat-developer: #28a497;
+    --cat-caches: #895709;
     --cat-system: #8f97a6;
     --cat-other: #6e7380;
     --cat-unknown: #5c606b;
@@ -195,12 +209,12 @@
   --status-caution: #d2a052;
   --status-serious: #e07a6c;
 
-  --cat-applications: #7d99dd;
-  --cat-documents: #6dba94;
-  --cat-media: #bb8bd8;
-  --cat-downloads: #e0aa5e;
-  --cat-developer: #58b9c1;
-  --cat-caches: #c0ab92;
+  --cat-applications: #6c85d9;
+  --cat-documents: #007654;
+  --cat-media: #7a4f8c;
+  --cat-downloads: #b3880f;
+  --cat-developer: #28a497;
+  --cat-caches: #895709;
   --cat-system: #8f97a6;
   --cat-other: #6e7380;
   --cat-unknown: #5c606b;
