@@ -287,6 +287,22 @@ impl StorageService {
         self.with_conn(|conn| StorageQueries::directory_by_path(conn, scan_id, path))
     }
 
+    /// A bounded slice of the tree for the treemap and sunburst.
+    pub fn subtree(
+        &self,
+        scan_id: i64,
+        root_id: i64,
+        max_depth: u32,
+        fan_out: u32,
+    ) -> Result<Vec<EntryRow>> {
+        self.with_conn(|conn| StorageQueries::subtree(conn, scan_id, root_id, max_depth, fan_out))
+    }
+
+    /// Bytes by how long ago they were last modified.
+    pub fn age_breakdown(&self, scan_id: i64) -> Result<Vec<crate::model::AgeBucket>> {
+        self.with_conn(|conn| StorageQueries::age_breakdown(conn, scan_id, db::now_unix()))
+    }
+
     pub fn ancestors(&self, scan_id: i64, entry_id: i64) -> Result<Vec<EntryRow>> {
         self.with_conn(|conn| StorageQueries::ancestors(conn, scan_id, entry_id))
     }

@@ -38,8 +38,40 @@ pub fn run() {
             commands::entry_ancestors,
             commands::directory_by_path,
             commands::scan_errors,
+            commands::subtree,
+            commands::age_breakdown,
             commands::memory_report,
             commands::startup_report,
+            // Cleanup. Every one of these proposes or reviews; only
+            // `remove_approved` removes, and the engine checks the approval
+            // against the queue before it does.
+            commands::propose_cleanup,
+            commands::cleanup_groups,
+            commands::cleanup_candidates,
+            commands::stage_cleanup,
+            commands::unstage_cleanup,
+            commands::staged_cleanup,
+            commands::remove_approved,
+            commands::cleanup_history,
+            // Duplicates.
+            commands::start_duplicate_search,
+            commands::cancel_duplicate_search,
+            commands::duplicate_groups,
+            // Applications and the uninstaller.
+            commands::inspect_applications,
+            commands::applications,
+            commands::application_leftovers,
+            commands::propose_uninstall,
+            // Snapshots.
+            commands::capture_snapshot,
+            commands::snapshots,
+            commands::delete_snapshot,
+            commands::compare_snapshots,
+            // The live monitor.
+            commands::monitor_start,
+            commands::monitor_stop,
+            commands::monitor_report,
+            commands::monitor_sample,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start DiskMate");

@@ -28,11 +28,29 @@ impl CancellationToken {
     pub fn is_cancelled(&self) -> bool {
         self.flag.load(Ordering::Acquire)
     }
+
+    /// Clear the flag so the token can be used for a new run.
+    ///
+    /// Only correct between runs: resetting while workers are still checking
+    /// it would un-cancel work that is already stopping. The one caller is the
+    /// command layer, which holds a single token across successive searches.
+    pub fn reset(&self) {
+        self.flag.store(false, Ordering::Release);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_reset_token_can_be_used_again() {
+        let token = CancellationToken::new();
+        token.cancel();
+        assert!(token.is_cancelled());
+        token.reset();
+        assert!(!token.is_cancelled());
+    }
 
     #[test]
     fn a_clone_observes_cancellation() {

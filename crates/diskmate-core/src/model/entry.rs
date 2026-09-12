@@ -115,3 +115,15 @@ pub struct ExtensionBucket {
     pub file_count: i64,
     pub total_size: i64,
 }
+
+/// One band of the age breakdown: how many bytes were last touched in a
+/// window of time.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgeBucket {
+    pub label: String,
+    pub from_days: i64,
+    pub to_days: i64,
+    pub file_count: i64,
+    pub total_size: i64,
+}

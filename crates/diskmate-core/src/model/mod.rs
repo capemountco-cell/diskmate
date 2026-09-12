@@ -17,7 +17,7 @@ pub use cleanup::{
     CandidateGroup, CandidateKind, CandidateState, CleanupCandidate, Confirmation, RemovalOutcome,
     RemovalReport,
 };
-pub use entry::{EntryKind, EntryRecord, EntryRow, ExtensionBucket};
+pub use entry::{AgeBucket, EntryKind, EntryRecord, EntryRow, ExtensionBucket};
 pub use memory::{MemoryPressure, MemorySnapshot, ProcessMemory};
 pub use scan::{ScanError, ScanErrorKind, ScanOptions, ScanProgress, ScanStatus, ScanSummary};
 pub use startup::{StartupImpact, StartupItem, StartupScope, StartupSource};

@@ -12,8 +12,8 @@ use rusqlite::{params, Connection, Row};
 
 use crate::error::{CoreError, Result};
 use crate::model::{
-    Category, EntryKind, EntryRow, ExtensionBucket, ScanError, ScanErrorKind, ScanStatus,
-    ScanSummary,
+    AgeBucket, Category, EntryKind, EntryRow, ExtensionBucket, ScanError, ScanErrorKind,
+    ScanStatus, ScanSummary,
 };
 
 /// Guard against a pathological or corrupt parent chain when walking upwards.
@@ -394,6 +394,94 @@ impl StorageQueries {
             })?
             .collect::<rusqlite::Result<Vec<_>>>()?;
         Ok(rows)
+    }
+
+    /// A bounded slice of the tree, for the treemap and the sunburst.
+    ///
+    /// Still bounded, like every other query here: the widest useful treemap
+    /// shows a few hundred rectangles, so this takes the largest `fan_out`
+    /// children at each level down to `max_depth` and stops. A visualisation
+    /// that needs the whole tree is a visualisation that will not open on a
+    /// real volume.
+    pub fn subtree(
+        conn: &Connection,
+        scan_id: i64,
+        root_id: i64,
+        max_depth: u32,
+        fan_out: u32,
+    ) -> Result<Vec<EntryRow>> {
+        let fan_out = fan_out.clamp(1, 64);
+        let max_depth = max_depth.clamp(1, 6);
+        let mut out = Vec::new();
+        let mut frontier = vec![root_id];
+
+        for _ in 0..max_depth {
+            let mut next = Vec::new();
+            for parent in frontier.drain(..) {
+                let children = Self::children(
+                    conn,
+                    &ChildQuery {
+                        limit: fan_out,
+                        ..ChildQuery::new(scan_id, parent)
+                    },
+                )?;
+                for child in children {
+                    // Only folders are worth descending into, and a zero-byte
+                    // branch contributes nothing to draw.
+                    if child.kind == EntryKind::Directory && child.size > 0 {
+                        next.push(child.id);
+                    }
+                    out.push(child);
+                }
+            }
+            // A hard ceiling so a pathologically wide tree cannot make the
+            // window unresponsive.
+            if out.len() > 4_000 {
+                break;
+            }
+            frontier = next;
+        }
+        Ok(out)
+    }
+
+    /// Bytes grouped by how long ago they were last modified.
+    ///
+    /// The most actionable view of a disk: not what is big, but what is big and
+    /// has not been touched. Buckets are in days, open-ended at the end.
+    pub fn age_breakdown(conn: &Connection, scan_id: i64, now: i64) -> Result<Vec<AgeBucket>> {
+        const BUCKETS: &[(&str, i64, i64)] = &[
+            ("This week", 0, 7),
+            ("This month", 7, 30),
+            ("3 months", 30, 90),
+            ("6 months", 90, 180),
+            ("A year", 180, 365),
+            ("1 to 2 years", 365, 730),
+            ("Over 2 years", 730, i64::MAX / 86_400),
+        ];
+        let mut out = Vec::with_capacity(BUCKETS.len());
+        let mut stmt = conn.prepare(
+            "SELECT count(*), COALESCE(sum(logical_size), 0)
+               FROM fs_entries
+              WHERE scan_id = ?1 AND kind = 0 AND hardlink_dup = 0
+                AND modified_at IS NOT NULL
+                AND modified_at <= ?2 AND modified_at > ?3",
+        )?;
+        for (label, from_days, to_days) in BUCKETS {
+            let newer_than = now - from_days * 86_400;
+            let older_than = now.saturating_sub(to_days.saturating_mul(86_400));
+            let (file_count, total_size) = stmt
+                .query_row(params![scan_id, newer_than, older_than], |row| {
+                    Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+                })?;
+            out.push(AgeBucket {
+                label: (*label).to_string(),
+                from_days: *from_days,
+                to_days: *to_days,
+                file_count,
+                total_size,
+            });
+        }
+        Ok(out)
     }
 
     pub fn scan_summary(conn: &Connection, scan_id: i64) -> Result<ScanSummary> {
