@@ -38,6 +38,7 @@ blake3 = "1"
 plist = { version = "1.7", default-features = false }
 
 [dev-dependencies]
+filetime = "0.2.29"
 # Used by the benchmark harness as well as the tests.
 tempfile = "3"
 

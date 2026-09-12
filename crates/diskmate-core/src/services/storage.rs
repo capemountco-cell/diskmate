@@ -346,6 +346,98 @@ impl StorageService {
         self.with_conn(|conn| CleanupService::history(conn, limit))
     }
 
+    // -------------------------------------------------------- duplicates --
+
+    /// Find duplicates in a finished scan. Blocking; callers run it on their
+    /// own thread and cancel through the token.
+    pub fn find_duplicates(
+        &self,
+        scan_id: i64,
+        cancel: &CancellationToken,
+        progress: impl FnMut(&str, i64, i64),
+    ) -> Result<crate::analysis::DuplicateStats> {
+        self.with_conn(|conn| {
+            crate::analysis::DuplicateFinder::run(conn, scan_id, cancel, progress)
+        })
+    }
+
+    pub fn duplicate_groups(
+        &self,
+        scan_id: i64,
+        limit: u32,
+    ) -> Result<Vec<crate::analysis::DuplicateGroup>> {
+        self.with_conn(|conn| crate::analysis::DuplicateFinder::groups(conn, scan_id, limit))
+    }
+
+    /// Propose every copy except the keeper in each confirmed group.
+    pub fn propose_duplicate_cleanup(&self, scan_id: i64) -> Result<usize> {
+        self.with_conn(|conn| {
+            let candidates =
+                crate::analysis::DuplicateFinder::as_cleanup_candidates(conn, scan_id, 500)?;
+            CleanupService::record_candidates(conn, &candidates)
+        })
+    }
+
+    // ------------------------------------------------------ applications --
+
+    /// Find installed applications and everything they left behind.
+    pub fn inspect_applications(&self) -> Result<Vec<crate::analysis::Application>> {
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        let roots = crate::analysis::ApplicationInspector::application_roots(home.as_deref());
+        let home = home.unwrap_or_else(|| PathBuf::from("/"));
+        let found = crate::analysis::ApplicationInspector::inspect(&home, &roots);
+        self.with_conn(|conn| {
+            crate::analysis::ApplicationInspector::record(conn, &found)?;
+            crate::analysis::ApplicationInspector::applications(conn, false)
+        })
+    }
+
+    pub fn applications(&self) -> Result<Vec<crate::analysis::Application>> {
+        self.with_conn(|conn| crate::analysis::ApplicationInspector::applications(conn, false))
+    }
+
+    pub fn application_leftovers(&self, id: i64) -> Result<Vec<crate::analysis::Leftover>> {
+        self.with_conn(|conn| crate::analysis::ApplicationInspector::leftovers_of(conn, id))
+    }
+
+    /// Stage an application and its leftovers for removal. Proposes only; the
+    /// user still approves the queue before anything moves.
+    pub fn propose_uninstall(&self, application_id: i64) -> Result<Vec<CleanupCandidate>> {
+        self.with_conn(|conn| {
+            let candidates =
+                crate::analysis::ApplicationInspector::uninstall_candidates(conn, application_id)?;
+            CleanupService::record_candidates(conn, &candidates)?;
+            let group = format!("app:{application_id}");
+            CleanupService::candidates(conn, 0, None, 500).map(|all| {
+                all.into_iter()
+                    .filter(|c| c.group_key.as_deref() == Some(group.as_str()))
+                    .collect()
+            })
+        })
+    }
+
+    // --------------------------------------------------------- snapshots --
+
+    pub fn capture_snapshot(&self, scan_id: i64, label: &str) -> Result<crate::analysis::Snapshot> {
+        self.with_conn(|conn| crate::analysis::Snapshots::capture(conn, scan_id, label))
+    }
+
+    pub fn snapshots(&self, limit: u32) -> Result<Vec<crate::analysis::Snapshot>> {
+        self.with_conn(|conn| crate::analysis::Snapshots::list(conn, limit))
+    }
+
+    pub fn delete_snapshot(&self, id: i64) -> Result<()> {
+        self.with_conn(|conn| crate::analysis::Snapshots::delete(conn, id))
+    }
+
+    pub fn compare_snapshots(
+        &self,
+        base_id: i64,
+        target_id: i64,
+    ) -> Result<crate::analysis::Comparison> {
+        self.with_conn(|conn| crate::analysis::Snapshots::compare(conn, base_id, target_id))
+    }
+
     /// Drop old scans so the index does not grow without bound across rescans.
     pub fn prune(&self, keep_per_root: u32) -> Result<usize> {
         self.with_conn(|conn| StorageQueries::prune_scans(conn, keep_per_root))

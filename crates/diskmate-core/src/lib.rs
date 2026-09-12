@@ -16,6 +16,7 @@
 //! operations are deferred to a future centralised cleanup service (see
 //! `docs/security.md`).
 
+pub mod analysis;
 pub mod db;
 pub mod error;
 pub mod model;
