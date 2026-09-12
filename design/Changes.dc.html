@@ -1,0 +1,318 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap");
+
+    .dm {
+      --grey-0:#ffffff; --grey-1:#fbfbfd; --grey-2:#f4f4f7; --grey-3:#ececf0;
+      --grey-4:#dedee4; --grey-5:#c4c4cd; --grey-6:#9a9aa6; --grey-7:#6e6e7a;
+      --grey-8:#48484f; --grey-9:#1d1d20;
+      --accent:#2f6fd0; --accent-strong:#245bb0; --accent-soft:#e7effb; --accent-contrast:#ffffff;
+      --surface-window:var(--grey-1); --surface-sidebar:#f4f4f7; --surface-panel:var(--grey-0);
+      --surface-sunken:var(--grey-2); --surface-selected:var(--accent-soft);
+      --text-primary:var(--grey-9); --text-secondary:var(--grey-7); --text-tertiary:var(--grey-6);
+      --line:rgba(0,0,0,0.09); --line-strong:rgba(0,0,0,0.16);
+      /* Diverging: one hue each way, a neutral grey in the middle. Never a
+         third hue, and the sign is always written out beside the bar. */
+      --grew:#2f6fd0; --shrank:#72bf8e; --same:#dedee4;
+      --shadow-panel:0 1px 2px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(0,0,0,0.06);
+    }
+    .dm[data-appearance="dark"] {
+      --grey-0:#1c1c1f; --grey-1:#212125; --grey-2:#26262b; --grey-3:#2e2e34;
+      --grey-4:#3a3a42; --grey-5:#4d4d57; --grey-6:#7c7c88; --grey-7:#a2a2ad;
+      --grey-8:#cfcfd6; --grey-9:#f2f2f5;
+      --accent:#62a0f0; --accent-strong:#7db2f6; --accent-soft:#1e2c41; --accent-contrast:#10131a;
+      --surface-window:#191a1d; --surface-sidebar:#212125; --surface-panel:var(--grey-1);
+      --surface-sunken:#161619;
+      --line:rgba(255,255,255,0.09); --line-strong:rgba(255,255,255,0.17);
+      --grew:#62a0f0; --shrank:#007654; --same:#3a3a42;
+      --shadow-panel:0 1px 2px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(255,255,255,0.06);
+    }
+
+    body { margin:0; }
+    a { color:var(--accent); text-decoration:none; } a:hover { color:var(--accent-strong); }
+
+    .dm {
+      width:1440px; height:900px; display:grid; grid-template-columns:232px 1fr;
+      background:var(--surface-window); color:var(--text-primary);
+      font-family:"Inter Tight", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      font-size:13px; line-height:1.45; overflow:hidden; -webkit-font-smoothing:antialiased;
+    }
+    .lbl { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-tertiary); }
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size:11px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .row { display:flex; align-items:center; gap:8px; }
+    .navitem { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:5px; }
+    .navitem[data-on="1"] { background:var(--surface-selected); color:var(--accent-strong); font-weight:500; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:4px 12px;
+           border:1px solid var(--line-strong); border-radius:5px; background:var(--surface-panel);
+           box-shadow:0 1px 1px rgba(0,0,0,0.04); font-size:13px; color:var(--text-primary); }
+    .chip { display:inline-flex; align-items:center; gap:7px; padding:4px 10px; border-radius:6px;
+            border:1px solid var(--line); background:var(--surface-panel); font-size:12px; }
+    .cell { position:relative; border-radius:3px; overflow:hidden; display:flex; box-shadow:inset 0 0 0 1px var(--line); }
+    .cellname { position:absolute; left:8px; top:6px; right:8px; font-weight:500; font-size:12px;
+                white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cellnum { position:absolute; left:8px; bottom:6px; font-size:11px; font-variant-numeric:tabular-nums; }
+    /* Diverging bar: the zero line is a real, shared axis so the eye can compare
+       a growth against a shrink without arithmetic. */
+    .dbar { position:relative; height:6px; background:var(--surface-sunken); border-radius:3px; }
+    .dbar > i { position:absolute; top:0; bottom:0; border-radius:3px; }
+    .dbar::after { content:""; position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:var(--line-strong); }
+    .drow { display:grid; grid-template-columns:1fr 168px 82px; gap:14px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); }
+    .drow:last-child { border-bottom:none; }
+    .dot { width:8px; height:8px; border-radius:2px; flex:none; }
+  </style>
+</helmet>
+
+<div class="dm" data-appearance="{{appearance}}">
+
+  <!-- sidebar -->
+  <div style="display:flex; flex-direction:column; gap:22px; padding:40px 12px 12px; background:var(--surface-sidebar); border-right:1px solid var(--line);">
+    <div style="padding:0 8px;">
+      <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">DiskMate</div>
+      <div style="font-size:11px; color:var(--text-tertiary);">Storage, understood.</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:1px;">
+      <div class="navitem" data-on="1">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><ellipse cx="8" cy="4" rx="5.5" ry="2.2"/><path d="M2.5 4v8c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2V4"/><path d="M2.5 8c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2"/></svg>
+        <span>Storage</span>
+      </div>
+      <div class="navitem">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.2 4.5l.6 8.3c.04.6.54 1.2 1.2 1.2h4c.66 0 1.16-.6 1.2-1.2l.6-8.3"/></svg>
+        <span>Cleanup</span>
+      </div>
+      <div class="navitem">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2.5v5"/><path d="M4.6 4.4a5 5 0 1 0 6.8 0"/></svg>
+        <span>Startup</span>
+      </div>
+      <div class="navitem">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="10" height="10" rx="2"/><rect x="6" y="6" width="4" height="4" rx="1"/><path d="M6 1.5v1.5M10 1.5v1.5M6 13v1.5M10 13v1.5M1.5 6H3M1.5 10H3M13 6h1.5M13 10h1.5"/></svg>
+        <span>Memory</span>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:5px;">
+      <div class="lbl" style="padding:0 8px 2px;">Snapshots</div>
+      <div style="padding:6px 8px; border-radius:6px; background:var(--surface-panel); box-shadow:var(--shadow-panel);">
+        <div style="font-weight:500;">12 Sept, 4:10 AM</div>
+        <div class="num" style="font-size:11px; color:var(--text-tertiary);">28.0 GB &middot; 221,436 files</div>
+      </div>
+      <div style="padding:6px 8px; border-radius:6px;">
+        <div style="color:var(--text-secondary);">9 Sept, 4:09 AM</div>
+        <div class="num" style="font-size:11px; color:var(--text-tertiary);">27.4 GB &middot; 221,043 files</div>
+      </div>
+      <div style="padding:6px 8px; border-radius:6px;">
+        <div style="color:var(--text-secondary);">2 Sept, 11:22 PM</div>
+        <div class="num" style="font-size:11px; color:var(--text-tertiary);">26.1 GB &middot; 218,902 files</div>
+      </div>
+      <div style="padding:4px 8px 0;">
+        <span class="btn" style="width:100%; box-sizing:border-box;">Take a snapshot</span>
+      </div>
+    </div>
+
+    <div style="margin-top:auto; padding:8px; font-size:11px; line-height:1.5; color:var(--text-tertiary);">
+      Everything stays on this Mac.<br>Version 0.2.0
+    </div>
+  </div>
+
+  <!-- main -->
+  <div style="display:flex; flex-direction:column; min-width:0; overflow:hidden;">
+
+    <div style="display:flex; align-items:center; gap:14px; padding:0 20px; height:52px; flex:none; border-bottom:1px solid var(--line);">
+      <span style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">What changed</span>
+      <span class="chip">9 Sept, 4:09 AM</span>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--grey-5)" stroke-width="1.4"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg>
+      <span class="chip" style="border-color:var(--line-strong); font-weight:500;">12 Sept, 4:10 AM</span>
+      <span class="btn" style="margin-left:auto;">Export</span>
+    </div>
+
+    <!-- headline -->
+    <div style="padding:18px 20px 14px; flex:none;">
+      <div class="row" style="align-items:baseline; gap:12px;">
+        <span class="row" style="gap:9px;">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="var(--grew)" stroke-width="1.8"><path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7"/></svg>
+          <span style="font-size:28px; font-weight:600; letter-spacing:-0.02em;" class="num">578 MB</span>
+        </span>
+        <span style="color:var(--text-secondary);">more than three days ago</span>
+        <span style="margin-left:auto; color:var(--text-tertiary);" class="num">30 folders changed by more than a megabyte</span>
+      </div>
+
+      <!-- Gross flows, not just the net: 941 MB arrived and 363 MB left. -->
+      <div style="display:flex; gap:2px; height:10px; margin-top:14px; border-radius:3px; overflow:hidden;">
+        <div style="flex:941; background:var(--grew);"></div>
+        <div style="flex:363; background:var(--shrank);"></div>
+      </div>
+      <div class="row" style="gap:22px; margin-top:9px; font-size:12px;">
+        <span class="row" style="gap:7px;"><i class="dot" style="background:var(--grew);"></i>Arrived <span class="num" style="color:var(--text-tertiary);">941 MB</span></span>
+        <span class="row" style="gap:7px;"><i class="dot" style="background:var(--shrank);"></i>Left <span class="num" style="color:var(--text-tertiary);">363 MB</span></span>
+        <span style="color:var(--text-tertiary);">The net is the difference; both halves matter when you are looking for what filled a disk.</span>
+      </div>
+    </div>
+
+    <div style="flex:1; min-height:0; padding:0 20px 20px; display:grid; grid-template-columns:1fr 520px; gap:20px; min-width:0;">
+
+      <!-- the same map, tinted by change instead of by category -->
+      <div style="display:flex; flex-direction:column; min-width:0;">
+        <div class="row" style="justify-content:space-between; flex:none; padding-bottom:9px;">
+          <span class="lbl">The same map, tinted by change</span>
+          <span class="row" style="gap:14px; font-size:11px; color:var(--text-tertiary);">
+            <span class="row" style="gap:6px;"><i class="dot" style="background:var(--grew);"></i>Grew</span>
+            <span class="row" style="gap:6px;"><i class="dot" style="background:var(--same);"></i>Unchanged</span>
+            <span class="row" style="gap:6px;"><i class="dot" style="background:var(--shrank);"></i>Shrank</span>
+          </span>
+        </div>
+
+        <div style="flex:1; min-height:0; display:flex; gap:3px;">
+          <div style="flex:71.2; display:flex; gap:3px; min-width:0;">
+            <div class="cell" style="flex:42.8; background:color-mix(in srgb, var(--grew) 55%, transparent);">
+              <span class="cellname" style="color:#fff;">Library</span>
+              <span class="cellnum" style="color:rgba(255,255,255,0.9);">+412 MB</span>
+            </div>
+            <div class="cell" style="flex:28.4; background:color-mix(in srgb, var(--grew) 42%, transparent);">
+              <span class="cellname" style="color:#fff;">Developer</span>
+              <span class="cellnum" style="color:rgba(255,255,255,0.9);">+318 MB</span>
+            </div>
+          </div>
+          <div style="flex:46.8; display:flex; flex-direction:column; gap:3px; min-width:0;">
+            <div class="cell" style="flex:16.2; background:var(--same);">
+              <span class="cellname" style="color:var(--text-secondary);">Movies</span>
+              <span class="cellnum" style="color:var(--text-tertiary);">unchanged</span>
+            </div>
+            <div style="flex:20.3; display:flex; gap:3px; min-height:0;">
+              <div class="cell" style="flex:11.9; background:var(--same);">
+                <span class="cellname" style="color:var(--text-secondary);">Applications</span>
+                <span class="cellnum" style="color:var(--text-tertiary);">unchanged</span>
+              </div>
+              <div class="cell" style="flex:8.4; background:color-mix(in srgb, var(--grew) 20%, transparent);">
+                <span class="cellname" style="color:var(--text-primary);">Documents</span>
+                <span class="cellnum" style="color:var(--text-secondary);">+41 MB</span>
+              </div>
+            </div>
+            <div style="flex:10.3; display:flex; gap:3px; min-height:0;">
+              <div class="cell" style="flex:5.1; background:color-mix(in srgb, var(--shrank) 62%, transparent);">
+                <span class="cellname" style="color:var(--text-primary);">Downloads</span>
+                <span class="cellnum" style="color:var(--text-secondary);">&minus;186 MB</span>
+              </div>
+              <div class="cell" style="flex:3.6; background:var(--same);"></div>
+              <div class="cell" style="flex:1.1; background:var(--same);"></div>
+              <div class="cell" style="flex:0.5; background:var(--same);"></div>
+            </div>
+          </div>
+        </div>
+        <div style="padding-top:9px; font-size:11px; color:var(--text-tertiary); flex:none;">
+          Rectangles keep the sizes they have today, so a folder that grew is in the place you already know it.
+        </div>
+      </div>
+
+      <!-- ranked diverging bars -->
+      <div style="display:flex; flex-direction:column; min-width:0;">
+        <div class="row" style="justify-content:space-between; flex:none; padding-bottom:5px;">
+          <span class="lbl">Biggest changes</span>
+          <span style="font-size:11px; color:var(--text-tertiary);" class="num">largest first, both directions</span>
+        </div>
+
+        <div style="flex:1; min-height:0; overflow:hidden;">
+
+          <div class="drow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">com.apple.dt.Xcode</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/Library/Caches/com.apple.dt.Xcode</div>
+            </div>
+            <div class="dbar"><i style="left:50%; width:50%; background:var(--grew);"></i></div>
+            <div class="num" style="text-align:right; font-weight:500;">+412 MB</div>
+          </div>
+
+          <div class="drow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">deps</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/dev/diskmate/target/debug/deps</div>
+            </div>
+            <div class="dbar"><i style="left:50%; width:38.6%; background:var(--grew);"></i></div>
+            <div class="num" style="text-align:right; font-weight:500;">+318 MB</div>
+          </div>
+
+          <div class="drow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">Downloads</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/Downloads</div>
+            </div>
+            <div class="dbar"><i style="right:50%; width:22.6%; background:var(--shrank);"></i></div>
+            <div class="num" style="text-align:right; font-weight:500;">&minus;186 MB</div>
+          </div>
+
+          <div class="drow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">.Trash</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/.Trash</div>
+            </div>
+            <div class="dbar"><i style="left:50%; width:11.7%; background:var(--grew);"></i></div>
+            <div class="num" style="text-align:right; font-weight:500;">+96 MB</div>
+          </div>
+
+          <div class="drow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">Slack</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/Library/Application Support/Slack</div>
+            </div>
+            <div class="dbar"><i style="left:50%; width:9%; background:var(--grew);"></i></div>
+            <div class="num" style="text-align:right; font-weight:500;">+74 MB</div>
+          </div>
+
+          <div class="drow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">node_modules</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/dev/site/node_modules</div>
+            </div>
+            <div class="dbar"><i style="right:50%; width:7%; background:var(--shrank);"></i></div>
+            <div class="num" style="text-align:right; font-weight:500;">&minus;58 MB</div>
+          </div>
+
+          <div class="drow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">Design</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/Documents/Design</div>
+            </div>
+            <div class="dbar"><i style="left:50%; width:5%; background:var(--grew);"></i></div>
+            <div class="num" style="text-align:right; font-weight:500;">+41 MB</div>
+          </div>
+
+          <div style="padding:9px 0; font-size:12px; color:var(--text-tertiary);">
+            and 24 smaller changes, <span class="num">&minus;45 MB</span> between them.
+          </div>
+        </div>
+
+        <!-- The collapsing rule, made visible rather than silent. -->
+        <div style="flex:none; margin-top:10px; padding:11px 14px; border-radius:10px; border:1px solid var(--line); background:var(--surface-panel);">
+          <div style="display:flex; gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5" style="flex:none; margin-top:1px;"><path d="M3 4h10M5 8h8M7 12h6"/></svg>
+            <div style="font-size:12px; line-height:1.55;">
+              <b style="font-weight:600;">7 parent folders are not listed.</b>
+              <span style="color:var(--text-secondary);">
+                <span class="mono">~/Library/Caches</span> also grew by <span class="num">412 MB</span>, and so did <span class="mono">~/Library</span>, and so did <span class="mono">~</span>. It is the same 412 MB each time. Only the innermost folder that accounts for a change is listed.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"appearance":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { appearance: this.props.appearance ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

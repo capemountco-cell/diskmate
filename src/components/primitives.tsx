@@ -124,3 +124,52 @@ export function Badge({
     <span className={tone === "neutral" ? "badge" : `badge badge--${tone}`}>{children}</span>
   );
 }
+
+/** A choice between a few mutually exclusive views. */
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (value: T) => void;
+  label: string;
+}) {
+  return (
+    <div className="segmented" role="group" aria-label={label}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className="segmented__option"
+          aria-pressed={option.value === value}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * How risky DiskMate considers removing something.
+ *
+ * Deliberately quiet. "Review" means think about it, not panic, and styling it
+ * as an alarm would be the exact behaviour this product exists to avoid.
+ */
+export function Safety({ safety }: { safety: "safe" | "review" | "protected" }) {
+  const label = { safe: "Safe", review: "Review", protected: "Protected" }[safety];
+  const title = {
+    safe: "Regeneratable or very low risk.",
+    review: "Possibly removable, but only you can judge.",
+    protected: "DiskMate will not remove this.",
+  }[safety];
+  return (
+    <span className={`safety safety--${safety}`} title={title}>
+      {label}
+    </span>
+  );
+}

@@ -1,0 +1,423 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap");
+
+    .dm {
+      --grey-0:#ffffff; --grey-1:#fbfbfd; --grey-2:#f4f4f7; --grey-3:#ececf0;
+      --grey-4:#dedee4; --grey-5:#c4c4cd; --grey-6:#9a9aa6; --grey-7:#6e6e7a;
+      --grey-8:#48484f; --grey-9:#1d1d20;
+      --accent:#2f6fd0; --accent-strong:#245bb0; --accent-soft:#e7effb; --accent-contrast:#ffffff;
+      --surface-window:var(--grey-1); --surface-sidebar:#f4f4f7; --surface-panel:var(--grey-0);
+      --surface-sunken:var(--grey-2); --surface-selected:var(--accent-soft);
+      --text-primary:var(--grey-9); --text-secondary:var(--grey-7); --text-tertiary:var(--grey-6);
+      --line:rgba(0,0,0,0.09); --line-strong:rgba(0,0,0,0.16);
+      --cat-applications:#7897da; --cat-documents:#72bf8e; --cat-media:#7d4e88;
+      --cat-downloads:#bd8846; --cat-developer:#009185; --cat-caches:#865901;
+      --cat-system:#78808f; --cat-other:#b4b8c1;
+      --status-caution:#a8762a;
+      --shadow-panel:0 1px 2px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(0,0,0,0.06);
+    }
+    .dm[data-appearance="dark"] {
+      --grey-0:#1c1c1f; --grey-1:#212125; --grey-2:#26262b; --grey-3:#2e2e34;
+      --grey-4:#3a3a42; --grey-5:#4d4d57; --grey-6:#7c7c88; --grey-7:#a2a2ad;
+      --grey-8:#cfcfd6; --grey-9:#f2f2f5;
+      --accent:#62a0f0; --accent-strong:#7db2f6; --accent-soft:#1e2c41; --accent-contrast:#10131a;
+      --surface-window:#191a1d; --surface-sidebar:#212125; --surface-panel:var(--grey-1);
+      --surface-sunken:#161619;
+      --line:rgba(255,255,255,0.09); --line-strong:rgba(255,255,255,0.17);
+      --cat-applications:#6c85d9; --cat-documents:#007654; --cat-media:#7a4f8c;
+      --cat-downloads:#b3880f; --cat-developer:#28a497; --cat-caches:#895709;
+      --cat-system:#8f97a6; --cat-other:#6e7380;
+      --status-caution:#d2a052;
+      --shadow-panel:0 1px 2px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(255,255,255,0.06);
+    }
+
+    body { margin:0; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-strong); }
+
+    .dm {
+      width:1440px; height:900px; display:grid; grid-template-columns:232px 1fr;
+      background:var(--surface-window); color:var(--text-primary);
+      font-family:"Inter Tight", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      font-size:13px; line-height:1.45; overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+    }
+    .lbl { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-tertiary); }
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size:11px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .navitem { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:5px; }
+    .navitem[data-on="1"] { background:var(--surface-selected); color:var(--accent-strong); font-weight:500; }
+    .cell { position:relative; border-radius:3px; overflow:hidden; display:flex; }
+    .cellname { position:absolute; left:8px; top:6px; right:8px; color:#fff; font-weight:500; font-size:12px;
+                text-shadow:0 1px 2px rgba(0,0,0,0.25); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cellsize { position:absolute; left:8px; bottom:6px; color:rgba(255,255,255,0.88); font-size:11px;
+                text-shadow:0 1px 2px rgba(0,0,0,0.25); font-variant-numeric:tabular-nums; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:4px 12px;
+           border:1px solid var(--line-strong); border-radius:5px; background:var(--surface-panel);
+           box-shadow:0 1px 1px rgba(0,0,0,0.04); font-size:13px; color:var(--text-primary); }
+    .btn--primary { border-color:transparent; background:var(--accent); color:var(--accent-contrast); }
+    .seg { display:flex; padding:2px; gap:2px; background:var(--surface-sunken); border-radius:7px; }
+    .seg > span { padding:3px 11px; border-radius:5px; font-size:12px; color:var(--text-secondary); }
+    .seg > span[data-on="1"] { background:var(--surface-panel); color:var(--text-primary); font-weight:500;
+                               box-shadow:0 1px 1px rgba(0,0,0,0.06); }
+    .dot { width:7px; height:7px; border-radius:2px; flex:none; }
+    .row { display:flex; align-items:center; gap:8px; }
+  </style>
+</helmet>
+
+<div class="dm" data-appearance="{{appearance}}">
+
+  <!-- ───────────────────────────── sidebar ───────────────────────────── -->
+  <div style="display:flex; flex-direction:column; gap:22px; padding:40px 12px 12px; background:var(--surface-sidebar); border-right:1px solid var(--line);">
+
+    <div style="padding:0 8px;">
+      <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">DiskMate</div>
+      <div style="font-size:11px; color:var(--text-tertiary);">Storage, understood.</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:1px;">
+      <div class="navitem" data-on="1">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><ellipse cx="8" cy="4" rx="5.5" ry="2.2"/><path d="M2.5 4v8c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2V4"/><path d="M2.5 8c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2"/></svg>
+        <span>Storage</span>
+      </div>
+      <div class="navitem">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.2 4.5l.6 8.3c.04.6.54 1.2 1.2 1.2h4c.66 0 1.16-.6 1.2-1.2l.6-8.3"/></svg>
+        <span>Cleanup</span>
+        <span style="margin-left:auto; font-size:11px; color:var(--text-tertiary);" class="num">24</span>
+      </div>
+      <div class="navitem">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2.5v5"/><path d="M4.6 4.4a5 5 0 1 0 6.8 0"/></svg>
+        <span>Startup</span>
+      </div>
+      <div class="navitem">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="10" height="10" rx="2"/><rect x="6" y="6" width="4" height="4" rx="1"/><path d="M6 1.5v1.5M10 1.5v1.5M6 13v1.5M10 13v1.5M1.5 6H3M1.5 10H3M13 6h1.5M13 10h1.5"/></svg>
+        <span>Memory</span>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <div class="lbl" style="padding:0 8px 2px;">Volumes</div>
+
+      <div style="padding:7px 8px; border-radius:6px; background:var(--surface-panel); box-shadow:var(--shadow-panel);">
+        <div class="row" style="justify-content:space-between;">
+          <span style="font-weight:500;">Macintosh HD</span>
+          <span class="num" style="font-size:11px; color:var(--text-tertiary);">90%</span>
+        </div>
+        <div style="height:4px; border-radius:2px; background:var(--grey-3); margin:6px 0 5px; display:flex; overflow:hidden;">
+          <div style="flex:118; background:var(--accent);"></div>
+          <div style="flex:102; background:var(--grey-5);"></div>
+          <div style="flex:25;"></div>
+        </div>
+        <div class="row" style="gap:10px; font-size:11px; color:var(--text-tertiary);">
+          <span class="row" style="gap:4px;"><i class="dot" style="background:var(--accent);"></i>Indexed 118 GB</span>
+        </div>
+        <div class="row" style="gap:10px; font-size:11px; color:var(--text-tertiary); margin-top:2px;">
+          <span class="row" style="gap:4px;"><i class="dot" style="background:var(--grey-5);"></i>Not indexed 102 GB</span>
+        </div>
+      </div>
+
+      <div style="padding:6px 8px; border-radius:6px;">
+        <div class="row" style="justify-content:space-between; color:var(--text-secondary);">
+          <span>Backup SSD</span>
+          <span class="num" style="font-size:11px; color:var(--text-tertiary);">41%</span>
+        </div>
+      </div>
+      <div style="padding:6px 8px; border-radius:6px;">
+        <div class="row" style="justify-content:space-between; color:var(--text-secondary);">
+          <span>DiskMate USB</span>
+          <span style="font-size:11px; color:var(--text-tertiary);">Portable</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:5px;">
+      <div class="lbl" style="padding:0 8px 2px;">This scan</div>
+      <div style="padding:0 8px; display:flex; flex-direction:column; gap:3px;">
+        <div class="mono" style="color:var(--text-secondary);">/Users/mohit</div>
+        <div style="font-size:11px; color:var(--text-tertiary);" class="num">4 minutes ago &middot; 10.8s &middot; 188k/s</div>
+      </div>
+      <div style="padding:0 8px; margin-top:4px;">
+        <span class="btn" style="width:100%; box-sizing:border-box;">Scan again</span>
+      </div>
+    </div>
+
+    <div style="margin-top:auto; padding:8px; font-size:11px; line-height:1.5; color:var(--text-tertiary);">
+      Everything stays on this Mac.<br>Version 0.2.0
+    </div>
+  </div>
+
+  <!-- ───────────────────────── main + inspector ──────────────────────── -->
+  <div style="display:grid; grid-template-columns:1fr 332px; min-width:0; overflow:hidden;">
+
+    <div style="display:flex; flex-direction:column; min-width:0; overflow:hidden;">
+
+      <!-- toolbar -->
+      <div style="display:flex; align-items:center; gap:16px; padding:0 20px; height:52px; flex:none; border-bottom:1px solid var(--line);">
+        <div class="row" style="gap:5px; min-width:0;">
+          <span style="color:var(--text-secondary);">Macintosh HD</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--grey-5)" stroke-width="1.3"><path d="M4.5 2.5L8 6l-3.5 3.5"/></svg>
+          <span style="color:var(--text-secondary);">Users</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--grey-5)" stroke-width="1.3"><path d="M4.5 2.5L8 6l-3.5 3.5"/></svg>
+          <span style="font-weight:600;">mohit</span>
+        </div>
+
+        <div style="margin-left:auto;" class="seg">
+          <span data-on="1">Map</span><span>Rings</span><span>Age</span><span>List</span>
+        </div>
+
+        <div class="row" style="gap:6px; padding:4px 9px; border:1px solid var(--line-strong); border-radius:5px; width:188px; background:var(--surface-panel);">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="var(--grey-6)" stroke-width="1.4"><circle cx="6.2" cy="6.2" r="3.8"/><path d="M9.2 9.2l3 3"/></svg>
+          <span style="color:var(--text-tertiary);">Filter by name</span>
+        </div>
+      </div>
+
+      <!-- headline strip -->
+      <div style="padding:18px 20px 14px; flex:none;">
+        <div class="row" style="align-items:baseline; gap:12px;">
+          <span style="font-size:28px; font-weight:600; letter-spacing:-0.02em;" class="num">118 GB</span>
+          <span style="color:var(--text-secondary);">indexed in <span class="num">/Users/mohit</span></span>
+          <span style="margin-left:auto; color:var(--text-tertiary);" class="num">2,032,381 files &middot; 238,276 folders</span>
+        </div>
+
+        <div style="height:10px; border-radius:3px; overflow:hidden; display:flex; gap:1px; margin-top:14px;">
+          <div style="flex:41.2; background:var(--cat-developer);"></div>
+          <div style="flex:26.8; background:var(--cat-media);"></div>
+          <div style="flex:17.4; background:var(--cat-applications);"></div>
+          <div style="flex:12.1; background:var(--cat-documents);"></div>
+          <div style="flex:9.6;  background:var(--cat-caches);"></div>
+          <div style="flex:6.3;  background:var(--cat-downloads);"></div>
+          <div style="flex:4.6;  background:var(--cat-other);"></div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:6px 20px; margin-top:10px; font-size:12px;">
+          <span class="row" style="gap:6px;"><i class="dot" style="background:var(--cat-developer);"></i>Developer<span class="num" style="color:var(--text-tertiary);">41.2 GB</span></span>
+          <span class="row" style="gap:6px;"><i class="dot" style="background:var(--cat-media);"></i>Media<span class="num" style="color:var(--text-tertiary);">26.8 GB</span></span>
+          <span class="row" style="gap:6px;"><i class="dot" style="background:var(--cat-applications);"></i>Applications<span class="num" style="color:var(--text-tertiary);">17.4 GB</span></span>
+          <span class="row" style="gap:6px;"><i class="dot" style="background:var(--cat-documents);"></i>Documents<span class="num" style="color:var(--text-tertiary);">12.1 GB</span></span>
+          <span class="row" style="gap:6px;"><i class="dot" style="background:var(--cat-caches);"></i>Caches<span class="num" style="color:var(--text-tertiary);">9.6 GB</span></span>
+          <span class="row" style="gap:6px;"><i class="dot" style="background:var(--cat-downloads);"></i>Downloads<span class="num" style="color:var(--text-tertiary);">6.3 GB</span></span>
+          <span class="row" style="gap:6px;"><i class="dot" style="background:var(--cat-other);"></i>Other<span class="num" style="color:var(--text-tertiary);">4.6 GB</span></span>
+        </div>
+      </div>
+
+      <!-- treemap: area is bytes, colour is category. -->
+      <div style="flex:1; min-height:0; padding:0 20px 12px; display:flex; flex-direction:column;">
+        <div style="flex:1; min-height:0; display:flex; gap:3px;">
+
+          <div style="flex:71.2; display:flex; gap:3px; min-width:0;">
+            <div class="cell" style="flex:42.8; background:var(--cat-caches); outline:2px solid var(--accent); outline-offset:-2px;">
+              <span class="cellname">Library</span>
+              <span class="cellsize">42.8 GB &middot; 36%</span>
+              <div style="position:absolute; inset:auto 8px 26px 8px; display:flex; flex-direction:column; gap:3px;">
+                <div style="height:22px; background:rgba(255,255,255,0.16); border-radius:2px;"></div>
+                <div style="height:15px; background:rgba(255,255,255,0.12); border-radius:2px;"></div>
+                <div style="height:9px; background:rgba(255,255,255,0.09); border-radius:2px;"></div>
+              </div>
+            </div>
+            <div class="cell" style="flex:28.4; background:var(--cat-developer);">
+              <span class="cellname">Developer</span>
+              <span class="cellsize">28.4 GB &middot; 24%</span>
+              <div style="position:absolute; inset:auto 8px 26px 8px; display:flex; flex-direction:column; gap:3px;">
+                <div style="height:26px; background:rgba(255,255,255,0.16); border-radius:2px;"></div>
+                <div style="height:12px; background:rgba(255,255,255,0.12); border-radius:2px;"></div>
+                <div style="height:7px; background:rgba(255,255,255,0.09); border-radius:2px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:46.8; display:flex; flex-direction:column; gap:3px; min-width:0;">
+            <div class="cell" style="flex:16.2; background:var(--cat-media);">
+              <span class="cellname">Movies</span>
+              <span class="cellsize">16.2 GB &middot; 14%</span>
+            </div>
+            <div style="flex:20.3; display:flex; gap:3px; min-height:0;">
+              <div class="cell" style="flex:11.9; background:var(--cat-applications);">
+                <span class="cellname">Applications</span>
+                <span class="cellsize">11.9 GB</span>
+              </div>
+              <div class="cell" style="flex:8.4; background:var(--cat-documents);">
+                <span class="cellname">Documents</span>
+                <span class="cellsize">8.4 GB</span>
+              </div>
+            </div>
+            <div style="flex:10.3; display:flex; gap:3px; min-height:0;">
+              <div class="cell" style="flex:5.1; background:var(--cat-downloads);">
+                <span class="cellname">Downloads</span>
+                <span class="cellsize">5.1 GB</span>
+              </div>
+              <div class="cell" style="flex:3.6; background:var(--cat-media);">
+                <span class="cellname">Pictures</span>
+                <span class="cellsize">3.6 GB</span>
+              </div>
+              <div class="cell" style="flex:1.1; background:var(--cat-media); opacity:0.75;"></div>
+              <div class="cell" style="flex:0.5; background:var(--cat-documents); opacity:0.7;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="height:30px; flex:none; gap:10px; color:var(--text-tertiary); font-size:12px;">
+          <span style="font-weight:500; color:var(--text-primary);">Library</span>
+          <span class="num">42.8 GB &middot; 36% of this view</span>
+          <span class="mono">/Users/mohit/Library</span>
+          <span style="margin-left:auto;">Double-click a rectangle to go into it.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────── inspector ───────────────────────── -->
+    <div style="border-left:1px solid var(--line); background:var(--surface-panel); display:flex; flex-direction:column; min-height:0;">
+
+      <div style="padding:16px 18px 14px; border-bottom:1px solid var(--line); flex:none;">
+        <div class="row" style="gap:10px;">
+          <div style="width:34px; height:34px; border-radius:7px; background:var(--cat-caches); display:grid; place-items:center; flex:none;">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#fff" stroke-width="1.5"><path d="M2.5 5.2a1.5 1.5 0 0 1 1.5-1.5h2.7l1.4 1.6h5.4a1.5 1.5 0 0 1 1.5 1.5v6.5a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5z"/></svg>
+          </div>
+          <div style="min-width:0;">
+            <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">Library</div>
+            <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">/Users/mohit/Library</div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="row" style="align-items:baseline; gap:9px;">
+            <span class="num" style="font-size:26px; font-weight:600; letter-spacing:-0.02em;">42.8 GB</span>
+            <span style="color:var(--text-secondary);">36% of the scan</span>
+          </div>
+          <div style="height:4px; border-radius:2px; background:var(--grey-3); margin-top:9px; overflow:hidden; display:flex;">
+            <div style="flex:36; background:var(--cat-caches);"></div><div style="flex:64;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- What DiskMate can say. The whole argument of the product. -->
+      <div style="padding:14px 18px; border-bottom:1px solid var(--line); flex:none; background:var(--surface-sunken);">
+        <div class="lbl" style="margin-bottom:9px;">What DiskMate can say</div>
+
+        <div style="display:flex; gap:2px; height:9px; border-radius:3px; overflow:hidden; margin-bottom:7px;">
+          <div style="flex:6.1; background:var(--cat-caches);"></div>
+          <div style="flex:33.2; background:var(--grey-4);"></div>
+          <div style="flex:3.5; background:var(--grey-3);"></div>
+        </div>
+        <div class="row" style="gap:14px; font-size:11px; color:var(--text-tertiary); margin-bottom:11px;">
+          <span class="row" style="gap:5px;"><i class="dot" style="background:var(--cat-caches);"></i>Can explain <span class="num">6.1 GB</span></span>
+          <span class="row" style="gap:5px;"><i class="dot" style="background:var(--grey-4);"></i>Yours <span class="num">36.7 GB</span></span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:9px;">
+
+          <div style="display:flex; gap:9px;">
+            <i class="dot" style="background:var(--cat-caches); margin-top:5px; border-radius:50%; width:6px; height:6px;"></i>
+            <div style="min-width:0;">
+              <div><b style="font-weight:600;">6.1 GB is cache.</b> <span style="color:var(--text-secondary);">The apps that wrote it will write it again. Removing it costs a slower next launch, not data.</span></div>
+              <div class="row" style="gap:6px; margin-top:5px;">
+                <span style="font-size:11px; padding:1px 7px; border-radius:4px; background:var(--surface-panel); border:1px solid var(--line); color:var(--text-secondary);">Safe</span>
+                <span style="font-size:11px; color:var(--text-tertiary);" class="num">14 folders</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:9px;">
+            <i class="dot" style="background:var(--grey-5); margin-top:5px; border-radius:50%; width:6px; height:6px;"></i>
+            <div>
+              <div><b style="font-weight:600;">33.2 GB is Application Support.</b> <span style="color:var(--text-secondary);">This is where your apps keep your data. DiskMate has nothing to suggest here.</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- details -->
+      <div style="padding:14px 18px; border-bottom:1px solid var(--line); flex:none;">
+        <div class="lbl" style="margin-bottom:8px;">Details</div>
+        <div style="display:flex; flex-direction:column; gap:5px; font-size:12px;">
+          <div class="row" style="justify-content:space-between;"><span style="color:var(--text-secondary);">On disk</span><span class="num">43.1 GB</span></div>
+          <div class="row" style="justify-content:space-between;"><span style="color:var(--text-secondary);">Logical size</span><span class="num">42.8 GB</span></div>
+          <div class="row" style="justify-content:space-between;"><span style="color:var(--text-secondary);">Files</span><span class="num">1,204,881</span></div>
+          <div class="row" style="justify-content:space-between;"><span style="color:var(--text-secondary);">Folders</span><span class="num">96,402</span></div>
+          <div class="row" style="justify-content:space-between;"><span style="color:var(--text-secondary);">Last changed</span><span class="num">4 hours ago</span></div>
+          <div class="row" style="justify-content:space-between;"><span style="color:var(--text-secondary);">Not readable</span><span class="num" style="color:var(--status-caution);">3 folders</span></div>
+        </div>
+      </div>
+
+      <!-- largest inside, on one shared scale -->
+      <div style="padding:14px 18px; flex:1; min-height:0; overflow:hidden;">
+        <div class="row" style="justify-content:space-between; margin-bottom:9px;">
+          <span class="lbl">Largest inside</span>
+          <span style="font-size:11px; color:var(--text-tertiary);" class="num">of 38</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:9px;">
+
+          <div>
+            <div class="row" style="justify-content:space-between; gap:10px;">
+              <span class="row" style="gap:7px; min-width:0;"><i class="dot" style="background:var(--cat-caches);"></i><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Application Support</span></span>
+              <span class="num" style="color:var(--text-secondary); font-size:12px;">33.2 GB</span>
+            </div>
+            <div style="height:3px; border-radius:2px; background:var(--grey-3); margin-top:5px; overflow:hidden; display:flex;">
+              <div style="flex:33.2; background:var(--cat-caches);"></div><div style="flex:9.6;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="row" style="justify-content:space-between; gap:10px;">
+              <span class="row" style="gap:7px; min-width:0;"><i class="dot" style="background:var(--cat-caches);"></i><span>Caches</span></span>
+              <span class="num" style="color:var(--text-secondary); font-size:12px;">6.1 GB</span>
+            </div>
+            <div style="height:3px; border-radius:2px; background:var(--grey-3); margin-top:5px; overflow:hidden; display:flex;">
+              <div style="flex:6.1; background:var(--cat-caches);"></div><div style="flex:36.7;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="row" style="justify-content:space-between; gap:10px;">
+              <span class="row" style="gap:7px; min-width:0;"><i class="dot" style="background:var(--cat-developer);"></i><span>Developer</span></span>
+              <span class="num" style="color:var(--text-secondary); font-size:12px;">2.2 GB</span>
+            </div>
+            <div style="height:3px; border-radius:2px; background:var(--grey-3); margin-top:5px; overflow:hidden; display:flex;">
+              <div style="flex:2.2; background:var(--cat-developer);"></div><div style="flex:40.6;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="row" style="justify-content:space-between; gap:10px;">
+              <span class="row" style="gap:7px; min-width:0;"><i class="dot" style="background:var(--cat-other);"></i><span>Containers</span></span>
+              <span class="num" style="color:var(--text-secondary); font-size:12px;">781 MB</span>
+            </div>
+            <div style="height:3px; border-radius:2px; background:var(--grey-3); margin-top:5px; overflow:hidden; display:flex;">
+              <div style="flex:0.78; background:var(--cat-other);"></div><div style="flex:42.0;"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div style="padding:12px 18px 16px; border-top:1px solid var(--line); flex:none; display:flex; flex-direction:column; gap:8px;">
+        <div class="row" style="gap:8px;">
+          <span class="btn" style="flex:1;">Reveal in Finder</span>
+          <span class="btn" style="flex:1;">Copy path</span>
+        </div>
+        <span class="btn btn--primary" style="width:100%; box-sizing:border-box;">Add the 6.1 GB of cache to the queue</span>
+        <div style="font-size:11px; color:var(--text-tertiary); text-align:center;">Nothing is removed until you approve the queue.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"appearance":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { appearance: this.props.appearance ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

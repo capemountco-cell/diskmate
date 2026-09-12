@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 import { Button, EmptyState, Note, Panel } from "../../components/primitives";
 import { formatCount } from "../../lib/format";
 import { engineAvailable } from "../../lib/ipc";
@@ -6,12 +8,21 @@ import type { EntryRow } from "../../lib/types";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { EntryTable } from "./EntryTable";
 import { ScanStatusBar } from "./ScanStatusBar";
+import { SnapshotPanel } from "./SnapshotPanel";
 import { StorageOverview } from "./StorageOverview";
+import { StorageViews } from "./StorageViews";
 import { CapacitySummary, VolumePicker } from "./VolumePicker";
 import { useStorage } from "./useStorage";
 
-export function StoragePage() {
+export function StoragePage({ onScanReady }: { onScanReady: (scanId: number | null) => void }) {
   const storage = useStorage();
+  const currentScanId = storage.snapshot?.scan.scanId ?? null;
+
+  // Tell the shell which scan is current, so Cleanup works from the same one
+  // rather than starting its own.
+  useEffect(() => {
+    onScanReady(currentScanId);
+  }, [currentScanId, onScanReady]);
   const { snapshot, phase, selectedVolume, currentDirectory, ancestors, children, childTotal } =
     storage;
 
@@ -96,9 +107,13 @@ export function StoragePage() {
           {atRoot ? (
             <>
               <StorageOverview snapshot={snapshot} onOpen={storage.openDirectory} />
-              <Panel title="Browse" note="Double-click a folder to look inside." flush>
-                <ExplorerBody storage={storage} rows={children} total={childTotal} />
-              </Panel>
+              <StorageViews
+                scanId={snapshot.scan.scanId}
+                root={snapshot.root}
+                onOpen={storage.openDirectory}
+                explorer={<ExplorerBody storage={storage} rows={children} total={childTotal} />}
+              />
+              <SnapshotPanel scanId={snapshot.scan.scanId} />
             </>
           ) : (
             <Panel

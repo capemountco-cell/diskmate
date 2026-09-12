@@ -13,6 +13,14 @@ import { SECTIONS, Sidebar, type SectionId } from "./Sidebar";
 export function AppShell() {
   const [section, setSection] = useState<SectionId>("storage");
   const [info, setInfo] = useState<AppInfo | null>(null);
+  /**
+   * The scan Cleanup and the visualisations work from.
+   *
+   * Lifted here rather than kept in Storage because Cleanup reads from the same
+   * scan, and the alternative - each section scanning for itself - would make
+   * the app do the work twice and possibly disagree with itself.
+   */
+  const [scanId, setScanId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!engineAvailable()) return;
@@ -44,8 +52,8 @@ export function AppShell() {
             </div>
           )}
 
-          {section === "storage" && <StoragePage />}
-          {section === "cleanup" && <CleanupPage />}
+          {section === "storage" && <StoragePage onScanReady={setScanId} />}
+          {section === "cleanup" && <CleanupPage scanId={scanId} />}
           {section === "startup" && <StartupPage />}
           {section === "memory" && <MemoryPage />}
         </div>

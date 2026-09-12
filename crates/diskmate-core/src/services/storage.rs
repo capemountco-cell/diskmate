@@ -8,12 +8,16 @@ use rusqlite::Connection;
 use crate::db::{self, ChildQuery, StorageQueries};
 use crate::error::{CoreError, Result};
 use crate::model::{
-    Category, EntryRow, ExtensionBucket, ScanError, ScanErrorKind, ScanOptions, ScanProgress,
+    CandidateGroup, CandidateState, Category, CleanupCandidate, Confirmation, EntryRow,
+    ExtensionBucket, RemovalReport, ScanError, ScanErrorKind, ScanOptions, ScanProgress,
     ScanSummary, VolumeInfo,
 };
 use crate::paths::AppPaths;
 use crate::platform::{self, SystemProbe};
 use crate::scanner::{run_scan, CancellationToken, ScanRequest};
+
+use super::cleanup::CleanupService;
+use super::rules::CleanupRules;
 
 /// Everything the Storage screen needs after a scan, in one round trip.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -74,6 +78,9 @@ pub struct StorageService {
     conn: Mutex<Option<Connection>>,
     probe: &'static dyn SystemProbe,
     active_scan: Mutex<Option<ScanHandle>>,
+    /// The only thing in DiskMate that removes anything. Held here so every
+    /// caller reaches it through one owner rather than constructing their own.
+    cleanup: CleanupService,
 }
 
 impl StorageService {
@@ -87,6 +94,7 @@ impl StorageService {
             conn: Mutex::new(Some(conn)),
             probe: platform::probe(),
             active_scan: Mutex::new(None),
+            cleanup: CleanupService::new(),
         }))
     }
 
@@ -97,6 +105,7 @@ impl StorageService {
             conn: Mutex::new(Some(db::open_in_memory()?)),
             probe: platform::probe(),
             active_scan: Mutex::new(None),
+            cleanup: CleanupService::new(),
         }))
     }
 
@@ -278,12 +287,171 @@ impl StorageService {
         self.with_conn(|conn| StorageQueries::directory_by_path(conn, scan_id, path))
     }
 
+    /// A bounded slice of the tree for the treemap and sunburst.
+    pub fn subtree(
+        &self,
+        scan_id: i64,
+        root_id: i64,
+        max_depth: u32,
+        fan_out: u32,
+    ) -> Result<Vec<EntryRow>> {
+        self.with_conn(|conn| StorageQueries::subtree(conn, scan_id, root_id, max_depth, fan_out))
+    }
+
+    /// Bytes by how long ago they were last modified.
+    pub fn age_breakdown(&self, scan_id: i64) -> Result<Vec<crate::model::AgeBucket>> {
+        self.with_conn(|conn| StorageQueries::age_breakdown(conn, scan_id, db::now_unix()))
+    }
+
     pub fn ancestors(&self, scan_id: i64, entry_id: i64) -> Result<Vec<EntryRow>> {
         self.with_conn(|conn| StorageQueries::ancestors(conn, scan_id, entry_id))
     }
 
     pub fn scan_errors(&self, scan_id: i64, limit: u32) -> Result<Vec<ScanError>> {
         self.with_conn(|conn| StorageQueries::scan_errors(conn, scan_id, limit))
+    }
+
+    // ----------------------------------------------------------- cleanup --
+    //
+    // These are adapters onto the cleanup service. They exist here because
+    // this type owns the index connection, not because any decision is made
+    // in them: the safety rules live in `services::cleanup` and nowhere else.
+
+    /// Run the detection rules over a finished scan and record what they
+    /// propose. Proposing is not staging and is not removal.
+    pub fn propose_cleanup(&self, scan_id: i64) -> Result<Vec<CleanupCandidate>> {
+        self.with_conn(|conn| {
+            let proposed = CleanupRules::propose(conn, scan_id, db::now_unix())?;
+            CleanupService::record_candidates(conn, &proposed)?;
+            CleanupService::candidates(conn, scan_id, Some(CandidateState::Proposed), 2_000)
+        })
+    }
+
+    pub fn cleanup_groups(&self, scan_id: i64) -> Result<Vec<CandidateGroup>> {
+        self.with_conn(|conn| CleanupService::groups(conn, scan_id))
+    }
+
+    pub fn cleanup_candidates(
+        &self,
+        scan_id: i64,
+        state: Option<CandidateState>,
+        limit: u32,
+    ) -> Result<Vec<CleanupCandidate>> {
+        self.with_conn(|conn| CleanupService::candidates(conn, scan_id, state, limit))
+    }
+
+    pub fn stage_cleanup(&self, ids: &[i64]) -> Result<usize> {
+        self.with_conn(|conn| CleanupService::stage(conn, ids))
+    }
+
+    pub fn unstage_cleanup(&self, ids: &[i64]) -> Result<usize> {
+        self.with_conn(|conn| CleanupService::unstage(conn, ids))
+    }
+
+    pub fn staged_cleanup(&self) -> Result<Vec<CleanupCandidate>> {
+        self.with_conn(CleanupService::staged)
+    }
+
+    /// Remove what the user approved. The confirmation is checked against the
+    /// queue before anything is touched.
+    pub fn remove_approved(&self, confirmation: &Confirmation) -> Result<RemovalReport> {
+        self.with_conn(|conn| self.cleanup.remove_approved(conn, confirmation))
+    }
+
+    pub fn cleanup_history(&self, limit: u32) -> Result<Vec<crate::model::RemovalOutcome>> {
+        self.with_conn(|conn| CleanupService::history(conn, limit))
+    }
+
+    // -------------------------------------------------------- duplicates --
+
+    /// Find duplicates in a finished scan. Blocking; callers run it on their
+    /// own thread and cancel through the token.
+    pub fn find_duplicates(
+        &self,
+        scan_id: i64,
+        cancel: &CancellationToken,
+        progress: impl FnMut(&str, i64, i64),
+    ) -> Result<crate::analysis::DuplicateStats> {
+        self.with_conn(|conn| {
+            crate::analysis::DuplicateFinder::run(conn, scan_id, cancel, progress)
+        })
+    }
+
+    pub fn duplicate_groups(
+        &self,
+        scan_id: i64,
+        limit: u32,
+    ) -> Result<Vec<crate::analysis::DuplicateGroup>> {
+        self.with_conn(|conn| crate::analysis::DuplicateFinder::groups(conn, scan_id, limit))
+    }
+
+    /// Propose every copy except the keeper in each confirmed group.
+    pub fn propose_duplicate_cleanup(&self, scan_id: i64) -> Result<usize> {
+        self.with_conn(|conn| {
+            let candidates =
+                crate::analysis::DuplicateFinder::as_cleanup_candidates(conn, scan_id, 500)?;
+            CleanupService::record_candidates(conn, &candidates)
+        })
+    }
+
+    // ------------------------------------------------------ applications --
+
+    /// Find installed applications and everything they left behind.
+    pub fn inspect_applications(&self) -> Result<Vec<crate::analysis::Application>> {
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        let roots = crate::analysis::ApplicationInspector::application_roots(home.as_deref());
+        let home = home.unwrap_or_else(|| PathBuf::from("/"));
+        let found = crate::analysis::ApplicationInspector::inspect(&home, &roots);
+        self.with_conn(|conn| {
+            crate::analysis::ApplicationInspector::record(conn, &found)?;
+            crate::analysis::ApplicationInspector::applications(conn, false)
+        })
+    }
+
+    pub fn applications(&self) -> Result<Vec<crate::analysis::Application>> {
+        self.with_conn(|conn| crate::analysis::ApplicationInspector::applications(conn, false))
+    }
+
+    pub fn application_leftovers(&self, id: i64) -> Result<Vec<crate::analysis::Leftover>> {
+        self.with_conn(|conn| crate::analysis::ApplicationInspector::leftovers_of(conn, id))
+    }
+
+    /// Stage an application and its leftovers for removal. Proposes only; the
+    /// user still approves the queue before anything moves.
+    pub fn propose_uninstall(&self, application_id: i64) -> Result<Vec<CleanupCandidate>> {
+        self.with_conn(|conn| {
+            let candidates =
+                crate::analysis::ApplicationInspector::uninstall_candidates(conn, application_id)?;
+            CleanupService::record_candidates(conn, &candidates)?;
+            let group = format!("app:{application_id}");
+            CleanupService::candidates(conn, 0, None, 500).map(|all| {
+                all.into_iter()
+                    .filter(|c| c.group_key.as_deref() == Some(group.as_str()))
+                    .collect()
+            })
+        })
+    }
+
+    // --------------------------------------------------------- snapshots --
+
+    pub fn capture_snapshot(&self, scan_id: i64, label: &str) -> Result<crate::analysis::Snapshot> {
+        self.with_conn(|conn| crate::analysis::Snapshots::capture(conn, scan_id, label))
+    }
+
+    pub fn snapshots(&self, limit: u32) -> Result<Vec<crate::analysis::Snapshot>> {
+        self.with_conn(|conn| crate::analysis::Snapshots::list(conn, limit))
+    }
+
+    pub fn delete_snapshot(&self, id: i64) -> Result<()> {
+        self.with_conn(|conn| crate::analysis::Snapshots::delete(conn, id))
+    }
+
+    pub fn compare_snapshots(
+        &self,
+        base_id: i64,
+        target_id: i64,
+    ) -> Result<crate::analysis::Comparison> {
+        self.with_conn(|conn| crate::analysis::Snapshots::compare(conn, base_id, target_id))
     }
 
     /// Drop old scans so the index does not grow without bound across rescans.

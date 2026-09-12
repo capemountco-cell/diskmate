@@ -25,10 +25,15 @@ const MIGRATIONS: &[Migration] = &[
         name: "analysis_extensions",
         sql: include_str!("migrations/002_analysis_extensions.sql"),
     },
+    Migration {
+        version: 3,
+        name: "cleanup_and_analysis",
+        sql: include_str!("migrations/003_cleanup_and_analysis.sql"),
+    },
 ];
 
 /// Schema version this build expects.
-pub const SCHEMA_VERSION: i64 = 2;
+pub const SCHEMA_VERSION: i64 = 3;
 
 pub fn current_schema_version(conn: &Connection) -> Result<i64> {
     let exists: i64 = conn.query_row(
@@ -113,6 +118,10 @@ mod tests {
             "cleanup_candidates",
             "snapshots",
             "scan_comparisons",
+            "cleanup_operations",
+            "applications",
+            "application_leftovers",
+            "snapshot_deltas",
         ] {
             let count: i64 = conn
                 .query_row(

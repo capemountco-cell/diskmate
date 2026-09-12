@@ -137,27 +137,62 @@ so it typically touches a few dozen rows before the limit is met.
 
 `prune_scans(keep_per_root)` keeps the newest N scans per root and deletes the
 rest with everything derived from them. Without it the index grows without bound
-across rescans. Snapshots and scan comparisons will pin the scans they need.
+across rescans. A scan referenced by a snapshot is never pruned.
 
-## Extension points
+## Analysis tables
 
-These tables are created by migration 002 and stay empty through Milestone 01.
-They exist so that the features below can be added without restructuring
-`fs_entries` or rewriting the scanner.
+Created by migrations 002 and 003, and written by the analysis modules rather
+than the scanner. Keeping them out of `fs_entries` means a rescan does not have
+to reproduce work that is still valid, and a duplicate search can be cancelled
+without leaving the index inconsistent.
 
-| Table | For |
+| Table | Holds |
 | --- | --- |
 | `file_classifications` | Rule-driven categories, recomputable without rescanning |
 | `content_hashes` | Partial and full digests, keyed by entry and kind |
 | `duplicate_groups`, `duplicate_group_members` | Confirmed duplicate sets |
 | `cleanup_candidates` | Candidates with a rule, a reason and a safety class |
+| `cleanup_operations` | The audit log: what was removed, when, by which remover |
+| `applications` | Installed applications, with bundle identifier and version |
+| `application_leftovers` | What an application scattered, and where |
 | `snapshots` | Point-in-time storage records |
-| `scan_comparisons` | Change between two scans |
+| `scan_comparisons`, `snapshot_deltas` | Change between two scans, per folder |
+
+### The cleanup tables
+
+`cleanup_candidates` is unique on `(scan_id, path, rule)`, so re-running the
+rules updates a candidate rather than duplicating it. Its `state` column carries
+the whole lifecycle — `proposed`, `staged`, `removed`, `refused`, `failed` — and
+the upsert only touches rows still in `proposed` or `staged`. That is what stops
+a removed candidate being resurrected by the next proposal pass.
+
+`entry_id` is nullable, which matters: an application's leftovers are found by
+inspecting the filesystem directly, so a candidate can exist for a path the scan
+never indexed.
+
+`cleanup_operations` is written after every removal attempt, successful or not,
+and records the remover's name. It is the only place that knows a file left, and
+it is never consulted to decide anything — it exists so a person can answer "what
+did this thing do to my disk" without trusting the UI.
+
+### Snapshots are small on purpose
+
+A snapshot stores a scan's totals and its identity, not a copy of the tree. The
+comparison reads both scans' directory rows and joins them on path, so the detail
+lives in the index exactly once. The cost is that a snapshot is only as good as
+the scan it points at, which is why `prune_scans` never removes a scan a
+snapshot references.
+
+A comparison collapses ancestor chains before returning: if one folder inside
+another accounts for at least 90% of the outer folder's change, only the inner
+one is reported. Without that, a single 400 MB file appearing deep in a tree is
+reported once per level above it, and the folder that actually changed is buried
+among its own parents.
 
 ### Duplicate detection, and why the schema looks like this
 
 Hashing every file is the obvious approach and the wrong one: it reads the whole
-volume to find that almost nothing matches. The escalation the schema supports:
+volume to find that almost nothing matches. The escalation, as implemented:
 
 ```
 all files
@@ -171,7 +206,11 @@ all files
 
 `content_hashes` is keyed by `(entry_id, kind)` so both stages live in one table,
 and it carries the offset and length of the partial probe so a later revision can
-tell which sampling strategy produced a row.
+tell which sampling strategy produced a row. The partial probe is 16 KB from each
+end of the file; the full digest is BLAKE3.
+
+Hard-linked repeats are excluded before any of this. Two names for one inode are
+not two copies, and removing one reclaims nothing.
 
 **Filenames never establish that two files are duplicates.** Two files with the
 same name are two files with the same name.

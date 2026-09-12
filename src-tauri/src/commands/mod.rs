@@ -4,12 +4,16 @@
 //! serialise. Errors become a string because that is what crosses the IPC
 //! boundary; the engine's typed errors are preserved up to this point.
 
+mod cleanup;
+mod monitor;
 mod scan;
 mod storage;
 mod system;
 
 // Glob re-exports, not named ones: `#[tauri::command]` generates hidden items
 // alongside each function, and `generate_handler!` needs them in this module.
+pub use cleanup::*;
+pub use monitor::*;
 pub use scan::*;
 pub use storage::*;
 pub use system::*;

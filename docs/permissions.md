@@ -134,11 +134,11 @@ network.
 
 ## Permission onboarding
 
-Milestone 01 explains the situation where it arises: the volume list marks a
-volume DiskMate cannot read, the scan summary explains what was left out, and
-the folder picker is offered as the alternative that needs no setting.
+DiskMate explains the situation where it arises: the volume list marks a volume
+it cannot read, the scan summary explains what was left out, and the folder
+picker is offered as the alternative that needs no setting.
 
 A proper onboarding flow — explaining Full Disk Access before the first scan,
 with a direct link to the right System Settings pane and detection of when it has
-been granted — is a later milestone. For Milestone 01, correctness matters more
-than polish.
+been granted — is still to come. Being correct about what was missed matters more
+than being smooth about asking.

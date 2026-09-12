@@ -272,8 +272,10 @@ grants access to whatever you select in an open panel.
 4. When it finishes you get the category breakdown, the largest folders and
    files, and a browser. Double-click a folder to look inside.
 
-DiskMate is read-only in this milestone. It does not delete, move or change
-anything, and it never sends anything off your Mac.
+Nothing is removed by looking at it. The Cleanup page can move things to the
+Trash, but only items you put in the queue yourself and then approved, and only
+to the Trash — DiskMate has no way to delete anything permanently. It never
+sends anything off your Mac.
 
 ---
 

@@ -1,0 +1,359 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap");
+
+    .dm {
+      --grey-0:#ffffff; --grey-1:#fbfbfd; --grey-2:#f4f4f7; --grey-3:#ececf0;
+      --grey-4:#dedee4; --grey-5:#c4c4cd; --grey-6:#9a9aa6; --grey-7:#6e6e7a;
+      --grey-8:#48484f; --grey-9:#1d1d20;
+      --accent:#2f6fd0; --accent-strong:#245bb0; --accent-soft:#e7effb; --accent-contrast:#ffffff;
+      --surface-window:var(--grey-1); --surface-sidebar:#f4f4f7; --surface-panel:var(--grey-0);
+      --surface-sunken:var(--grey-2); --surface-selected:var(--accent-soft);
+      --text-primary:var(--grey-9); --text-secondary:var(--grey-7); --text-tertiary:var(--grey-6);
+      --line:rgba(0,0,0,0.09); --line-strong:rgba(0,0,0,0.16);
+      --cat-applications:#7897da; --cat-documents:#72bf8e; --cat-media:#7d4e88;
+      --cat-downloads:#bd8846; --cat-developer:#009185; --cat-caches:#865901;
+      --cat-system:#78808f; --cat-other:#b4b8c1;
+      --status-caution:#a8762a; --ok-soft:#e8f2ec; --ok-ink:#2f6b4d;
+      --shadow-panel:0 1px 2px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(0,0,0,0.06);
+    }
+    .dm[data-appearance="dark"] {
+      --grey-0:#1c1c1f; --grey-1:#212125; --grey-2:#26262b; --grey-3:#2e2e34;
+      --grey-4:#3a3a42; --grey-5:#4d4d57; --grey-6:#7c7c88; --grey-7:#a2a2ad;
+      --grey-8:#cfcfd6; --grey-9:#f2f2f5;
+      --accent:#62a0f0; --accent-strong:#7db2f6; --accent-soft:#1e2c41; --accent-contrast:#10131a;
+      --surface-window:#191a1d; --surface-sidebar:#212125; --surface-panel:var(--grey-1);
+      --surface-sunken:#161619;
+      --line:rgba(255,255,255,0.09); --line-strong:rgba(255,255,255,0.17);
+      --cat-applications:#6c85d9; --cat-documents:#007654; --cat-media:#7a4f8c;
+      --cat-downloads:#b3880f; --cat-developer:#28a497; --cat-caches:#895709;
+      --cat-system:#8f97a6; --cat-other:#6e7380;
+      --status-caution:#d2a052; --ok-soft:#1c2b23; --ok-ink:#7fc79f;
+      --shadow-panel:0 1px 2px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(255,255,255,0.06);
+    }
+
+    body { margin:0; }
+    a { color: var(--accent); text-decoration:none; }
+    a:hover { color: var(--accent-strong); }
+
+    .dm {
+      width:1440px; height:900px; display:grid; grid-template-columns:232px 1fr;
+      background:var(--surface-window); color:var(--text-primary);
+      font-family:"Inter Tight", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      font-size:13px; line-height:1.45; overflow:hidden; -webkit-font-smoothing:antialiased;
+    }
+    .lbl { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-tertiary); }
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size:11px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .row { display:flex; align-items:center; gap:8px; }
+    .navitem { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:5px; }
+    .navitem[data-on="1"] { background:var(--surface-selected); color:var(--accent-strong); font-weight:500; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:4px 12px;
+           border:1px solid var(--line-strong); border-radius:5px; background:var(--surface-panel);
+           box-shadow:0 1px 1px rgba(0,0,0,0.04); font-size:13px; color:var(--text-primary); }
+    .btn--primary { border-color:transparent; background:var(--accent); color:var(--accent-contrast); }
+    .btn--quiet { border-color:transparent; background:transparent; box-shadow:none; color:var(--text-secondary); }
+    .seg { display:flex; padding:2px; gap:2px; background:var(--surface-sunken); border-radius:7px; }
+    .seg > span { padding:3px 11px; border-radius:5px; font-size:12px; color:var(--text-secondary); }
+    .seg > span[data-on="1"] { background:var(--surface-panel); color:var(--text-primary); font-weight:500; box-shadow:0 1px 1px rgba(0,0,0,0.06); }
+    .panel { background:var(--surface-panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    .phead { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); }
+    .chip { font-size:11px; padding:1px 7px; border-radius:4px; border:1px solid var(--line); color:var(--text-secondary); }
+    .chip--safe { background:var(--ok-soft); color:var(--ok-ink); border-color:transparent; }
+    .chip--review { background:transparent; color:var(--status-caution); border-color:var(--status-caution); }
+    .cand { display:grid; grid-template-columns:18px 1fr auto auto; align-items:start; gap:12px; padding:9px 16px; border-bottom:1px solid var(--line); }
+    .cand:last-child { border-bottom:none; }
+    .box { width:14px; height:14px; border-radius:3px; border:1px solid var(--line-strong); background:var(--surface-panel); margin-top:2px; }
+    .box[data-on="1"] { background:var(--accent); border-color:var(--accent); display:grid; place-items:center; }
+    .qrow { display:grid; grid-template-columns:1fr auto; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+    .qrow:last-child { border-bottom:none; }
+    .dot { width:7px; height:7px; border-radius:2px; flex:none; }
+  </style>
+</helmet>
+
+<div class="dm" data-appearance="{{appearance}}">
+
+  <!-- sidebar -->
+  <div style="display:flex; flex-direction:column; gap:22px; padding:40px 12px 12px; background:var(--surface-sidebar); border-right:1px solid var(--line);">
+    <div style="padding:0 8px;">
+      <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">DiskMate</div>
+      <div style="font-size:11px; color:var(--text-tertiary);">Storage, understood.</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:1px;">
+      <div class="navitem">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><ellipse cx="8" cy="4" rx="5.5" ry="2.2"/><path d="M2.5 4v8c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2V4"/><path d="M2.5 8c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2"/></svg>
+        <span>Storage</span>
+      </div>
+      <div class="navitem" data-on="1">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.2 4.5l.6 8.3c.04.6.54 1.2 1.2 1.2h4c.66 0 1.16-.6 1.2-1.2l.6-8.3"/></svg>
+        <span>Cleanup</span>
+        <span style="margin-left:auto; font-size:11px; color:var(--accent-strong); font-weight:500;" class="num">7</span>
+      </div>
+      <div class="navitem">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2.5v5"/><path d="M4.6 4.4a5 5 0 1 0 6.8 0"/></svg>
+        <span>Startup</span>
+      </div>
+      <div class="navitem">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="10" height="10" rx="2"/><rect x="6" y="6" width="4" height="4" rx="1"/><path d="M6 1.5v1.5M10 1.5v1.5M6 13v1.5M10 13v1.5M1.5 6H3M1.5 10H3M13 6h1.5M13 10h1.5"/></svg>
+        <span>Memory</span>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div class="lbl" style="padding:0 8px 2px;">What was found</div>
+      <div style="padding:0 8px; display:flex; flex-direction:column; gap:7px; font-size:12px;">
+        <div class="row" style="justify-content:space-between;"><span class="row" style="gap:7px;"><i class="dot" style="background:var(--cat-developer);"></i>Developer files</span><span class="num" style="color:var(--text-tertiary);">14.1 GB</span></div>
+        <div class="row" style="justify-content:space-between;"><span class="row" style="gap:7px;"><i class="dot" style="background:var(--cat-caches);"></i>Caches</span><span class="num" style="color:var(--text-tertiary);">6.1 GB</span></div>
+        <div class="row" style="justify-content:space-between;"><span class="row" style="gap:7px;"><i class="dot" style="background:var(--cat-downloads);"></i>Old downloads</span><span class="num" style="color:var(--text-tertiary);">4.4 GB</span></div>
+        <div class="row" style="justify-content:space-between;"><span class="row" style="gap:7px;"><i class="dot" style="background:var(--cat-media);"></i>Extra copies</span><span class="num" style="color:var(--text-tertiary);">2.8 GB</span></div>
+      </div>
+      <div style="padding:8px 8px 0; font-size:11px; line-height:1.5; color:var(--text-tertiary); border-top:1px solid var(--line); margin-top:4px;">
+        These are things DiskMate can explain, not things it recommends removing.
+      </div>
+    </div>
+
+    <div style="margin-top:auto; padding:8px; font-size:11px; line-height:1.5; color:var(--text-tertiary);">
+      Everything stays on this Mac.<br>Version 0.2.0
+    </div>
+  </div>
+
+  <!-- main + queue -->
+  <div style="display:grid; grid-template-columns:1fr 332px; min-width:0; overflow:hidden;">
+
+    <div style="display:flex; flex-direction:column; min-width:0; overflow:hidden;">
+
+      <div style="display:flex; align-items:center; gap:16px; padding:0 20px; height:52px; flex:none; border-bottom:1px solid var(--line);">
+        <span style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">Cleanup</span>
+        <span style="color:var(--text-tertiary);">What you can remove, and why.</span>
+        <div style="margin-left:auto;" class="seg">
+          <span data-on="1">Suggestions</span><span>Duplicates</span><span>Applications</span>
+        </div>
+        <span class="btn">Look again</span>
+      </div>
+
+      <div style="flex:1; min-height:0; overflow:hidden; padding:18px 20px; display:flex; flex-direction:column; gap:16px;">
+
+        <div style="display:flex; gap:12px; padding:12px 14px; border-radius:10px; background:var(--surface-panel); border:1px solid var(--line); flex:none;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" stroke-width="1.5" style="flex:none; margin-top:1px;"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 5.1v.1"/></svg>
+          <div style="font-size:12px; line-height:1.5;">
+            <b style="font-weight:600;">Nothing here is removed by browsing it.</b>
+            <span style="color:var(--text-secondary);">Adding something to the queue is a shortlist, not an action. Everything goes to the Trash, so you can put it back.</span>
+          </div>
+        </div>
+
+        <!-- group: developer -->
+        <div class="panel" style="flex:none;">
+          <div class="phead">
+            <div>
+              <div class="row" style="gap:8px;"><span style="font-weight:600;">Developer files</span><span class="chip chip--safe">Safe</span></div>
+              <div style="font-size:12px; color:var(--text-tertiary); margin-top:2px;">14 items your build tools regenerate. Rebuilding takes time, not data.</div>
+            </div>
+            <span class="btn">Add 12 &middot; <span class="num">11.6 GB</span></span>
+          </div>
+
+          <div class="cand">
+            <div class="box" data-on="1"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="1.8"><path d="M1.6 5.2l2.1 2.2L8.4 2.6"/></svg></div>
+            <div style="min-width:0;">
+              <div style="font-weight:500;">target</div>
+              <div style="font-size:12px; color:var(--text-secondary);">Build output. <span style="color:var(--text-tertiary);">cargo rebuilds this; nothing you wrote is in here.</span></div>
+              <div class="mono" style="color:var(--text-tertiary); margin-top:2px;">~/dev/diskmate/target</div>
+            </div>
+            <span class="num" style="font-weight:500;">8.9 GB</span>
+            <span class="chip chip--safe">Safe</span>
+          </div>
+
+          <div class="cand">
+            <div class="box" data-on="1"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="1.8"><path d="M1.6 5.2l2.1 2.2L8.4 2.6"/></svg></div>
+            <div style="min-width:0;">
+              <div style="font-weight:500;">DerivedData</div>
+              <div style="font-size:12px; color:var(--text-secondary);">Xcode intermediates. <span style="color:var(--text-tertiary);">Xcode rebuilds these on the next run.</span></div>
+              <div class="mono" style="color:var(--text-tertiary); margin-top:2px;">~/Library/Developer/Xcode/DerivedData</div>
+            </div>
+            <span class="num" style="font-weight:500;">1.8 GB</span>
+            <span class="chip chip--safe">Safe</span>
+          </div>
+
+          <div class="cand">
+            <div class="box"></div>
+            <div style="min-width:0;">
+              <div style="font-weight:500;">node_modules</div>
+              <div style="font-size:12px; color:var(--text-secondary);">Installed packages. <span style="color:var(--text-tertiary);">npm reinstalls these from package.json, over the network.</span></div>
+              <div class="mono" style="color:var(--text-tertiary); margin-top:2px;">~/dev/site/node_modules</div>
+            </div>
+            <span class="num" style="font-weight:500;">902 MB</span>
+            <span class="chip chip--safe">Safe</span>
+          </div>
+
+          <div style="padding:9px 16px; font-size:12px; color:var(--text-tertiary);">and 11 more, included when you add the group.</div>
+        </div>
+
+        <!-- group: review -->
+        <div class="panel" style="flex:none;">
+          <div class="phead">
+            <div>
+              <div class="row" style="gap:8px;"><span style="font-weight:600;">Untouched for over a year</span><span class="chip chip--review">Review</span></div>
+              <div style="font-size:12px; color:var(--text-tertiary); margin-top:2px;">6 large files nobody has opened since 2024. That is a fact about age, not about whether you still want them.</div>
+            </div>
+            <span class="btn">Add 6 &middot; <span class="num">6.9 GB</span></span>
+          </div>
+
+          <div class="cand">
+            <div class="box"></div>
+            <div style="min-width:0;">
+              <div style="font-weight:500;">WWDC-2023-sessions.zip</div>
+              <div style="font-size:12px; color:var(--text-secondary);">Last opened <span class="num">18 months ago</span>. <span style="color:var(--text-tertiary);">Downloaded, never unpacked.</span></div>
+              <div class="mono" style="color:var(--text-tertiary); margin-top:2px;">~/Downloads/WWDC-2023-sessions.zip</div>
+            </div>
+            <span class="num" style="font-weight:500;">4.2 GB</span>
+            <span class="chip chip--review">Review</span>
+          </div>
+
+          <div class="cand">
+            <div class="box"></div>
+            <div style="min-width:0;">
+              <div style="font-weight:500;">Ventura-13.4.dmg</div>
+              <div style="font-size:12px; color:var(--text-secondary);">Last opened <span class="num">2 years ago</span>. <span style="color:var(--text-tertiary);">An installer for an OS version you are past.</span></div>
+              <div class="mono" style="color:var(--text-tertiary); margin-top:2px;">~/Downloads/Ventura-13.4.dmg</div>
+            </div>
+            <span class="num" style="font-weight:500;">2.7 GB</span>
+            <span class="chip chip--review">Review</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- queue: the promise, always visible -->
+    <div style="border-left:1px solid var(--line); background:var(--surface-panel); display:flex; flex-direction:column; min-height:0;">
+
+      <div style="padding:16px 18px 0; flex:none;">
+        <div class="row" style="justify-content:space-between;">
+          <span style="font-weight:600;">Queue</span>
+          <span class="btn btn--quiet" style="padding:2px 8px; font-size:12px;">Empty</span>
+        </div>
+        <div class="num" style="font-size:32px; font-weight:600; letter-spacing:-0.025em; margin-top:12px;">18.4 GB</div>
+        <div style="color:var(--text-secondary); margin-top:1px;">7 items, ready to move to the Trash</div>
+
+        <div style="height:8px; border-radius:3px; overflow:hidden; display:flex; gap:1px; margin-top:14px;">
+          <div style="flex:11.5; background:var(--cat-developer);"></div>
+          <div style="flex:6.9;  background:var(--cat-downloads);"></div>
+        </div>
+        <div class="row" style="gap:14px; margin-top:8px; font-size:12px;">
+          <span class="row" style="gap:6px;"><i class="dot" style="background:var(--cat-developer);"></i>Safe <span class="num" style="color:var(--text-tertiary);">11.5 GB</span></span>
+          <span class="row" style="gap:6px;"><i class="dot" style="background:var(--cat-downloads);"></i>Review <span class="num" style="color:var(--text-tertiary);">6.9 GB</span></span>
+        </div>
+      </div>
+
+      <div style="flex:1; min-height:0; overflow:hidden; padding:14px 18px; margin-top:12px; border-top:1px solid var(--line);">
+        <div style="display:flex; flex-direction:column;">
+
+          <div class="qrow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">target</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/dev/diskmate/target</div>
+            </div>
+            <span class="num" style="color:var(--text-secondary);">8.9 GB</span>
+          </div>
+
+          <div class="qrow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">WWDC-2023-sessions.zip</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/Downloads/WWDC-2023-sessions.zip</div>
+            </div>
+            <span class="num" style="color:var(--text-secondary);">4.2 GB</span>
+          </div>
+
+          <div class="qrow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">Ventura-13.4.dmg</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/Downloads/Ventura-13.4.dmg</div>
+            </div>
+            <span class="num" style="color:var(--text-secondary);">2.7 GB</span>
+          </div>
+
+          <div class="qrow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">DerivedData</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/Library/Developer/Xcode/DerivedData</div>
+            </div>
+            <span class="num" style="color:var(--text-secondary);">1.8 GB</span>
+          </div>
+
+          <div class="qrow">
+            <div style="min-width:0;">
+              <div style="font-weight:500;">Caches</div>
+              <div class="mono" style="color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">~/Library/Caches/com.spotify.client</div>
+            </div>
+            <span class="num" style="color:var(--text-secondary);">612 MB</span>
+          </div>
+
+          <div style="padding:9px 0; font-size:12px; color:var(--text-tertiary);">and 2 more</div>
+        </div>
+      </div>
+
+      <div style="padding:14px 18px 16px; border-top:1px solid var(--line); flex:none; display:flex; flex-direction:column; gap:9px;">
+        <span class="btn btn--primary" style="width:100%; box-sizing:border-box; padding:7px 12px; font-weight:500;">Move 7 items to the Trash</span>
+        <div style="display:flex; align-items:stretch; gap:0; margin-top:2px;">
+          <div style="flex:1; text-align:center;">
+            <div style="height:26px; display:grid; place-items:center;">
+              <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M3 5h12M3 9h12M3 13h7"/></svg>
+            </div>
+            <div style="font-size:11px; font-weight:500; margin-top:2px;">7 items</div>
+            <div style="font-size:10px; color:var(--text-tertiary);">you chose</div>
+          </div>
+          <div style="width:16px; display:grid; place-items:center;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="var(--grey-5)" stroke-width="1.5"><path d="M3.5 8h8M8 4.5L11.5 8 8 11.5"/></svg></div>
+
+          <div style="flex:1; text-align:center;">
+            <div style="height:26px; display:grid; place-items:center;">
+              <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M9 2.2l5.4 2.3v4.2c0 3.3-2.2 5.8-5.4 7.1-3.2-1.3-5.4-3.8-5.4-7.1V4.5z"/><path d="M6.6 9l1.7 1.7 3.3-3.4"/></svg>
+            </div>
+            <div style="font-size:11px; font-weight:500; margin-top:2px;">Checked</div>
+            <div style="font-size:10px; color:var(--text-tertiary);">protected, changed, gone</div>
+          </div>
+          <div style="width:16px; display:grid; place-items:center;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="var(--grey-5)" stroke-width="1.5"><path d="M3.5 8h8M8 4.5L11.5 8 8 11.5"/></svg></div>
+
+          <div style="flex:1; text-align:center;">
+            <div style="height:26px; display:grid; place-items:center;">
+              <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M3.4 5.1h11.2M7.3 5.1V3.4h3.4v1.7M4.8 5.1l.7 9.4c.05.7.6 1.3 1.3 1.3h4.4c.7 0 1.25-.6 1.3-1.3l.7-9.4"/></svg>
+            </div>
+            <div style="font-size:11px; font-weight:500; margin-top:2px;">Trash</div>
+            <div style="font-size:10px; color:var(--text-tertiary);">not deleted</div>
+          </div>
+          <div style="width:16px; display:grid; place-items:center;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="var(--grey-5)" stroke-width="1.5"><path d="M3.5 8h8M8 4.5L11.5 8 8 11.5"/></svg></div>
+
+          <div style="flex:1; text-align:center;">
+            <div style="height:26px; display:grid; place-items:center;">
+              <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="var(--ok-ink)" stroke-width="1.5"><path d="M3.2 9a5.8 5.8 0 1 0 1.8-4.2"/><path d="M3 2.6v3.1h3.1"/></svg>
+            </div>
+            <div style="font-size:11px; font-weight:500; margin-top:2px; color:var(--ok-ink);">Put Back</div>
+            <div style="font-size:10px; color:var(--text-tertiary);">any time you like</div>
+          </div>
+        </div>
+
+        <div style="font-size:11px; line-height:1.55; color:var(--text-tertiary); border-top:1px solid var(--line); padding-top:9px;">
+          Exactly these <span class="num">7</span>, totalling <span class="num">18.4 GB</span>. If the list or the total changes before you click, the whole operation is refused rather than partly done.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"appearance":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { appearance: this.props.appearance ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

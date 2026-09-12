@@ -324,9 +324,11 @@
 }
 
 .legend-item__swatch {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
+  /* Large enough to read a hue from. At 9px a muted colour is indeterminate,
+     which defeats the point of colouring the categories at all. */
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
   flex: none;
 }
 
@@ -736,4 +738,393 @@
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* ============================================================ views ===== */
+
+/*
+ * The view switcher.
+ *
+ * DiskBuddy offers eight visualisations. DiskMate offers three, because the
+ * question is not "how many ways can this be drawn" but "which drawing answers
+ * a question you actually have": proportions, depth, and age.
+ */
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.segmented__option {
+  padding: 3px 12px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: transparent;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: default;
+  transition: background var(--duration-fast) var(--ease);
+}
+
+.segmented__option:hover {
+  color: var(--text-primary);
+}
+
+.segmented__option[aria-pressed="true"] {
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  font-weight: 500;
+  box-shadow: var(--shadow-panel);
+}
+
+/* -------------------------------------------------------- treemap ----- */
+
+.treemap,
+.sunburst {
+  margin: 0;
+}
+
+.treemap__rect {
+  transition: fill-opacity var(--duration-fast) var(--ease);
+}
+
+.treemap__rect--hover {
+  fill-opacity: 1;
+  stroke: var(--text-primary);
+  stroke-width: 1.5;
+}
+
+.treemap__label,
+.treemap__sublabel {
+  fill: #fff;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.28);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.treemap__sublabel {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+/* The caption is reserved at a fixed height so hovering does not reflow the
+   chart underneath it. */
+.treemap__caption {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-height: 34px;
+  padding: var(--space-3) var(--space-1) 0;
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.treemap__name {
+  font-weight: 600;
+}
+
+.treemap__meta {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.treemap__path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.sunburst {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sunburst__center-value {
+  text-anchor: middle;
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sunburst__center-label {
+  text-anchor: middle;
+  font-size: 10px;
+  fill: var(--text-tertiary);
+}
+
+.sunburst figcaption {
+  width: 100%;
+}
+
+/* --------------------------------------------------------- age map ---- */
+
+.agemap__bar {
+  display: flex;
+  height: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.agemap__band {
+  min-width: 2px;
+}
+
+.agemap__table {
+  margin-top: var(--space-4);
+}
+
+.agemap__note {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* ========================================================== cleanup ==== */
+
+.cleanup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .cleanup-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The queue is the only place anything is removed, so it is pinned where it
+   stays visible while items are being added to it. */
+.queue {
+  position: sticky;
+  top: 0;
+}
+
+.queue__total {
+  font-size: var(--text-xl);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue__list {
+  max-height: 320px;
+  overflow-y: auto;
+  margin: var(--space-3) calc(-1 * var(--space-4)) 0;
+}
+
+.queue__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.queue__item:last-child {
+  border-bottom: none;
+}
+
+.queue__item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue__item-path {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.candidate {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.candidate:last-child {
+  border-bottom: none;
+}
+
+.candidate:hover {
+  background: var(--surface-hover);
+}
+
+.candidate__reason {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+
+.candidate__path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.candidate__size {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/*
+ * Safety is a label, not an alarm. Review is the colour of a note in the
+ * margin; there is deliberately no red anywhere in this product for something
+ * that is merely worth thinking about.
+ */
+.safety {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.safety--safe {
+  background: color-mix(in srgb, var(--cat-documents) 16%, transparent);
+  color: color-mix(in srgb, var(--cat-documents) 80%, var(--text-primary));
+}
+
+.safety--review {
+  background: color-mix(in srgb, var(--status-caution) 14%, transparent);
+  color: var(--status-caution);
+}
+
+.safety--protected {
+  background: var(--surface-sunken);
+  color: var(--text-tertiary);
+}
+
+/* ========================================================== monitor ==== */
+
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 72px;
+  overflow: visible;
+}
+
+.sparkline__fill {
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* The stacked band beneath the line: cache, which is available on demand and
+   so is drawn quieter than the memory that is actually committed. */
+.sparkline__band {
+  fill: color-mix(in srgb, var(--cat-documents) 26%, transparent);
+}
+
+.sparkline__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.sparkline__axis {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.pressure-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.pressure-dot--normal {
+  background: var(--cat-documents);
+}
+.pressure-dot--warning {
+  background: var(--status-caution);
+}
+.pressure-dot--critical {
+  background: var(--status-serious);
+}
+.pressure-dot--unknown {
+  background: var(--grey-5);
+}
+
+/* ===================================================== applications ==== */
+
+.app-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.app-row:last-child {
+  border-bottom: none;
+}
+
+.app-row:hover {
+  background: var(--surface-hover);
+}
+
+.app-row__meta {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ======================================================== snapshots ==== */
+
+.delta-bar {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.delta-bar__grew {
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  background: var(--accent);
+}
+
+.delta-bar__shrank {
+  position: absolute;
+  inset-block: 0;
+  right: 50%;
+  background: var(--cat-documents);
 }

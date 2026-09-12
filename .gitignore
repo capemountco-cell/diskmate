@@ -5,6 +5,11 @@ target/
 src-tauri/target/
 src-tauri/gen/
 
+# The seeded design canvas: 2.5 MB of editor payload wrapped around the
+# .dc.html sources, which are the record. See design/README.md to rebuild it.
+design/*.html
+!design/*.dc.html
+
 # Local state and scratch
 *.local
 *.log

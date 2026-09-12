@@ -2,47 +2,89 @@
 
 DiskMate's job is to tell people the truth about their disk and then help them
 act on it. Both halves need trust, and trust is easier to keep than to rebuild.
-This document states the rules the product is built to, most of which constrain
-code that does not exist yet — which is the point.
+This document states the rules the product is built to.
 
-## Milestone 01 is read-only
+## What DiskMate can and cannot do
 
-There is no code path in `diskmate-core` or `src-tauri` that deletes, moves, or
-modifies a file, changes a launch item, or signals a process.
+DiskMate can move a file or folder to the Trash. That is the whole of its
+destructive capability. It cannot delete anything permanently, empty the Trash,
+modify a file's contents, change a launch item, or signal a process — not
+because it chooses not to, but because no such code exists.
 
 This is verifiable rather than aspirational:
 
-- The engine's only filesystem calls are `read_dir`, `symlink_metadata`,
-  `DirEntry::metadata`, `canonicalize`, `read_to_string` on configuration files,
-  and `create_dir_all` for DiskMate's own data directory.
+- Outside the cleanup service, the engine's only filesystem calls are
+  `read_dir`, `symlink_metadata`, `DirEntry::metadata`, `canonicalize`,
+  `read_to_string` on configuration files, `File::read` for content hashing, and
+  `create_dir_all` for DiskMate's own data directory.
+- The cleanup service's only mutating call is a move into the Trash, behind the
+  `Remover` trait. Nothing else in the workspace calls `remove_file`,
+  `remove_dir_all`, or `rename` on a user's path.
 - The Tauri capability set grants `core:default`, `dialog:allow-open` and
   `opener:allow-reveal-item-in-dir`. No filesystem, shell, HTTP or process
   permission is granted to the window.
 - The app declares no network entitlement.
 
-## One cleanup service, when there is one
+## One cleanup service
 
-Every destructive operation will flow through a single service. No feature will
-implement its own deletion. A second deletion path is a second set of safety
-checks that will drift from the first.
+Every destructive operation flows through `services::CleanupService`. No feature
+implements its own deletion: the duplicate finder, the uninstaller and the
+detection rules all produce *candidates*, and a candidate is a row in a table,
+not an action.
 
-The flow that service will implement:
+The mechanism is a trait with exactly one destructive method:
+
+```rust
+pub trait Remover: Send + Sync {
+    fn move_to_trash(&self, path: &Path) -> Result<(), String>;
+    fn name(&self) -> &'static str;
+}
+```
+
+Anything that wants to remove something has to hold one of these, and the only
+implementations are `TrashRemover` (the real one) and `DryRunRemover` (which
+refuses). Adding a second deletion path means adding a second implementation of
+a trait whose name says what it does, which is the kind of change a reviewer
+notices.
+
+The flow, as implemented:
 
 ```
   CleanupCandidate
         ↓  safety classification      SAFE | REVIEW | PROTECTED
-        ↓  protected-path validation  platform::protected
-        ↓  permission validation      can this actually be moved?
-        ↓  explicit human review      per item, never a blanket approval
+        ↓  protected-path validation  platform::is_protected_path
+        ↓  shape validation           absolute, not a volume root, ≥ 3 components
+        ↓  staging                    the user puts it in the queue
+        ↓  confirmation               ids *and* total bytes must match the queue
         ↓  move to Trash              not unlink
-        ↓  verify                     confirm it went where it should
-        ↓  update the index
+        ↓  verify                     confirm the path is actually gone
+        ↓  audit                      cleanup_operations records what happened
 ```
+
+## Approval is by identity and by total
+
+`remove_approved` takes a `Confirmation`:
+
+```rust
+pub struct Confirmation {
+    pub candidate_ids: Vec<i64>,
+    pub expected_total_bytes: i64,
+}
+```
+
+If the set of ids does not exactly equal what is staged, or the total does not
+match, **nothing is removed** — not the matching part, the whole operation. The
+purpose is to make the number on the screen a promise. A user who approves
+"414 MB, 3 items" cannot get anything else, including if the queue changed
+underneath them between rendering and clicking.
+
+A staged file is also re-checked at removal time: if its size or modification
+time changed since staging, it is refused. What you approved is what existed
+when you looked at it.
 
 ## Safety classes
 
-`model::SafetyClass` exists now so the vocabulary is fixed before any code uses
-it.
+`model::SafetyClass` is the vocabulary every rule, candidate and refusal uses.
 
 | Class | Meaning |
 | --- | --- |
@@ -68,8 +110,10 @@ Two details that matter:
 - A path DiskMate cannot render as text is treated as protected. A path it
   cannot read is not a path it should act on.
 
-Nothing consults this list yet. It is here so that cleanup is built *around* a
-protected-path check rather than having one added afterwards.
+The list is consulted three times on the way to a removal: when a rule proposes
+a candidate, when a candidate is staged, and again inside `remove_approved`. A
+rule that proposes a protected path is a bug in that rule, and the redundancy
+means such a bug cannot reach a file.
 
 ## Never automatic
 
@@ -85,10 +129,31 @@ understand, and the honest response is to say nothing about it.
 
 ## Trash, not unlink
 
-Removal will move items to the Trash. That is not belt and braces — it is the
-difference between a mistake a person can undo and one they cannot. Permanent
-deletion, if it is ever offered, will be a separate, explicit, per-operation
-choice.
+Removal moves items to the Trash. That is not belt and braces — it is the
+difference between a mistake a person can undo and one they cannot. There is no
+permanent-deletion path in the codebase. If one is ever offered it will be a
+separate, explicit, per-operation choice, and it will not share a code path with
+this one.
+
+`TrashRemover` delegates to the `trash` crate, whose macOS backend calls
+`NSFileManager trashItemAtURL:` — the same operation the Finder performs — so
+items land in the Trash with their "Put Back" information intact.
+
+## Duplicates and the uninstaller
+
+Two features are capable of proposing a lot of items at once, so both are
+deliberately narrow.
+
+**Duplicates** are established byte for byte and never by name. Files are
+grouped by size from the index, then by a digest of the first and last 16 KB,
+and only survivors of both are read in full. Hard links to one inode are
+excluded: they are one file with two names, and "reclaiming" one reclaims
+nothing. The oldest copy in a group is the keeper and is never proposed.
+
+**The uninstaller** matches leftovers by exact bundle identifier or exact
+directory name, in a fixed table of ten locations. Prefix and substring matching
+are not used, because `com.example.app` must never match `com.example.apple`.
+Applications that came with macOS are refused outright.
 
 ## Launch items and processes
 
@@ -107,7 +172,11 @@ allows an unprivileged app to see.
 These are product rules, and the code is tested against some of them.
 
 - **No fabricated counts.** If a feature is not implemented, its page says so
-  and shows nothing. The Cleanup page has no number and no button.
+  and shows nothing. The Startup page shows no impact figure because impact is
+  not measured.
+- **Reasons, not verdicts.** Every candidate carries a sentence saying what it
+  is and what removing it costs — "cargo rebuilds this", "rebuilding takes time,
+  not data" — and a test asserts that no candidate ships without one.
 - **No invented measurements.** Startup impact reports `Unmeasured` because it
   has not been measured. There is no code path that produces a launch-time
   figure.

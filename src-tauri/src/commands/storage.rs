@@ -111,6 +111,32 @@ pub fn directory_by_path(
         .map_err(to_command_error)
 }
 
+/// A bounded slice of the tree for the treemap and the sunburst.
+#[tauri::command]
+pub fn subtree(
+    state: State<'_, AppState>,
+    scan_id: i64,
+    root_id: i64,
+    max_depth: u32,
+    fan_out: u32,
+) -> CommandResult<Vec<EntryRow>> {
+    state
+        .storage
+        .subtree(scan_id, root_id, max_depth, fan_out)
+        .map_err(to_command_error)
+}
+
+#[tauri::command]
+pub fn age_breakdown(
+    state: State<'_, AppState>,
+    scan_id: i64,
+) -> CommandResult<Vec<diskmate_core::model::AgeBucket>> {
+    state
+        .storage
+        .age_breakdown(scan_id)
+        .map_err(to_command_error)
+}
+
 #[tauri::command]
 pub fn scan_errors(
     state: State<'_, AppState>,
