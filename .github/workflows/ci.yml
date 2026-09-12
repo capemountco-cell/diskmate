@@ -95,6 +95,21 @@ jobs:
 
       # The runner is Apple silicon, so the artifact name says so. An Intel Mac
       # needs a local `./scripts/build-dmg.sh --universal` build instead.
+      # An unsigned bundle is reported by Gatekeeper as "damaged" once it has
+      # been downloaded, which reads as corruption rather than as the missing
+      # Developer ID it actually is. The bundle is ad-hoc signed
+      # (bundle.macOS.signingIdentity), so verify that actually happened.
+      - name: Verify the bundle is signed
+        run: |
+          app=target/release/bundle/macos/DiskMate.app
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dv "$app" 2>&1 | grep -q 'Signature=adhoc' || {
+            echo "::error::DiskMate.app is not ad-hoc signed; a download would report it as damaged"
+            codesign -dv "$app" 2>&1 || true
+            exit 1
+          }
+          echo "DiskMate.app is ad-hoc signed."
+
       # Locate the image rather than assuming where it lands, and say where we
       # looked if it is not there. A silent path assumption is what broke this
       # step the first time the build actually succeeded.
