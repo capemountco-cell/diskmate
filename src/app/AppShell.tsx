@@ -6,7 +6,7 @@ import { MemoryPage } from "../features/memory/MemoryPage";
 import { StartupPage } from "../features/startup/StartupPage";
 import { StoragePage } from "../features/storage/StoragePage";
 import { engine, engineAvailable } from "../lib/ipc";
-import type { AppInfo } from "../lib/types";
+import type { AppInfo, ScanSummary } from "../lib/types";
 
 import { SECTIONS, Sidebar, type SectionId } from "./Sidebar";
 
@@ -20,7 +20,7 @@ export function AppShell() {
    * scan, and the alternative - each section scanning for itself - would make
    * the app do the work twice and possibly disagree with itself.
    */
-  const [scanId, setScanId] = useState<number | null>(null);
+  const [scan, setScan] = useState<ScanSummary | null>(null);
 
   useEffect(() => {
     if (!engineAvailable()) return;
@@ -52,8 +52,10 @@ export function AppShell() {
             </div>
           )}
 
-          {section === "storage" && <StoragePage onScanReady={setScanId} />}
-          {section === "cleanup" && <CleanupPage scanId={scanId} />}
+          {section === "storage" && <StoragePage onScanReady={setScan} />}
+          {section === "cleanup" && (
+            <CleanupPage scanId={scan?.scanId ?? null} totalFiles={scan?.fileCount ?? null} />
+          )}
           {section === "startup" && <StartupPage />}
           {section === "memory" && <MemoryPage />}
         </div>

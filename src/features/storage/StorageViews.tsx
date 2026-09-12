@@ -23,11 +23,15 @@ export function StorageViews({
   root,
   onOpen,
   explorer,
+  selectedId = null,
+  onSelect,
 }: {
   scanId: number;
   root: EntryRow;
   onOpen: (row: EntryRow) => void;
   explorer: ReactNode;
+  selectedId?: number | null;
+  onSelect?: (row: EntryRow) => void;
 }) {
   const [view, setView] = useState<View>("map");
   const [rows, setRows] = useState<EntryRow[]>([]);
@@ -95,7 +99,15 @@ export function StorageViews({
       {error && <p className="muted">{error}</p>}
       {loading && <Spinner />}
 
-      {view === "map" && !loading && <Treemap rows={rows} rootId={root.id} onOpen={onOpen} />}
+      {view === "map" && !loading && (
+        <Treemap
+          rows={rows}
+          rootId={root.id}
+          onOpen={onOpen}
+          selectedId={selectedId}
+          onSelect={onSelect}
+        />
+      )}
       {view === "rings" && !loading && (
         <Sunburst rows={rows} rootId={root.id} onOpen={onOpen} />
       )}
