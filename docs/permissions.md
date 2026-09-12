@@ -93,14 +93,24 @@ is no quarantine attribute, so DiskMate opens on a double-click like any other
 application.
 
 **Downloaded** — a `.dmg` from a browser, or a CI artifact zip. The file carries
-`com.apple.quarantine`, and the first launch is refused with "Apple could not
-verify DiskMate is free of malware".
+`com.apple.quarantine`, and the first launch is refused.
+
+The bundle is **ad-hoc signed** (`bundle.macOS.signingIdentity` is `-`), and
+that matters more than it sounds. A bundle with no signature at all is reported
+by Gatekeeper as *"DiskMate is damaged and can't be opened. You should move it
+to the Trash"* — wording about a missing signature that reads as a corrupt
+download, and which **Open Anyway** often cannot clear. An ad-hoc signature
+produces the ordinary *"Apple could not verify..."* prompt instead, which the
+user can approve.
+
+It is not notarization and does not make the app verified; only a Developer ID
+does that. It makes the refusal honest and recoverable.
 
 | macOS | How to open it |
 | --- | --- |
-| 15 Sequoia and later | Double-click and let it be refused. Then System Settings → Privacy & Security → scroll to Security → **Open Anyway**, and authenticate. The older right-click → Open bypass no longer works. |
+| 15 Sequoia and later | Let it be refused, then System Settings → Privacy & Security → scroll to Security → **Open Anyway**, and authenticate. The older right-click → Open bypass no longer works. |
 | 14 Sonoma and earlier | Right-click the app → **Open** → **Open**. |
-| Any version | `xattr -dr com.apple.quarantine /Applications/DiskMate.app` removes the attribute directly, if you prefer the terminal. |
+| Any version | `xattr -dr com.apple.quarantine /Applications/DiskMate.app` removes the attribute directly. |
 
 Either way it is a once-per-copy step. After that DiskMate opens normally.
 

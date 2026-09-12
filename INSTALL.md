@@ -194,42 +194,53 @@ This opens DiskMate with live reload, for development.
 DiskMate is not signed with an Apple Developer ID, because this phase
 deliberately does not require a paid Apple Developer Program membership.
 
-macOS only objects to files that arrived from somewhere else. So:
+macOS only objects to files that arrived from somewhere else, so what you see
+depends on where the app came from.
 
-**You built it yourself** → nothing happens. It opens normally.
+### You built it yourself
 
-**You downloaded it** → the first launch is refused with *"Apple could not
-verify DiskMate is free of malware"*.
+Nothing happens. It opens normally.
 
-Click **Done**, then:
+### You downloaded it
 
-**macOS 15 Sequoia or later**
+The first launch is refused. Which message you get depends on the build:
 
-1. Open **System Settings**.
-2. Go to **Privacy & Security**.
-3. Scroll to the bottom, to **Security**. There is a line saying DiskMate was
-   blocked.
-4. Click **Open Anyway**.
-5. Authenticate with Touch ID or your password.
-6. Confirm **Open Anyway**.
+**"DiskMate is damaged and can't be opened. You should move it to the Trash."**
 
-The older right-click → Open trick was removed in Sequoia; it will not work.
-
-**macOS 14 Sonoma or earlier**
-
-1. Right-click (or Control-click) DiskMate in Applications.
-2. Choose **Open**.
-3. Click **Open** in the dialog.
-
-**Either version, from the terminal**
+The app is not damaged, and you should not move it to the Trash. This is what
+macOS says about a *completely unsigned* app that has been quarantined — the
+wording is about a missing signature, not a corrupt file. Builds before
+September 2026 were unsigned. Clear the quarantine flag:
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/DiskMate.app
 ```
 
+Then open it. If it still refuses, give it an ad-hoc signature yourself:
+
+```sh
+codesign --force --deep --sign - /Applications/DiskMate.app
+```
+
+**"Apple could not verify DiskMate is free of malware."**
+
+This is the expected message for current builds, which are ad-hoc signed. Click
+**Done**, then:
+
+| macOS | What to do |
+| --- | --- |
+| 15 Sequoia and later | System Settings → Privacy & Security → scroll to Security → **Open Anyway** → authenticate. The older right-click → Open bypass no longer works. |
+| 14 Sonoma and earlier | Right-click the app → **Open** → **Open**. |
+| Any version | `xattr -dr com.apple.quarantine /Applications/DiskMate.app` |
+
 Whichever you use, it is once per copy. After that DiskMate opens normally.
 
----
+### What ad-hoc signing does and does not do
+
+An ad-hoc signature is a real, structurally valid signature with no identity
+behind it. It stops macOS calling the app damaged, and it lets **Open Anyway**
+work. It does not make the app "verified", and it is not notarization. Only a
+paid Developer ID does that, which is out of scope for this phase.
 
 ## Letting DiskMate see your whole disk
 
@@ -278,9 +289,11 @@ Rust is installed but not on your PATH in this terminal. Run
 **The build fails on `libsqlite3-sys`**
 Almost always the Command Line Tools. Confirm `xcode-select -p` prints a path.
 
-**"DiskMate is damaged and can't be opened"**
-This is the quarantine attribute, not damage. Run
-`xattr -dr com.apple.quarantine /Applications/DiskMate.app`.
+**"DiskMate is damaged and can't be opened. You should move it to the Trash."**
+It is not damaged. macOS says this about an unsigned app that has been
+quarantined. Run `xattr -dr com.apple.quarantine /Applications/DiskMate.app`,
+and if it still refuses, `codesign --force --deep --sign - /Applications/DiskMate.app`.
+See [Why macOS complains](#why-macos-complains-and-what-to-click).
 
 **The app opens but the volume list is empty**
 Report it — that is a real bug. Include your macOS version and `uname -m`.

@@ -52,6 +52,6 @@ echo "Built $FINAL"
 echo "  size   $(du -sh "$FINAL" | cut -f1)"
 echo "  sha256 $(shasum -a 256 "$FINAL" | cut -d' ' -f1)"
 echo
-echo "Unsigned and un-notarized. Opening it on the machine that built it is"
+echo "Ad-hoc signed, not notarized. Opening it on the machine that built it is"
 echo "normal; anyone who downloads it needs a one-time approval in System"
-echo "Settings > Privacy & Security. See INSTALL.md."
+echo "Settings > Privacy & Security > Open Anyway. See INSTALL.md."
