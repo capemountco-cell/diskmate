@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap");
+
+    .dm {
+      --grey-0:#ffffff; --grey-2:#f4f4f7; --grey-3:#ececf0; --grey-4:#dedee4;
+      --grey-5:#c4c4cd; --grey-6:#9a9aa6; --grey-7:#6e6e7a; --grey-9:#1d1d20;
+      --accent:#2f6fd0; --accent-strong:#245bb0; --accent-soft:#e7effb;
+      --ground:#f0f0f4; --panel:#ffffff;
+      --text-primary:var(--grey-9); --text-secondary:var(--grey-7); --text-tertiary:var(--grey-6);
+      --line:rgba(0,0,0,0.09); --line-strong:rgba(0,0,0,0.16);
+      --ok-soft:#e8f2ec; --ok-ink:#2f6b4d;
+    }
+    body { margin:0; }
+    a { color:var(--accent); text-decoration:none; } a:hover { color:var(--accent-strong); }
+
+    .dm {
+      width:900px; height:760px; background:var(--ground); color:var(--text-primary);
+      font-family:"Inter Tight", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      font-size:13px; line-height:1.45; overflow:hidden; -webkit-font-smoothing:antialiased;
+      display:flex; flex-direction:column; padding:30px 34px 26px; box-sizing:border-box;
+    }
+    .lbl { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-tertiary); }
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size:11px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .row { display:flex; align-items:center; gap:10px; }
+
+    /* The layered idea from the frosted reference, made to carry meaning: each
+       plane sits INSIDE the one above it, because each stage's survivors are a
+       subset of the stage before. The inset is nesting, not scale - the counts
+       carry the magnitude. Real elevation, no blur: a data panel has to stay
+       legible, and frosted glass over a gradient does not. */
+    .plane {
+      position:relative; background:var(--panel); border:1px solid var(--line);
+      border-radius:12px; padding:15px 18px 16px;
+    }
+    .plane--1 { box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+    .plane--2 { box-shadow:0 4px 10px -3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.05); }
+    .plane--3 { box-shadow:0 10px 20px -6px rgba(0,0,0,0.13), 0 1px 2px rgba(0,0,0,0.05); }
+    .plane--4 { box-shadow:0 18px 34px -10px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.06); }
+    .tab {
+      position:absolute; top:-11px; left:18px; padding:2px 10px; border-radius:5px 5px 0 0;
+      background:var(--panel); border:1px solid var(--line); border-bottom:none;
+      font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-tertiary);
+    }
+    .stat { display:flex; align-items:baseline; gap:10px; }
+    .stat > b { font-size:26px; font-weight:600; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; }
+    .readbar { height:5px; border-radius:3px; background:var(--grey-3); overflow:hidden; margin-top:10px; }
+    .readbar > i { display:block; height:100%; background:var(--accent); border-radius:3px; }
+  </style>
+</helmet>
+
+<div class="dm">
+
+  <div style="flex:none;">
+    <div class="row" style="justify-content:space-between; align-items:baseline;">
+      <span style="font-size:16px; font-weight:600; letter-spacing:-0.01em;">How the duplicate search narrows</span>
+      <span class="mono" style="color:var(--text-tertiary);">blake3</span>
+    </div>
+    <div style="color:var(--text-secondary); margin-top:3px;">
+      Each layer sits inside the one above it, because everything it holds came from there.
+    </div>
+  </div>
+
+  <div style="flex:1; min-height:0; display:flex; flex-direction:column; gap:16px; padding-top:26px;">
+
+    <div class="plane plane--1">
+      <span class="tab">Everything on disk</span>
+      <div class="row" style="justify-content:space-between;">
+        <div class="stat"><b>2,032,381</b><span style="color:var(--text-secondary);">files</span></div>
+        <div style="text-align:right;">
+          <div class="num" style="font-weight:500;">0 bytes read</div>
+          <div style="font-size:11px; color:var(--text-tertiary);">grouped by size, from the index</div>
+        </div>
+      </div>
+      <div class="readbar"><i style="width:0%;"></i></div>
+    </div>
+
+    <div class="plane plane--2" style="margin:0 30px;">
+      <span class="tab">Shared a size</span>
+      <div class="row" style="justify-content:space-between;">
+        <div class="stat"><b>411</b><span style="color:var(--text-secondary);">files</span></div>
+        <div style="text-align:right;">
+          <div class="num" style="font-weight:500;">6.6 MB read</div>
+          <div style="font-size:11px; color:var(--text-tertiary);">16 KB from each end</div>
+        </div>
+      </div>
+      <div class="readbar"><i style="width:0.7%; min-width:3px;"></i></div>
+      <div style="font-size:11px; color:var(--text-tertiary); margin-top:8px;">
+        Two million files leave here without being opened. Nothing else about them is read.
+      </div>
+    </div>
+
+    <div class="plane plane--3" style="margin:0 60px;">
+      <span class="tab">Matched that sample</span>
+      <div class="row" style="justify-content:space-between;">
+        <div class="stat"><b>118</b><span style="color:var(--text-secondary);">files</span></div>
+        <div style="text-align:right;">
+          <div class="num" style="font-weight:500;">998 MB read</div>
+          <div style="font-size:11px; color:var(--text-tertiary);">read in full, start to finish</div>
+        </div>
+      </div>
+      <div class="readbar"><i style="width:100%;"></i></div>
+    </div>
+
+    <div class="plane plane--4" style="margin:0 90px; background:var(--ok-soft); border-color:transparent;">
+      <span class="tab" style="background:var(--ok-soft); border-color:transparent; color:var(--ok-ink);">Identical, byte for byte</span>
+      <div class="row" style="justify-content:space-between;">
+        <div class="stat"><b style="color:var(--ok-ink);">97</b><span style="color:var(--ok-ink);">files in 39 sets</span></div>
+        <div style="text-align:right;">
+          <div class="num" style="font-weight:500; color:var(--ok-ink);">2.8 GB held twice</div>
+          <div style="font-size:11px; color:var(--ok-ink); opacity:0.8;">39 keepers, 58 extra copies</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:none; margin-top:20px; display:flex; gap:11px; padding:12px 15px; border-radius:10px; background:var(--panel); border:1px solid var(--line);">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" stroke-width="1.5" style="flex:none; margin-top:1px;"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 5.1v.1"/></svg>
+    <div style="font-size:12px; line-height:1.55;">
+      <b style="font-weight:600;">1.0 GB of 118 GB was opened.</b>
+      <span style="color:var(--text-secondary);">The narrowing is the whole design: a tool that hashed everything would read your entire disk to discover that almost none of it matches.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
