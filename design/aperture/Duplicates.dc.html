@@ -1,0 +1,480 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    /* DiskMate — light. Values lifted from src/styles/tokens.css; the category
+       hues are the solved, colour-vision-checked set and must not be nudged. */
+    :root {
+      --bg: #fbfbfd;
+      --card: #ffffff;
+      --sunken: #f4f4f7;
+      --sidebar: linear-gradient(180deg, #f7f7fa 0%, #f0f0f5 100%);
+      --line: rgba(0, 0, 0, 0.085);
+      --line2: rgba(0, 0, 0, 0.14);
+      --t1: #1d1d20;
+      --t2: #6e6e7a;
+      --t3: #9a9aa6;
+      --accent: #2f6fd0;
+      --accent-strong: #245bb0;
+      --accent-soft: #e7effb;
+      --caution: #a8762a;
+      --shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.055), 0 1px 2px rgba(0, 0, 0, 0.04),
+        0 14px 30px -20px rgba(0, 0, 0, 0.3);
+      --shadow-sm: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.05);
+      --free: #e6e6ec;
+
+      --c-system: #78808f;      --t-system: #f0f1f4;      --e-system: #e5e7ed;
+      --c-applications: #7897da; --t-applications: #eff2fb; --e-applications: #e3e9f8;
+      --c-developer: #009185;   --t-developer: #e8f5f3;   --e-developer: #d8efeb;
+      --c-media: #7d4e88;       --t-media: #f4eef6;       --e-media: #ece0ef;
+      --c-caches: #865901;      --t-caches: #f6f0e6;      --e-caches: #f0e6d4;
+      --c-documents: #72bf8e;   --t-documents: #edf8f2;   --e-documents: #dff2e8;
+      --c-downloads: #bd8846;   --t-downloads: #f8f1e7;   --e-downloads: #f2e7d7;
+      --c-other: #b4b8c1;       --t-other: #f2f3f6;       --e-other: #e9eaef;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--t1);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+        "Helvetica Neue", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-strong); }
+
+    /* Numbers are the voice of this interface, so they get tabular figures and
+       tighter tracking everywhere they appear. */
+    .num { font-variant-numeric: tabular-nums; letter-spacing: -0.022em; }
+    /* Every horizontal group in these screens is a flex row with a gap, so that
+       reordering or deleting an item in the canvas editor cannot collapse the
+       spacing the way whitespace-separated inline elements would. */
+    .row { display: flex; align-items: center; }
+
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+    .cap {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.055em;
+      text-transform: uppercase;
+      color: var(--t3);
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 3px; flex: none; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 20px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      white-space: nowrap;
+    }
+
+    .tile {
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      flex: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: var(--card);
+      box-shadow: var(--shadow-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--t1);
+    }
+
+    .btn--primary {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(47, 111, 208, 0.4);
+      font-weight: 590;
+    }
+
+    svg { display: block; }
+  </style>
+</helmet>
+<div style="width:1440px;height:900px;display:flex;overflow:hidden;background:var(--bg)">
+
+  <!-- ================================================== sidebar -->
+  <aside style="width:248px;flex:none;display:flex;flex-direction:column;gap:20px;padding:13px 12px 12px;background:var(--sidebar);border-right:1px solid var(--line)">
+
+    <div class="row" style="gap:8px;padding:1px 6px 0">
+      <span style="width:12px;height:12px;border-radius:999px;background:#ff5f57"></span>
+      <span style="width:12px;height:12px;border-radius:999px;background:#febc2e"></span>
+      <span style="width:12px;height:12px;border-radius:999px;background:#28c840"></span>
+    </div>
+
+    <div class="row" style="gap:9px;padding:0 6px">
+      <span class="tile" style="width:26px;height:26px;background:linear-gradient(158deg,#4f8ae0,#2f6fd0);box-shadow:0 1px 2px rgba(47,111,208,.35)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8.2"></circle><circle cx="12" cy="12" r="2.2"></circle>
+        </svg>
+      </span>
+      <span style="font-size:15px;font-weight:640;letter-spacing:-.018em">DiskMate</span>
+    </div>
+
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <div class="row" style="gap:9px;height:32px;padding:0 8px;border-radius:8px;color:var(--t2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"></circle><circle cx="12" cy="12" r="2.4"></circle></svg>
+        <span style="font-size:13.5px;font-weight:500;letter-spacing:-.01em;color:var(--t1)">Storage</span>
+      </div>
+      <div class="row" style="gap:9px;height:32px;padding:0 8px;border-radius:8px;background:var(--accent-soft);color:var(--accent-strong)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7.5h14"></path><path d="M9.5 7.5V5.2h5v2.3"></path><path d="M7 7.5 8 19h8l1-11.5"></path></svg>
+        <span style="font-size:13.5px;font-weight:590;letter-spacing:-.01em">Cleanup</span>
+        <span class="num" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent-strong)">11.8 GB</span>
+      </div>
+      <div class="row" style="gap:9px;height:32px;padding:0 8px;border-radius:8px;color:var(--t2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 3.2 6.5 13.4h4.7l-1 7.4 7-10.4h-4.7z"></path></svg>
+        <span style="font-size:13.5px;font-weight:500;letter-spacing:-.01em;color:var(--t1)">Startup</span>
+        <span class="num" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--t3)">24</span>
+      </div>
+      <div class="row" style="gap:9px;height:32px;padding:0 8px;border-radius:8px;color:var(--t2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7.2" y="7.2" width="9.6" height="9.6" rx="2.2"></rect><path d="M10 4.2v3M14 4.2v3M10 16.8v3M14 16.8v3M4.2 10h3M4.2 14h3M16.8 10h3M16.8 14h3"></path></svg>
+        <span style="font-size:13.5px;font-weight:500;letter-spacing:-.01em;color:var(--t1)">Memory</span>
+        <span class="num" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--t3)">61%</span>
+      </div>
+    </nav>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="cap" style="padding:0 8px">This Mac</div>
+      <div style="padding:11px 12px 12px;border-radius:12px;background:var(--card);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:9px">
+        <div class="row" style="gap:8px">
+          <span class="tile" style="width:22px;height:22px;background:var(--sunken)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="1.8"><rect x="3.5" y="6" width="17" height="12" rx="2.4"></rect><circle cx="16.6" cy="12" r="1.5" fill="var(--t2)" stroke="none"></circle></svg>
+          </span>
+          <span style="font-size:13px;font-weight:590;letter-spacing:-.012em">Macintosh HD</span>
+        </div>
+        <div class="row" style="gap:2px;height:8px;border-radius:999px;overflow:hidden;background:var(--free)">
+          <span style="flex:42.6;height:100%;background:var(--c-system)"></span>
+          <span style="flex:38.2;height:100%;background:var(--c-applications)"></span>
+          <span style="flex:31.4;height:100%;background:var(--c-developer)"></span>
+          <span style="flex:28.9;height:100%;background:var(--c-media)"></span>
+          <span style="flex:21.7;height:100%;background:var(--c-caches)"></span>
+          <span style="flex:16.3;height:100%;background:var(--c-documents)"></span>
+          <span style="flex:12.8;height:100%;background:var(--c-downloads)"></span>
+          <span style="flex:28.1;height:100%;background:var(--c-other)"></span>
+          <span style="flex:25.6;height:100%;background:transparent"></span>
+        </div>
+        <div class="row num" style="justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--t2)">
+          <span>220 GB used</span><span style="color:var(--t3)">25.6 GB free</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div class="cap" style="padding:0 8px 4px">Recent</div>
+      <div class="row" style="gap:9px;height:28px;padding:0 8px;border-radius:7px">
+        <span style="width:6px;height:6px;border-radius:999px;background:var(--c-other);flex:none"></span>
+        <span style="font-size:13px;color:var(--t1)">Home</span>
+        <span class="num" style="margin-left:auto;font-size:11.5px;color:var(--t3)">118 GB</span>
+      </div>
+      <div class="row" style="gap:9px;height:28px;padding:0 8px;border-radius:7px">
+        <span style="width:6px;height:6px;border-radius:999px;background:var(--c-other);flex:none"></span>
+        <span style="font-size:13px;color:var(--t1)">Xcode</span>
+        <span class="num" style="margin-left:auto;font-size:11.5px;color:var(--t3)">34.1 GB</span>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:auto;gap:7px;padding:0 8px 2px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.4"></rect><path d="M8.4 10.5V8a3.6 3.6 0 0 1 7.2 0v2.5"></path></svg>
+      <span style="font-size:11.5px;font-weight:500;color:var(--t3);letter-spacing:-.005em">Nothing leaves this Mac</span>
+    </div>
+  </aside>
+
+  <!-- ================================================== main -->
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+    <div class="row" style="height:46px;flex:none;gap:14px;padding:0 22px 0 20px">
+      <div class="row" style="gap:2px;color:var(--t3)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"></path></svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="opacity:.45"><path d="M10 6l6 6-6 6"></path></svg>
+      </div>
+      <div class="row" style="gap:6px;font-size:13px;color:var(--t2)"><span style="color:var(--t1);font-weight:560">Duplicates</span><span style="opacity:.5">›</span><span>Macintosh HD</span></div>
+      <div style="margin-left:auto"></div>
+      <div class="row" style="gap:6px;width:186px;height:26px;padding:0 9px;border-radius:8px;background:var(--sunken)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.4"></circle><path d="M16 16l4 4"></path></svg>
+        <span style="font-size:12.5px;color:var(--t3)">Filter</span>
+      </div>
+    </div>
+
+    <div style="flex:none;padding:6px 26px 16px 30px;display:flex;flex-direction:column;gap:14px">
+      <div class="row" style="gap:26px">
+        <div class="row" style="gap:8px;align-items:baseline">
+          <span class="num" style="font-size:46px;font-weight:630;letter-spacing:-.033em;line-height:1">4.31</span>
+          <span style="font-size:19px;font-weight:600;color:var(--t2);letter-spacing:-.02em">GB</span>
+          <span style="font-size:14px;font-weight:500;color:var(--t3);margin-left:2px">in 39 identical sets</span>
+        </div>
+        <div style="width:1px;height:38px;background:var(--line)"></div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="num" style="font-size:20px;font-weight:620;letter-spacing:-.025em">571 MB</div>
+          <div style="font-size:12px;font-weight:500;color:var(--t3)">Actually read</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="num" style="font-size:20px;font-weight:620;letter-spacing:-.025em">0.26%</div>
+          <div style="font-size:12px;font-weight:500;color:var(--t3)">Of the scan</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="num" style="font-size:20px;font-weight:620;letter-spacing:-.025em">00:09</div>
+          <div style="font-size:12px;font-weight:500;color:var(--t3)">Took</div>
+        </div>
+        <div class="row" style="margin-left:auto;gap:8px">
+          <span class="btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V9h-4.5"></path></svg>
+            Search again
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-height:0;display:flex;gap:18px;padding:0 22px 22px 30px">
+
+      <div class="card" style="width:440px;flex:none;padding:18px;display:flex;flex-direction:column;gap:16px">
+        <span class="cap">How DiskMate got to 39</span>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-around;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="row" style="gap:10px;align-items:baseline">
+              <span class="num" style="font-size:22px;font-weight:640;letter-spacing:-.028em;width:120px">2,038,441</span>
+              <span style="font-size:12.5px;font-weight:530;color:var(--t2)">files on disk</span>
+              <span style="margin-left:auto;font-size:11.5px;color:var(--t3)">every file indexed</span>
+            </div>
+            <div style="height:30px;border-radius:9px;background:var(--sunken);overflow:hidden">
+              <div style="width:100%;height:100%;border-radius:9px;background:var(--c-other)"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="row" style="gap:10px;align-items:baseline">
+              <span class="num" style="font-size:22px;font-weight:640;letter-spacing:-.028em;width:120px">405</span>
+              <span style="font-size:12.5px;font-weight:530;color:var(--t2)">shared a size</span>
+              <span style="margin-left:auto;font-size:11.5px;color:var(--t3)">index only, nothing opened</span>
+            </div>
+            <div style="height:30px;border-radius:9px;background:var(--sunken);overflow:hidden">
+              <div style="width:58%;height:100%;border-radius:9px;background:var(--c-applications)"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="row" style="gap:10px;align-items:baseline">
+              <span class="num" style="font-size:22px;font-weight:640;letter-spacing:-.028em;width:120px">154</span>
+              <span style="font-size:12.5px;font-weight:530;color:var(--t2)">matched a sample</span>
+              <span style="margin-left:auto;font-size:11.5px;color:var(--t3)">16 KB from each end</span>
+            </div>
+            <div style="height:30px;border-radius:9px;background:var(--sunken);overflow:hidden">
+              <div style="width:32%;height:100%;border-radius:9px;background:var(--c-developer)"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="row" style="gap:10px;align-items:baseline">
+              <span class="num" style="font-size:22px;font-weight:640;letter-spacing:-.028em;width:120px">39</span>
+              <span style="font-size:12.5px;font-weight:530;color:var(--t2)">identical sets</span>
+              <span style="margin-left:auto;font-size:11.5px;color:var(--t3)">read in full</span>
+            </div>
+            <div style="height:30px;border-radius:9px;background:var(--sunken);overflow:hidden">
+              <div style="width:14%;height:100%;border-radius:9px;background:var(--accent)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px">
+          <div class="row" style="gap:8px">
+            <span class="cap">Bytes opened to prove it</span>
+            <span class="num" style="margin-left:auto;font-size:12px;font-weight:620;color:var(--t2)">571 MB of 220 GB</span>
+          </div>
+          <div style="height:8px;border-radius:999px;background:var(--sunken);overflow:hidden">
+            <div style="width:2.4%;height:100%;border-radius:999px;background:var(--accent)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+        <div class="row" style="padding:16px 18px 12px;gap:10px">
+          <span class="cap">Sets</span>
+          <span class="num" style="font-size:11px;color:var(--t3)">39</span>
+          <div class="row" style="margin-left:auto;gap:2px;padding:2px;border-radius:8px;background:var(--sunken)">
+            <span class="row" style="height:22px;padding:0 9px;border-radius:6px;background:var(--card);box-shadow:var(--shadow-sm);font-size:11.5px;font-weight:580">Largest</span>
+            <span class="row" style="height:22px;padding:0 9px;border-radius:6px;font-size:11.5px;color:var(--t2)">Most copies</span>
+          </div>
+        </div>
+        <div style="padding:0 18px 18px;display:flex;flex-direction:column;gap:9px;overflow:hidden">
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:8"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:7"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">IMG_4821.MOV</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">4 copies · 412 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">1.21 GB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-developer),var(--e-developer));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-developer),var(--e-developer));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-developer),var(--e-developer));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:8"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">node-v22.4.0.pkg</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">3 copies · 184 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">368 MB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:8"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:7"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:6"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:5"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">Sample Library.wav</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">6 copies · 58 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">290 MB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-documents),var(--e-documents));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-documents),var(--e-documents));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">Annual Review 2025.pdf</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">2 copies · 128 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">128 MB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-applications),var(--e-applications));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-applications),var(--e-applications));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-applications),var(--e-applications));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:8"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-applications),var(--e-applications));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:7"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-applications),var(--e-applications));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:6"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">Xcode_16.2.xip</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">5 copies · 22 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">88 MB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-other),var(--e-other));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-other),var(--e-other));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-other),var(--e-other));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:8"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">backup-2025-11.tar.gz</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">3 copies · 41 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">82 MB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-documents),var(--e-documents));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-documents),var(--e-documents));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">Keynote deck (final).key</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">2 copies · 37 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">37 MB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:8"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-media),var(--e-media));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:7"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">podcast-ep-114.aiff</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">4 copies · 9 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">27 MB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-documents),var(--e-documents));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-documents),var(--e-documents));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">Contract signed.pdf</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">2 copies · 24 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">24 MB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
+            <div class="row" style="flex:none"><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-other),var(--e-other));box-shadow:inset 0 0 0 1px var(--line);margin-left:0px;z-index:10"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-other),var(--e-other));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:9"></span><span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(158deg,var(--t-other),var(--e-other));box-shadow:inset 0 0 0 1px var(--line);margin-left:-8px;z-index:8"></span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">sf-pro-display.zip</span>
+              <span class="mono" style="font-size:10.5px;color:var(--t3)">3 copies · 11 MB each</span>
+            </div>
+            <div class="row" style="margin-left:auto;gap:12px">
+              <div style="text-align:right;display:flex;flex-direction:column;gap:2px">
+                <span class="num" style="font-size:13.5px;font-weight:630">22 MB</span>
+                <span style="font-size:10.5px;color:var(--t3)">reclaimable</span>
+              </div>
+              <span class="tile btn" style="width:30px;height:28px;padding:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+
+        </div>
+        <div class="row" style="margin-top:auto;gap:10px;padding:14px 18px;border-top:1px solid var(--line)">
+          <span style="font-size:12px;color:var(--t3)">Keeps the oldest copy in every set</span>
+          <span class="btn btn--primary" style="margin-left:auto">Stage 39 sets</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

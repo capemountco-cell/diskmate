@@ -1,0 +1,500 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    /* DiskMate — light. Values lifted from src/styles/tokens.css; the category
+       hues are the solved, colour-vision-checked set and must not be nudged. */
+    :root {
+      --bg: #fbfbfd;
+      --card: #ffffff;
+      --sunken: #f4f4f7;
+      --sidebar: linear-gradient(180deg, #f7f7fa 0%, #f0f0f5 100%);
+      --line: rgba(0, 0, 0, 0.085);
+      --line2: rgba(0, 0, 0, 0.14);
+      --t1: #1d1d20;
+      --t2: #6e6e7a;
+      --t3: #9a9aa6;
+      --accent: #2f6fd0;
+      --accent-strong: #245bb0;
+      --accent-soft: #e7effb;
+      --caution: #a8762a;
+      --shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.055), 0 1px 2px rgba(0, 0, 0, 0.04),
+        0 14px 30px -20px rgba(0, 0, 0, 0.3);
+      --shadow-sm: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.05);
+      --free: #e6e6ec;
+
+      --c-system: #78808f;      --t-system: #f0f1f4;      --e-system: #e5e7ed;
+      --c-applications: #7897da; --t-applications: #eff2fb; --e-applications: #e3e9f8;
+      --c-developer: #009185;   --t-developer: #e8f5f3;   --e-developer: #d8efeb;
+      --c-media: #7d4e88;       --t-media: #f4eef6;       --e-media: #ece0ef;
+      --c-caches: #865901;      --t-caches: #f6f0e6;      --e-caches: #f0e6d4;
+      --c-documents: #72bf8e;   --t-documents: #edf8f2;   --e-documents: #dff2e8;
+      --c-downloads: #bd8846;   --t-downloads: #f8f1e7;   --e-downloads: #f2e7d7;
+      --c-other: #b4b8c1;       --t-other: #f2f3f6;       --e-other: #e9eaef;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--t1);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+        "Helvetica Neue", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-strong); }
+
+    /* Numbers are the voice of this interface, so they get tabular figures and
+       tighter tracking everywhere they appear. */
+    .num { font-variant-numeric: tabular-nums; letter-spacing: -0.022em; }
+    /* Every horizontal group in these screens is a flex row with a gap, so that
+       reordering or deleting an item in the canvas editor cannot collapse the
+       spacing the way whitespace-separated inline elements would. */
+    .row { display: flex; align-items: center; }
+
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+    .cap {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.055em;
+      text-transform: uppercase;
+      color: var(--t3);
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 3px; flex: none; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 20px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      white-space: nowrap;
+    }
+
+    .tile {
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      flex: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: var(--card);
+      box-shadow: var(--shadow-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--t1);
+    }
+
+    .btn--primary {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(47, 111, 208, 0.4);
+      font-weight: 590;
+    }
+
+    svg { display: block; }
+  </style>
+</helmet>
+<div style="width:1440px;height:900px;display:flex;overflow:hidden;background:var(--bg)">
+
+  <!-- ================================================== sidebar -->
+  <aside style="width:248px;flex:none;display:flex;flex-direction:column;gap:20px;padding:13px 12px 12px;background:var(--sidebar);border-right:1px solid var(--line)">
+
+    <div class="row" style="gap:8px;padding:1px 6px 0">
+      <span style="width:12px;height:12px;border-radius:999px;background:#ff5f57"></span>
+      <span style="width:12px;height:12px;border-radius:999px;background:#febc2e"></span>
+      <span style="width:12px;height:12px;border-radius:999px;background:#28c840"></span>
+    </div>
+
+    <div class="row" style="gap:9px;padding:0 6px">
+      <span class="tile" style="width:26px;height:26px;background:linear-gradient(158deg,#4f8ae0,#2f6fd0);box-shadow:0 1px 2px rgba(47,111,208,.35)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8.2"></circle><circle cx="12" cy="12" r="2.2"></circle>
+        </svg>
+      </span>
+      <span style="font-size:15px;font-weight:640;letter-spacing:-.018em">DiskMate</span>
+    </div>
+
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <div class="row" style="gap:9px;height:32px;padding:0 8px;border-radius:8px;background:var(--accent-soft);color:var(--accent-strong)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"></circle><circle cx="12" cy="12" r="2.4"></circle></svg>
+        <span style="font-size:13.5px;font-weight:590;letter-spacing:-.01em">Storage</span>
+      </div>
+      <div class="row" style="gap:9px;height:32px;padding:0 8px;border-radius:8px;color:var(--t2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7.5h14"></path><path d="M9.5 7.5V5.2h5v2.3"></path><path d="M7 7.5 8 19h8l1-11.5"></path></svg>
+        <span style="font-size:13.5px;font-weight:500;letter-spacing:-.01em;color:var(--t1)">Cleanup</span>
+        <span class="num" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--t3)">11.8 GB</span>
+      </div>
+      <div class="row" style="gap:9px;height:32px;padding:0 8px;border-radius:8px;color:var(--t2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 3.2 6.5 13.4h4.7l-1 7.4 7-10.4h-4.7z"></path></svg>
+        <span style="font-size:13.5px;font-weight:500;letter-spacing:-.01em;color:var(--t1)">Startup</span>
+        <span class="num" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--t3)">24</span>
+      </div>
+      <div class="row" style="gap:9px;height:32px;padding:0 8px;border-radius:8px;color:var(--t2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7.2" y="7.2" width="9.6" height="9.6" rx="2.2"></rect><path d="M10 4.2v3M14 4.2v3M10 16.8v3M14 16.8v3M4.2 10h3M4.2 14h3M16.8 10h3M16.8 14h3"></path></svg>
+        <span style="font-size:13.5px;font-weight:500;letter-spacing:-.01em;color:var(--t1)">Memory</span>
+        <span class="num" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--t3)">61%</span>
+      </div>
+    </nav>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="cap" style="padding:0 8px">This Mac</div>
+      <div style="padding:11px 12px 12px;border-radius:12px;background:var(--card);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:9px">
+        <div class="row" style="gap:8px">
+          <span class="tile" style="width:22px;height:22px;background:var(--sunken)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="1.8"><rect x="3.5" y="6" width="17" height="12" rx="2.4"></rect><circle cx="16.6" cy="12" r="1.5" fill="var(--t2)" stroke="none"></circle></svg>
+          </span>
+          <span style="font-size:13px;font-weight:590;letter-spacing:-.012em">Macintosh HD</span>
+        </div>
+        <div class="row" style="gap:2px;height:8px;border-radius:999px;overflow:hidden;background:var(--free)">
+          <span style="flex:42.6;height:100%;background:var(--c-system)"></span>
+          <span style="flex:38.2;height:100%;background:var(--c-applications)"></span>
+          <span style="flex:31.4;height:100%;background:var(--c-developer)"></span>
+          <span style="flex:28.9;height:100%;background:var(--c-media)"></span>
+          <span style="flex:21.7;height:100%;background:var(--c-caches)"></span>
+          <span style="flex:16.3;height:100%;background:var(--c-documents)"></span>
+          <span style="flex:12.8;height:100%;background:var(--c-downloads)"></span>
+          <span style="flex:28.1;height:100%;background:var(--c-other)"></span>
+          <span style="flex:25.6;height:100%;background:transparent"></span>
+        </div>
+        <div class="row num" style="justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--t2)">
+          <span>220 GB used</span><span style="color:var(--t3)">25.6 GB free</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div class="cap" style="padding:0 8px 4px">Recent</div>
+      <div class="row" style="gap:9px;height:28px;padding:0 8px;border-radius:7px">
+        <span style="width:6px;height:6px;border-radius:999px;background:var(--c-other);flex:none"></span>
+        <span style="font-size:13px;color:var(--t1)">Home</span>
+        <span class="num" style="margin-left:auto;font-size:11.5px;color:var(--t3)">118 GB</span>
+      </div>
+      <div class="row" style="gap:9px;height:28px;padding:0 8px;border-radius:7px">
+        <span style="width:6px;height:6px;border-radius:999px;background:var(--c-other);flex:none"></span>
+        <span style="font-size:13px;color:var(--t1)">Xcode</span>
+        <span class="num" style="margin-left:auto;font-size:11.5px;color:var(--t3)">34.1 GB</span>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:auto;gap:7px;padding:0 8px 2px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.4"></rect><path d="M8.4 10.5V8a3.6 3.6 0 0 1 7.2 0v2.5"></path></svg>
+      <span style="font-size:11.5px;font-weight:500;color:var(--t3);letter-spacing:-.005em">Nothing leaves this Mac</span>
+    </div>
+  </aside>
+
+  <!-- ================================================== main -->
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+    <!-- toolbar -->
+    <div class="row" style="height:46px;flex:none;gap:14px;padding:0 22px 0 20px">
+      <div class="row" style="gap:2px;color:var(--t3)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"></path></svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="opacity:.45"><path d="M10 6l6 6-6 6"></path></svg>
+      </div>
+      <div class="row" style="gap:6px;font-size:13px;color:var(--t2)">
+        <span style="color:var(--t1);font-weight:560">Macintosh HD</span>
+        <span style="opacity:.5">›</span><span>Users</span>
+        <span style="opacity:.5">›</span><span>mohit</span>
+      </div>
+
+      <div style="margin-left:auto"></div>
+
+      <div class="row" style="gap:2px;padding:2px;border-radius:9px;background:var(--sunken)">
+        <span class="row" style="gap:5px;height:24px;padding:0 10px;border-radius:7px;background:var(--card);box-shadow:var(--shadow-sm);font-size:12.5px;font-weight:590">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3.5" y="3.5" width="8" height="12" rx="1.6"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"></rect><rect x="13.5" y="12.5" width="7" height="8" rx="1.6"></rect><rect x="3.5" y="17.5" width="8" height="3" rx="1.2"></rect></svg>
+          Map
+        </span>
+        <span class="row" style="gap:5px;height:24px;padding:0 10px;border-radius:7px;font-size:12.5px;color:var(--t2)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="3.6"></circle></svg>
+          Rings
+        </span>
+        <span class="row" style="gap:5px;height:24px;padding:0 10px;border-radius:7px;font-size:12.5px;color:var(--t2)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+          List
+        </span>
+      </div>
+
+      <div class="row" style="gap:6px;width:186px;height:26px;padding:0 9px;border-radius:8px;background:var(--sunken)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.4"></circle><path d="M16 16l4 4"></path></svg>
+        <span style="font-size:12.5px;color:var(--t3)">Filter</span>
+      </div>
+    </div>
+
+    <!-- headline -->
+    <div style="flex:none;padding:6px 26px 16px 30px;display:flex;flex-direction:column;gap:14px">
+
+      <div class="row" style="gap:26px">
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <div class="row" style="gap:8px;align-items:baseline">
+            <span class="num" style="font-size:46px;font-weight:630;letter-spacing:-.033em;line-height:1">220</span>
+            <span style="font-size:19px;font-weight:600;color:var(--t2);letter-spacing:-.02em">GB</span>
+            <span style="font-size:14px;font-weight:500;color:var(--t3);margin-left:2px">used</span>
+          </div>
+        </div>
+
+        <div style="width:1px;height:38px;background:var(--line)"></div>
+
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="num" style="font-size:20px;font-weight:620;letter-spacing:-.025em">25.6 GB</div>
+          <div style="font-size:12px;font-weight:500;color:var(--t3)">Free</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="num" style="font-size:20px;font-weight:620;letter-spacing:-.025em">2,038,441</div>
+          <div style="font-size:12px;font-weight:500;color:var(--t3)">Files</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="num" style="font-size:20px;font-weight:620;letter-spacing:-.025em">238,276</div>
+          <div style="font-size:12px;font-weight:500;color:var(--t3)">Folders</div>
+        </div>
+
+        <div class="row" style="margin-left:auto;gap:8px">
+          <span class="row" style="gap:6px;font-size:12px;color:var(--t3)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.4"></circle><path d="M12 7.6V12l3 1.8"></path></svg>
+            4 min ago
+          </span>
+          <span class="btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V9h-4.5"></path></svg>
+            Rescan
+          </span>
+        </div>
+      </div>
+
+      <!-- capacity: the legend and the meter are the same object -->
+      <div class="row" style="gap:2px;height:16px;border-radius:999px;overflow:hidden;background:var(--free);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.05)">
+        <span style="flex:42.6;height:100%;background:var(--c-system)"></span>
+        <span style="flex:38.2;height:100%;background:var(--c-applications)"></span>
+        <span style="flex:31.4;height:100%;background:var(--c-developer)"></span>
+        <span style="flex:28.9;height:100%;background:var(--c-media)"></span>
+        <span style="flex:21.7;height:100%;background:var(--c-caches)"></span>
+        <span style="flex:16.3;height:100%;background:var(--c-documents)"></span>
+        <span style="flex:12.8;height:100%;background:var(--c-downloads)"></span>
+        <span style="flex:28.1;height:100%;background:var(--c-other)"></span>
+        <span style="flex:25.6;height:100%;background:transparent"></span>
+      </div>
+
+      <div class="row" style="gap:18px;flex-wrap:wrap">
+        <span class="row" style="gap:6px"><span class="dot" style="background:var(--c-system)"></span><span style="font-size:12px;font-weight:500">System</span><span class="num" style="font-size:12px;color:var(--t3)">42.6</span></span>
+        <span class="row" style="gap:6px"><span class="dot" style="background:var(--c-applications)"></span><span style="font-size:12px;font-weight:500">Applications</span><span class="num" style="font-size:12px;color:var(--t3)">38.2</span></span>
+        <span class="row" style="gap:6px"><span class="dot" style="background:var(--c-developer)"></span><span style="font-size:12px;font-weight:500">Developer</span><span class="num" style="font-size:12px;color:var(--t3)">31.4</span></span>
+        <span class="row" style="gap:6px"><span class="dot" style="background:var(--c-media)"></span><span style="font-size:12px;font-weight:500">Media</span><span class="num" style="font-size:12px;color:var(--t3)">28.9</span></span>
+        <span class="row" style="gap:6px"><span class="dot" style="background:var(--c-caches)"></span><span style="font-size:12px;font-weight:500">Caches</span><span class="num" style="font-size:12px;color:var(--t3)">21.7</span></span>
+        <span class="row" style="gap:6px"><span class="dot" style="background:var(--c-documents)"></span><span style="font-size:12px;font-weight:500">Documents</span><span class="num" style="font-size:12px;color:var(--t3)">16.3</span></span>
+        <span class="row" style="gap:6px"><span class="dot" style="background:var(--c-downloads)"></span><span style="font-size:12px;font-weight:500">Downloads</span><span class="num" style="font-size:12px;color:var(--t3)">12.8</span></span>
+        <span class="row" style="gap:6px"><span class="dot" style="background:var(--free);box-shadow:inset 0 0 0 .5px var(--line2)"></span><span style="font-size:12px;font-weight:500;color:var(--t2)">Free</span><span class="num" style="font-size:12px;color:var(--t3)">25.6</span></span>
+      </div>
+    </div>
+
+    <!-- ============================================ map + inspector -->
+    <div style="flex:1;min-height:0;display:flex;gap:18px;padding:0 22px 22px 30px">
+
+      <div class="card" style="flex:1;min-width:0;padding:10px;display:flex;gap:5px">
+
+        <div style="flex:86.4 1 0;display:flex;flex-direction:column;gap:5px;min-width:0">
+          <div style="flex:42.6 1 0;min-height:0;border-radius:12px;padding:13px 14px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(158deg,var(--t-system),var(--e-system))">
+            <div class="row" style="gap:7px"><span class="dot" style="background:var(--c-system)"></span><span style="font-size:13.5px;font-weight:590;letter-spacing:-.013em">System</span></div>
+            <div class="num" style="font-size:24px;font-weight:630">42.6<span style="font-size:13px;font-weight:600;color:var(--t2);margin-left:3px;letter-spacing:0">GB</span></div>
+          </div>
+          <div style="flex:38.2 1 0;min-height:0;border-radius:12px;padding:13px 14px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(158deg,var(--t-applications),var(--e-applications))">
+            <div class="row" style="gap:7px"><span class="dot" style="background:var(--c-applications)"></span><span style="font-size:13.5px;font-weight:590;letter-spacing:-.013em">Applications</span></div>
+            <div class="num" style="font-size:24px;font-weight:630">38.2<span style="font-size:13px;font-weight:600;color:var(--t2);margin-left:3px;letter-spacing:0">GB</span></div>
+          </div>
+          <div class="row" style="flex:5.6 1 0;min-height:0;border-radius:12px;padding:0 14px;gap:7px;overflow:hidden;background:linear-gradient(158deg,var(--t-other),var(--e-other))">
+            <span class="dot" style="background:var(--c-other)"></span>
+            <span style="font-size:12.5px;font-weight:560">Mail</span>
+            <span class="num" style="margin-left:auto;font-size:12.5px;font-weight:600;color:var(--t2)">5.6 GB</span>
+          </div>
+        </div>
+
+        <div style="flex:72 1 0;display:flex;flex-direction:column;gap:5px;min-width:0">
+          <div style="flex:31.4 1 0;min-height:0;border-radius:12px;padding:13px 14px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(158deg,var(--t-developer),var(--e-developer))">
+            <div class="row" style="gap:7px"><span class="dot" style="background:var(--c-developer)"></span><span style="font-size:13.5px;font-weight:590;letter-spacing:-.013em">Developer</span></div>
+            <div class="num" style="font-size:22px;font-weight:630">31.4<span style="font-size:12.5px;font-weight:600;color:var(--t2);margin-left:3px;letter-spacing:0">GB</span></div>
+          </div>
+          <div style="flex:28.9 1 0;min-height:0;border-radius:12px;padding:13px 14px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(158deg,var(--t-media),var(--e-media))">
+            <div class="row" style="gap:7px"><span class="dot" style="background:var(--c-media)"></span><span style="font-size:13.5px;font-weight:590;letter-spacing:-.013em">Media</span></div>
+            <div class="num" style="font-size:22px;font-weight:630">28.9<span style="font-size:12.5px;font-weight:600;color:var(--t2);margin-left:3px;letter-spacing:0">GB</span></div>
+          </div>
+          <div style="flex:11.7 1 0;min-height:0;border-radius:12px;padding:11px 14px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(158deg,var(--t-documents),var(--e-documents))">
+            <div class="row" style="gap:7px"><span class="dot" style="background:var(--c-documents)"></span><span style="font-size:12.5px;font-weight:580;letter-spacing:-.012em">Documents</span></div>
+            <div class="num" style="font-size:16px;font-weight:620">11.7<span style="font-size:11px;font-weight:600;color:var(--t2);margin-left:3px;letter-spacing:0">GB</span></div>
+          </div>
+        </div>
+
+        <div style="flex:61.6 1 0;display:flex;flex-direction:column;gap:5px;min-width:0">
+          <div style="flex:21.7 1 0;min-height:0;border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(158deg,var(--t-caches),var(--e-caches));box-shadow:inset 0 0 0 2px var(--accent)">
+            <div class="row" style="gap:7px"><span class="dot" style="background:var(--c-caches)"></span><span style="font-size:13px;font-weight:590;letter-spacing:-.013em">Caches</span></div>
+            <div class="num" style="font-size:20px;font-weight:630">21.7<span style="font-size:12px;font-weight:600;color:var(--t2);margin-left:3px;letter-spacing:0">GB</span></div>
+          </div>
+          <div style="flex:12.8 1 0;min-height:0;border-radius:12px;padding:11px 13px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(158deg,var(--t-downloads),var(--e-downloads))">
+            <div class="row" style="gap:7px"><span class="dot" style="background:var(--c-downloads)"></span><span style="font-size:12.5px;font-weight:580;letter-spacing:-.012em">Downloads</span></div>
+            <div class="num" style="font-size:16px;font-weight:620">12.8<span style="font-size:11px;font-weight:600;color:var(--t2);margin-left:3px;letter-spacing:0">GB</span></div>
+          </div>
+          <div style="flex:9.6 1 0;min-height:0;border-radius:12px;padding:10px 13px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(158deg,var(--t-developer),var(--e-developer))">
+            <div class="row" style="gap:6px"><span class="dot" style="background:var(--c-developer);width:7px;height:7px"></span><span style="font-size:12px;font-weight:560;letter-spacing:-.01em">Simulators</span></div>
+            <div class="num" style="font-size:14.5px;font-weight:620">9.6<span style="font-size:10.5px;font-weight:600;color:var(--t2);margin-left:2px;letter-spacing:0">GB</span></div>
+          </div>
+          <div style="flex:8.4 1 0;min-height:0;border-radius:12px;padding:10px 13px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(158deg,var(--t-media),var(--e-media))">
+            <div class="row" style="gap:6px"><span class="dot" style="background:var(--c-media);width:7px;height:7px"></span><span style="font-size:12px;font-weight:560;letter-spacing:-.01em">Photos</span></div>
+            <div class="num" style="font-size:14.5px;font-weight:620">8.4<span style="font-size:10.5px;font-weight:600;color:var(--t2);margin-left:2px;letter-spacing:0">GB</span></div>
+          </div>
+          <div class="row" style="flex:6.3 1 0;min-height:0;border-radius:12px;padding:0 13px;gap:6px;overflow:hidden;background:linear-gradient(158deg,var(--t-developer),var(--e-developer))">
+            <span class="dot" style="background:var(--c-developer);width:7px;height:7px"></span>
+            <span style="font-size:11.5px;font-weight:560">node_modules</span>
+            <span class="num" style="margin-left:auto;font-size:11.5px;font-weight:600;color:var(--t2)">6.3</span>
+          </div>
+          <div class="row" style="flex:2.8 1 0;min-height:0;border-radius:10px;padding:0 13px;gap:6px;overflow:hidden;background:linear-gradient(158deg,var(--t-other),var(--e-other))">
+            <span class="dot" style="background:var(--c-other);width:6px;height:6px"></span>
+            <span style="font-size:11px;font-weight:540;color:var(--t2)">DerivedData</span>
+            <span class="num" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--t3)">2.8</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------------------------------------- inspector -->
+      <aside class="card" style="width:338px;flex:none;display:flex;flex-direction:column;overflow:hidden">
+
+        <div style="padding:18px 18px 16px;display:flex;flex-direction:column;gap:14px;border-bottom:1px solid var(--line)">
+          <div class="row" style="gap:11px">
+            <span class="tile" style="width:42px;height:42px;border-radius:13px;background:linear-gradient(158deg,var(--t-caches),var(--e-caches));box-shadow:inset 0 0 0 1px rgba(134,89,1,.18)">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--c-caches)" stroke-width="1.8" stroke-linejoin="round"><path d="M3.6 7.4a2 2 0 0 1 2-2h3.2l2 2.2h7.6a2 2 0 0 1 2 2v8.6a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"></path></svg>
+            </span>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <div style="font-size:17px;font-weight:630;letter-spacing:-.022em">Caches</div>
+              <div class="mono" style="font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">~/Library/Caches</div>
+            </div>
+          </div>
+
+          <div class="row" style="gap:16px">
+            <svg width="76" height="76" viewBox="0 0 76 76" style="flex:none">
+              <circle cx="38" cy="38" r="31" fill="none" stroke="var(--sunken)" stroke-width="8"></circle>
+              <circle cx="38" cy="38" r="31" fill="none" stroke="var(--c-caches)" stroke-width="8" stroke-linecap="round" stroke-dasharray="19.3 175.5" transform="rotate(-90 38 38)"></circle>
+              <text x="38" y="42" text-anchor="middle" font-size="15" font-weight="640" fill="var(--t1)" font-family="-apple-system,system-ui,sans-serif" letter-spacing="-.4">9.9%</text>
+            </svg>
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <div class="row" style="gap:6px;align-items:baseline">
+                <span class="num" style="font-size:36px;font-weight:640;letter-spacing:-.032em;line-height:1">21.7</span>
+                <span style="font-size:15px;font-weight:600;color:var(--t2)">GB</span>
+              </div>
+              <div style="font-size:12.5px;font-weight:500;color:var(--t3)">of the scan</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="border-bottom:1px solid var(--line)">
+          <div style="flex:1;padding:13px 6px;display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span class="num" style="font-size:15px;font-weight:630">412,930</span>
+            <span style="font-size:11px;color:var(--t3)">Files</span>
+          </div>
+          <div style="width:1px;height:34px;background:var(--line)"></div>
+          <div style="flex:1;padding:13px 6px;display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span class="num" style="font-size:15px;font-weight:630">8,204</span>
+            <span style="font-size:11px;color:var(--t3)">Folders</span>
+          </div>
+          <div style="width:1px;height:34px;background:var(--line)"></div>
+          <div style="flex:1;padding:13px 6px;display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span class="num" style="font-size:15px;font-weight:630">2 min</span>
+            <span style="font-size:11px;color:var(--t3)">Changed</span>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;padding:15px 18px 14px;display:flex;flex-direction:column;gap:11px;border-bottom:1px solid var(--line)">
+          <div class="row" style="justify-content:space-between">
+            <span class="cap">Largest inside</span>
+            <span class="num" style="font-size:11px;color:var(--t3)">of 1,844</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div class="row" style="gap:8px"><span style="font-size:12.5px;font-weight:520">com.apple.Safari</span><span class="num" style="margin-left:auto;font-size:12px;color:var(--t2)">4.62 GB</span></div>
+              <div style="height:5px;border-radius:999px;background:var(--sunken)"><div style="width:100%;height:100%;border-radius:999px;background:var(--c-caches)"></div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div class="row" style="gap:8px"><span style="font-size:12.5px;font-weight:520">Homebrew</span><span class="num" style="margin-left:auto;font-size:12px;color:var(--t2)">3.91 GB</span></div>
+              <div style="height:5px;border-radius:999px;background:var(--sunken)"><div style="width:85%;height:100%;border-radius:999px;background:var(--c-caches)"></div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div class="row" style="gap:8px"><span style="font-size:12.5px;font-weight:520">Yarn</span><span class="num" style="margin-left:auto;font-size:12px;color:var(--t2)">2.84 GB</span></div>
+              <div style="height:5px;border-radius:999px;background:var(--sunken)"><div style="width:61%;height:100%;border-radius:999px;background:var(--c-caches)"></div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div class="row" style="gap:8px"><span style="font-size:12.5px;font-weight:520">pip</span><span class="num" style="margin-left:auto;font-size:12px;color:var(--t2)">1.76 GB</span></div>
+              <div style="height:5px;border-radius:999px;background:var(--sunken)"><div style="width:38%;height:100%;border-radius:999px;background:var(--c-caches)"></div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div class="row" style="gap:8px"><span style="font-size:12.5px;font-weight:520">Google</span><span class="num" style="margin-left:auto;font-size:12px;color:var(--t2)">1.44 GB</span></div>
+              <div style="height:5px;border-radius:999px;background:var(--sunken)"><div style="width:31%;height:100%;border-radius:999px;background:var(--c-caches)"></div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div class="row" style="gap:8px"><span style="font-size:12.5px;font-weight:520">CloudKit</span><span class="num" style="margin-left:auto;font-size:12px;color:var(--t2)">1.02 GB</span></div>
+              <div style="height:5px;border-radius:999px;background:var(--sunken)"><div style="width:22%;height:100%;border-radius:999px;background:var(--c-caches)"></div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div class="row" style="gap:8px"><span style="font-size:12.5px;font-weight:520">Adobe</span><span class="num" style="margin-left:auto;font-size:12px;color:var(--t2)">764 MB</span></div>
+              <div style="height:5px;border-radius:999px;background:var(--sunken)"><div style="width:16%;height:100%;border-radius:999px;background:var(--c-caches)"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:15px 18px;display:flex;flex-direction:column;gap:10px">
+          <div class="cap">DiskMate can account for</div>
+          <div class="row" style="gap:2px;height:10px;border-radius:999px;overflow:hidden;background:var(--sunken)">
+            <span style="flex:18.4;height:100%;background:var(--accent)"></span>
+            <span style="flex:3.3;height:100%;background:transparent"></span>
+          </div>
+          <div class="row" style="gap:10px">
+            <span class="num" style="font-size:19px;font-weight:630">18.4 GB</span>
+            <span class="pill" style="background:var(--accent-soft);color:var(--accent-strong)">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5.5 9.6 18 4 12.6"></path></svg>
+              Regenerates
+            </span>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:auto;gap:8px;padding:14px 16px;border-top:1px solid var(--line)">
+          <span class="tile btn" style="width:32px;height:30px;padding:0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3.6 7.4a2 2 0 0 1 2-2h3.2l2 2.2h7.6a2 2 0 0 1 2 2v8.6a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"></path></svg>
+          </span>
+          <span class="tile btn" style="width:32px;height:30px;padding:0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="12" rx="9" ry="6"></ellipse><circle cx="12" cy="12" r="2.4"></circle></svg>
+          </span>
+          <span class="tile btn" style="width:32px;height:30px;padding:0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8.4" y="8.4" width="11.2" height="11.2" rx="2.4"></rect><path d="M15.6 5.6H5.6a1.2 1.2 0 0 0-1.2 1.2v10"></path></svg>
+          </span>
+          <span class="btn btn--primary" style="flex:1">Add to Cleanup</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

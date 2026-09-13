@@ -1,0 +1,30 @@
+    /* DiskMate — light. Values lifted from src/styles/tokens.css; the category
+       hues are the solved, colour-vision-checked set and must not be nudged. */
+    :root {
+      --bg: #fbfbfd;
+      --card: #ffffff;
+      --sunken: #f4f4f7;
+      --sidebar: linear-gradient(180deg, #f7f7fa 0%, #f0f0f5 100%);
+      --line: rgba(0, 0, 0, 0.085);
+      --line2: rgba(0, 0, 0, 0.14);
+      --t1: #1d1d20;
+      --t2: #6e6e7a;
+      --t3: #9a9aa6;
+      --accent: #2f6fd0;
+      --accent-strong: #245bb0;
+      --accent-soft: #e7effb;
+      --caution: #a8762a;
+      --shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.055), 0 1px 2px rgba(0, 0, 0, 0.04),
+        0 14px 30px -20px rgba(0, 0, 0, 0.3);
+      --shadow-sm: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.05);
+      --free: #e6e6ec;
+
+      --c-system: #78808f;      --t-system: #f0f1f4;      --e-system: #e5e7ed;
+      --c-applications: #7897da; --t-applications: #eff2fb; --e-applications: #e3e9f8;
+      --c-developer: #009185;   --t-developer: #e8f5f3;   --e-developer: #d8efeb;
+      --c-media: #7d4e88;       --t-media: #f4eef6;       --e-media: #ece0ef;
+      --c-caches: #865901;      --t-caches: #f6f0e6;      --e-caches: #f0e6d4;
+      --c-documents: #72bf8e;   --t-documents: #edf8f2;   --e-documents: #dff2e8;
+      --c-downloads: #bd8846;   --t-downloads: #f8f1e7;   --e-downloads: #f2e7d7;
+      --c-other: #b4b8c1;       --t-other: #f2f3f6;       --e-other: #e9eaef;
+    }

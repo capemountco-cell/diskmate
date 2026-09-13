@@ -1,0 +1,30 @@
+    /* DiskMate — dark. The same structure, the lifted category hues from the
+       dark block of src/styles/tokens.css. */
+    :root {
+      --bg: #191a1d;
+      --card: #212125;
+      --sunken: #161619;
+      --sidebar: linear-gradient(180deg, #212126 0%, #1b1b1f 100%);
+      --line: rgba(255, 255, 255, 0.09);
+      --line2: rgba(255, 255, 255, 0.17);
+      --t1: #f2f2f5;
+      --t2: #a2a2ad;
+      --t3: #7c7c88;
+      --accent: #62a0f0;
+      --accent-strong: #7db2f6;
+      --accent-soft: #1e2c41;
+      --caution: #d2a052;
+      --shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.07), 0 1px 2px rgba(0, 0, 0, 0.5),
+        0 18px 34px -22px rgba(0, 0, 0, 0.8);
+      --shadow-sm: 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.45);
+      --free: #2b2b31;
+
+      --c-system: #8f97a6;      --t-system: #2b2e34;      --e-system: #23252b;
+      --c-applications: #6c85d9; --t-applications: #262a39; --e-applications: #1f222d;
+      --c-developer: #28a497;   --t-developer: #1b2f2d;   --e-developer: #172625;
+      --c-media: #7a4f8c;       --t-media: #2c2432;       --e-media: #241e29;
+      --c-caches: #895709;      --t-caches: #2f2718;      --e-caches: #262014;
+      --c-documents: #007654;   --t-documents: #16271f;   --e-documents: #12201a;
+      --c-downloads: #b3880f;   --t-downloads: #322b16;   --e-downloads: #292312;
+      --c-other: #6e7380;       --t-other: #2a2b31;       --e-other: #222327;
+    }

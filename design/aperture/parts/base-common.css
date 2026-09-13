@@ -1,0 +1,84 @@
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--t1);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+        "Helvetica Neue", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-strong); }
+
+    /* Numbers are the voice of this interface, so they get tabular figures and
+       tighter tracking everywhere they appear. */
+    .num { font-variant-numeric: tabular-nums; letter-spacing: -0.022em; }
+    /* Every horizontal group in these screens is a flex row with a gap, so that
+       reordering or deleting an item in the canvas editor cannot collapse the
+       spacing the way whitespace-separated inline elements would. */
+    .row { display: flex; align-items: center; }
+
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+    .cap {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.055em;
+      text-transform: uppercase;
+      color: var(--t3);
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 3px; flex: none; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 20px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      white-space: nowrap;
+    }
+
+    .tile {
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      flex: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: var(--card);
+      box-shadow: var(--shadow-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--t1);
+    }
+
+    .btn--primary {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(47, 111, 208, 0.4);
+      font-weight: 590;
+    }
+
+    svg { display: block; }
