@@ -12,7 +12,7 @@ import {
 } from "../../components/primitives";
 import { formatBytes, formatCount, formatRelative, truncatePath } from "../../lib/format";
 import { engine, engineAvailable } from "../../lib/ipc";
-import type { CleanupCandidate } from "../../lib/types";
+import type { CleanupCandidate, DuplicateStats } from "../../lib/types";
 
 import { useCleanup, type CleanupTab } from "./useCleanup";
 
@@ -23,7 +23,14 @@ import { useCleanup, type CleanupTab } from "./useCleanup";
  * the right, and the queue is the only thing with a remove button. Nothing is
  * removed by browsing, and the total you approve is the total you were shown.
  */
-export function CleanupPage({ scanId }: { scanId: number | null }) {
+export function CleanupPage({
+  scanId,
+  totalFiles,
+}: {
+  scanId: number | null;
+  /** Files in the scan, so the funnel can start where the disk does. */
+  totalFiles: number | null;
+}) {
   const cleanup = useCleanup(scanId);
 
   useEffect(() => {
@@ -97,7 +104,9 @@ export function CleanupPage({ scanId }: { scanId: number | null }) {
         </div>
 
         {cleanup.tab === "suggestions" && <Suggestions cleanup={cleanup} />}
-        {cleanup.tab === "duplicates" && <Duplicates cleanup={cleanup} />}
+        {cleanup.tab === "duplicates" && (
+          <Duplicates cleanup={cleanup} totalFiles={totalFiles} />
+        )}
         {cleanup.tab === "applications" && <Applications cleanup={cleanup} />}
       </div>
 
@@ -194,7 +203,13 @@ function CandidateRow({
   );
 }
 
-function Duplicates({ cleanup }: { cleanup: Controller }) {
+function Duplicates({
+  cleanup,
+  totalFiles,
+}: {
+  cleanup: Controller;
+  totalFiles: number | null;
+}) {
   const { duplicateProgress: progress, duplicateStats: stats } = cleanup;
 
   return (
@@ -229,27 +244,7 @@ function Duplicates({ cleanup }: { cleanup: Controller }) {
             </div>
           </div>
         ) : stats ? (
-          <div className="stat-row">
-            <div>
-              <div className="stat__label">Duplicate sets</div>
-              <div className="stat__value stat__value--small">{formatCount(stats.groups)}</div>
-            </div>
-            <div>
-              <div className="stat__label">Held twice</div>
-              <div className="stat__value stat__value--small">
-                {formatBytes(stats.reclaimableBytes)}
-              </div>
-            </div>
-            <div>
-              <div className="stat__label">Read to confirm</div>
-              <div className="stat__value stat__value--small">
-                {formatBytes(stats.bytesRead)}
-              </div>
-              <div className="stat__hint">
-                of {formatCount(stats.sizeCandidates)} files that shared a size
-              </div>
-            </div>
-          </div>
+          <Funnel stats={stats} totalFiles={totalFiles} />
         ) : (
           <p className="muted">
             DiskMate groups files by size first, then reads a sample, and only reads a whole
@@ -398,13 +393,144 @@ function Queue({ cleanup }: { cleanup: Controller }) {
               </Button>
             </div>
 
+            <RemovalFlow />
+
             <p className="stat__hint" style={{ marginTop: "var(--space-3)" }}>
-              Everything goes to the Trash, so you can put it back. DiskMate removes exactly
-              what is listed here and nothing else.
+              DiskMate removes exactly the {formatCount(cleanup.staged.length)} items listed
+              here, totalling {formatBytes(cleanup.stagedTotal)}, and nothing else. If the list
+              or the total changes before you click, the whole operation is refused rather than
+              partly done.
             </p>
           </>
         )}
       </Panel>
     </div>
+  );
+}
+
+/**
+ * What the duplicate search actually opened.
+ *
+ * Four disconnected numbers do not say the interesting thing, which is the
+ * narrowing: nearly every file leaves at the first stage without being read at
+ * all. Showing the stages in order, with the count that survives each one,
+ * makes the cost of the answer visible alongside the answer.
+ */
+function Funnel({ stats, totalFiles }: { stats: DuplicateStats; totalFiles: number | null }) {
+  const stages = [
+    totalFiles === null
+      ? null
+      : {
+          key: "all",
+          count: formatCount(totalFiles),
+          label: "files on disk",
+          note: "Grouped by size, from the index. Nothing read.",
+        },
+    {
+      key: "size",
+      count: formatCount(stats.sizeCandidates),
+      label: "shared a size",
+      note: "A sample read from each end of the file.",
+    },
+    {
+      key: "full",
+      count: formatCount(stats.fullyHashed),
+      label: "matched that sample",
+      note: "Read in full, start to finish.",
+    },
+  ].filter((stage) => stage !== null);
+
+  return (
+    <div className="funnel">
+      <ol className="funnel__stages">
+        {stages.map((stage) => (
+          <li key={stage.key} className="funnel__stage">
+            <span className="funnel__count num">{stage.count}</span>
+            <span className="funnel__label">{stage.label}</span>
+            <span className="funnel__note">{stage.note}</span>
+          </li>
+        ))}
+        <li className="funnel__stage funnel__stage--result">
+          <span className="funnel__count num">{formatCount(stats.groups)}</span>
+          <span className="funnel__label">identical sets</span>
+          <span className="funnel__note">
+            {formatBytes(stats.reclaimableBytes)} held more than once.
+          </span>
+        </li>
+      </ol>
+
+      <p className="funnel__read">
+        <b>{formatBytes(stats.bytesRead)} was opened</b> to prove it. A tool that hashed
+        everything would read the whole disk to discover that almost none of it matches.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * What approving the queue does, as the steps it does them in.
+ *
+ * This replaced a sentence promising the removal was safe. A promise is what
+ * every cleaner on the App Store makes; the steps are checkable.
+ */
+function RemovalFlow() {
+  const steps = [
+    { key: "queue", title: "Your list", note: "only what you added", icon: ListIcon },
+    { key: "check", title: "Checked", note: "protected, changed, gone", icon: ShieldIcon },
+    { key: "trash", title: "Trash", note: "not deleted", icon: TrashIcon },
+    { key: "back", title: "Put Back", note: "whenever you like", icon: UndoIcon },
+  ];
+
+  return (
+    <ol className="flow">
+      {steps.map((step, index) => (
+        <li key={step.key} className="flow__step">
+          {index > 0 && (
+            <svg className="flow__arrow" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M3.5 8h8M8 4.5L11.5 8 8 11.5" />
+            </svg>
+          )}
+          <span className="flow__icon">
+            <step.icon />
+          </span>
+          <span className="flow__title">{step.title}</span>
+          <span className="flow__note">{step.note}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function ListIcon() {
+  return (
+    <svg viewBox="0 0 18 18" aria-hidden="true">
+      <path d="M3 5h12M3 9h12M3 13h7" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 18 18" aria-hidden="true">
+      <path d="M9 2.2l5.4 2.3v4.2c0 3.3-2.2 5.8-5.4 7.1-3.2-1.3-5.4-3.8-5.4-7.1V4.5z" />
+      <path d="M6.6 9l1.7 1.7 3.3-3.4" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 18 18" aria-hidden="true">
+      <path d="M3.4 5.1h11.2M7.3 5.1V3.4h3.4v1.7M4.8 5.1l.7 9.4c.05.7.6 1.3 1.3 1.3h4.4c.7 0 1.25-.6 1.3-1.3l.7-9.4" />
+    </svg>
+  );
+}
+
+function UndoIcon() {
+  return (
+    <svg viewBox="0 0 18 18" aria-hidden="true">
+      <path d="M3.2 9a5.8 5.8 0 1 0 1.8-4.2" />
+      <path d="M3 2.6v3.1h3.1" />
+    </svg>
   );
 }

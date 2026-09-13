@@ -23,12 +23,17 @@ export function Treemap({
   width = 900,
   height = 460,
   onOpen,
+  selectedId = null,
+  onSelect,
 }: {
   rows: EntryRow[];
   rootId: number;
   width?: number;
   height?: number;
   onOpen: (row: EntryRow) => void;
+  /** Drawn with a ring, so the inspector and the map agree on what is chosen. */
+  selectedId?: number | null;
+  onSelect?: (row: EntryRow) => void;
 }) {
   const [hovered, setHovered] = useState<PlacedNode | null>(null);
 
@@ -64,8 +69,10 @@ export function Treemap({
             key={`${item.node.row.id}-${item.depth}`}
             item={item}
             isHovered={hovered?.node.row.id === item.node.row.id}
+            isSelected={selectedId === item.node.row.id}
             onHover={setHovered}
             onOpen={onOpen}
+            onSelect={onSelect}
           />
         ))}
       </svg>
@@ -82,7 +89,7 @@ export function Treemap({
           </>
         ) : (
           <span className="muted">
-            Point at a rectangle to see what it is. Double-click a folder to go into it.
+            Click a rectangle to inspect it. Double-click a folder to go into it.
           </span>
         )}
       </figcaption>
@@ -90,16 +97,30 @@ export function Treemap({
   );
 }
 
+function cellClass(isHovered: boolean, isSelected: boolean): string {
+  return [
+    "treemap__rect",
+    isHovered ? "treemap__rect--hover" : "",
+    isSelected ? "treemap__rect--selected" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function Cell({
   item,
   isHovered,
+  isSelected,
   onHover,
   onOpen,
+  onSelect,
 }: {
   item: PlacedNode;
   isHovered: boolean;
+  isSelected: boolean;
   onHover: (item: PlacedNode | null) => void;
   onOpen: (row: EntryRow) => void;
+  onSelect?: (row: EntryRow) => void;
 }) {
   const { node, depth, x, y, width, height } = item;
   if (width < 1 || height < 1) return null;
@@ -114,6 +135,7 @@ function Cell({
   return (
     <g
       onMouseEnter={() => onHover(item)}
+      onClick={onSelect ? () => onSelect(node.row) : undefined}
       onDoubleClick={isFolder ? () => onOpen(node.row) : undefined}
       style={{ cursor: "default" }}
     >
@@ -127,7 +149,7 @@ function Cell({
         stroke="var(--surface-panel)"
         strokeWidth={depth === 0 ? 1.5 : 0.75}
         rx={depth === 0 ? 3 : 1.5}
-        className={isHovered ? "treemap__rect treemap__rect--hover" : "treemap__rect"}
+        className={cellClass(isHovered, isSelected)}
       />
       {showLabel && (
         <text

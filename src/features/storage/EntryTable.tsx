@@ -16,6 +16,7 @@ export function EntryTable({
   direction,
   onSort,
   onOpen,
+  onSelect,
   emptyMessage,
 }: {
   rows: EntryRow[];
@@ -24,6 +25,8 @@ export function EntryTable({
   direction: SortDirection;
   onSort: (key: SortKey) => void;
   onOpen: (row: EntryRow) => void;
+  /** A single click inspects; a double click still opens. */
+  onSelect?: (row: EntryRow) => void;
   emptyMessage: string;
 }) {
   if (rows.length === 0) {
@@ -75,7 +78,7 @@ export function EntryTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <EntryTableRow key={row.id} row={row} onOpen={onOpen} />
+            <EntryTableRow key={row.id} row={row} onOpen={onOpen} onSelect={onSelect} />
           ))}
         </tbody>
       </table>
@@ -89,12 +92,21 @@ export function EntryTable({
   );
 }
 
-function EntryTableRow({ row, onOpen }: { row: EntryRow; onOpen: (row: EntryRow) => void }) {
+function EntryTableRow({
+  row,
+  onOpen,
+  onSelect,
+}: {
+  row: EntryRow;
+  onOpen: (row: EntryRow) => void;
+  onSelect?: (row: EntryRow) => void;
+}) {
   const navigable = row.kind === "directory" && row.accessible;
 
   return (
     <tr
       data-navigable={navigable}
+      onClick={onSelect ? () => onSelect(row) : undefined}
       onDoubleClick={navigable ? () => onOpen(row) : undefined}
       // A row that can be opened is a control, so it behaves like one for the
       // keyboard as well as the mouse.

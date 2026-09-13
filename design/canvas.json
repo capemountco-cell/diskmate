@@ -1,33 +1,62 @@
 {
+  "pages": [
+    { "id": "page-1", "name": "Screens" },
+    { "id": "page-2", "name": "Directions" }
+  ],
   "artboards": [
-    { "file": "Main.dc.html",       "title": "Storage",     "x": 0,    "y": 0,    "w": 1440, "h": 900 },
-    { "file": "Scanning.dc.html",   "title": "Scanning",    "x": 1560, "y": 0,    "w": 1440, "h": 900 },
-    { "file": "Cleanup.dc.html",    "title": "Cleanup",     "x": 0,    "y": 1200, "w": 1440, "h": 900 },
-    { "file": "Changes.dc.html",    "title": "What changed","x": 1560, "y": 1200, "w": 1440, "h": 900 },
-    { "file": "Duplicates.dc.html", "title": "Duplicates",  "x": 0,    "y": 2400, "w": 1080, "h": 950 },
-    { "file": "Memory.dc.html",     "title": "Memory",      "x": 1200, "y": 2400, "w": 1080, "h": 760 }
+    { "file": "Main.dc.html",       "title": "Storage",      "page": "page-1", "x": 0,    "y": 0,    "w": 1440, "h": 900 },
+    { "file": "Scanning.dc.html",   "title": "Scanning",     "page": "page-1", "x": 1560, "y": 0,    "w": 1440, "h": 900 },
+    { "file": "Cleanup.dc.html",    "title": "Cleanup",      "page": "page-1", "x": 0,    "y": 1200, "w": 1440, "h": 900 },
+    { "file": "Changes.dc.html",    "title": "What changed", "page": "page-1", "x": 1560, "y": 1200, "w": 1440, "h": 900 },
+    { "file": "Duplicates.dc.html", "title": "Duplicates",   "page": "page-1", "x": 0,    "y": 2400, "w": 1080, "h": 950 },
+    { "file": "Memory.dc.html",     "title": "Memory",       "page": "page-1", "x": 1200, "y": 2400, "w": 1080, "h": 760 },
+
+    { "file": "Night.dc.html",   "title": "Night",   "page": "page-2", "x": 0,    "y": 0,   "w": 1440, "h": 900 },
+    { "file": "Dense.dc.html",   "title": "Dense",   "page": "page-2", "x": 1560, "y": 0,   "w": 1440, "h": 900 },
+    { "file": "Stacked.dc.html", "title": "Stacked", "page": "page-2", "x": 0,    "y": 1200, "w": 900,  "h": 760 }
   ],
   "annotations": [
     {
-      "id": "row-state",
-      "x": 0, "y": -300, "w": 620,
-      "text": "WHERE THINGS STAND, AND WHAT IS HAPPENING\n\nStorage is the finished picture: area is bytes, colour is category.\n\nScanning is the same screen while the work is going on. The map fills in cell by cell, a folder still being counted is hatched rather than coloured so an unfinished number never looks final, and the eight worker lanes show the actual parallel walk. The progress bar carries no percentage, because the scanner cannot know a total until it has walked the tree."
+      "id": "p1-state",
+      "page": "page-1", "x": 0, "y": -300, "w": 620,
+      "text": "WHERE THINGS STAND, AND WHAT IS HAPPENING\n\nStorage is the finished picture: area is bytes, colour is category.\n\nScanning is the same screen while the work is going on. The map fills in cell by cell, a folder still being counted is hatched rather than coloured so an unfinished number never looks final, and the eight worker lanes show the actual parallel walk."
     },
     {
-      "id": "row-act",
-      "x": 0, "y": 990, "w": 620,
+      "id": "p1-act",
+      "page": "page-1", "x": 0, "y": 990, "w": 620,
       "text": "WHAT AN ACTION DOES, BEFORE YOU TAKE IT\n\nThe queue's footer used to be a paragraph promising the removal was safe. It is now the four steps the removal actually takes, ending at Put Back."
     },
     {
-      "id": "row-changed",
-      "x": 1560, "y": 990, "w": 620,
-      "text": "WHAT CHANGED SINCE LAST TIME\n\nThe same treemap, same rectangles, tinted by change instead of category: one hue each way and a neutral grey between them. Rectangles keep today's sizes, so a folder that grew is where you already know it.\n\nThe headline splits into arrived and left rather than only the net, and the panel names the seven parent folders it left out and why."
+      "id": "p1-changed",
+      "page": "page-1", "x": 1560, "y": 990, "w": 620,
+      "text": "WHAT CHANGED SINCE LAST TIME\n\nThe same treemap, same rectangles, tinted by change instead of category: one hue each way and a neutral grey between them. The headline splits into arrived and left rather than only the net, and the panel names the seven parent folders it left out and why."
     },
     {
-      "id": "row-proof",
-      "x": 0, "y": 2200, "w": 620,
-      "text": "SHOWING THE WORK\n\nDuplicates leads with the funnel: two million files in, ninety-seven out, and 0.8% of the disk actually opened to prove it. Memory stacks app memory on cache so the chart answers how full memory is, rather than drawing a flat line near the floor."
+      "id": "p1-proof",
+      "page": "page-1", "x": 0, "y": 2200, "w": 620,
+      "text": "SHOWING THE WORK\n\nDuplicates leads with the funnel: two million files in, ninety-seven out, and 0.8% of the disk actually opened to prove it. Memory stacks app memory on cache so the chart answers how full memory is."
+    },
+
+    {
+      "id": "p2-brief",
+      "page": "page-2", "x": 0, "y": -420, "w": 700,
+      "text": "THREE THINGS WORTH TAKING FROM THE REFERENCES\n\nWhat I took: the dark ground and the one dominant figure from the Android cleaner; the layered, physical object from the frosted-glass concept; the density and the composition dots from Disk Buddy.\n\nWhat I would not take, from any of them: the glowing particle blob (it encodes nothing, it is a picture of data rather than data), frosted glass over a gradient mesh (it is 2021, it fights macOS's own materials, and blur is the enemy of a dense numeric panel), the 100% ring on a scan that cannot know its total, and every word of the vocabulary -- Optimize, Deep clean, Game Booster, Quick Wins, \"achieve maximum performance\". That language is the product those apps are; avoiding it is the product this one is.\n\nThese three are alternatives to the Storage screen on the Screens page, not replacements. Pick one, or pick pieces."
+    },
+    {
+      "id": "p2-night",
+      "page": "page-2", "x": 0, "y": -160, "w": 620,
+      "text": "NIGHT — the dark ground, and one number the size of the thing it describes\n\nThe treemap is the light source; the category hues are genuinely handsome on near-black. Selection is marked with a glow, which is the one honest use of the reference's light.\n\nTradeoff: it commits the app to dark-first, and a treemap on black reads as more dramatic than a storage figure usually deserves."
+    },
+    {
+      "id": "p2-dense",
+      "page": "page-2", "x": 1560, "y": -160, "w": 620,
+      "text": "DENSE — shape and numbers at the same time\n\nDisk Buddy makes you choose a tab: the map or the list. This gives you both at once, plus the composition dots that say what a folder is mostly made of in the width of a word, and a \"changed\" column, which is usually the column that answers the question.\n\nTradeoff: it is a lot at once, and the treemap gets half the width it wants."
+    },
+    {
+      "id": "p2-stacked",
+      "page": "page-2", "x": 0, "y": 1010, "w": 620,
+      "text": "STACKED — depth used to mean something\n\nThe frosted concept's best idea is the layered object. Here each plane sits inside the one above because its contents came from there, and the elevation rises as the set narrows. Real shadow, no blur: a panel full of numbers has to stay readable.\n\nTradeoff: it costs more vertical space than the four-box funnel already on the Duplicates screen, and it only suits a pipeline."
     }
   ],
-  "launch": { "view": "canvas" }
+  "launch": { "view": "canvas", "page": "page-2" }
 }

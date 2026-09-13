@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { Button, EmptyState, Note, Panel } from "../../components/primitives";
 import { formatCount } from "../../lib/format";
@@ -6,25 +6,39 @@ import { engineAvailable } from "../../lib/ipc";
 import type { EntryRow } from "../../lib/types";
 
 import { Breadcrumbs } from "./Breadcrumbs";
+import { Inspector } from "./Inspector";
 import { EntryTable } from "./EntryTable";
 import { ScanStatusBar } from "./ScanStatusBar";
 import { SnapshotPanel } from "./SnapshotPanel";
 import { StorageOverview } from "./StorageOverview";
 import { StorageViews } from "./StorageViews";
 import { CapacitySummary, VolumePicker } from "./VolumePicker";
-import { useStorage } from "./useStorage";
+import { useStorage, type ScanSummary } from "./useStorage";
 
-export function StoragePage({ onScanReady }: { onScanReady: (scanId: number | null) => void }) {
+export function StoragePage({
+  onScanReady,
+}: {
+  onScanReady: (scan: ScanSummary | null) => void;
+}) {
   const storage = useStorage();
-  const currentScanId = storage.snapshot?.scan.scanId ?? null;
+  const currentScan = storage.snapshot?.scan ?? null;
+  // What the inspector is describing. Null means "whatever folder we are in",
+  // so the panel is never empty and never has to be dismissed.
+  const [selected, setSelected] = useState<EntryRow | null>(null);
 
   // Tell the shell which scan is current, so Cleanup works from the same one
   // rather than starting its own.
   useEffect(() => {
-    onScanReady(currentScanId);
-  }, [currentScanId, onScanReady]);
+    onScanReady(currentScan);
+  }, [currentScan, onScanReady]);
   const { snapshot, phase, selectedVolume, currentDirectory, ancestors, children, childTotal } =
     storage;
+
+  const open = (row: EntryRow) => {
+    setSelected(null);
+    void storage.openDirectory(row);
+  };
+  const select = (row: EntryRow) => setSelected(row);
 
   if (!engineAvailable()) {
     return (
@@ -36,6 +50,7 @@ export function StoragePage({ onScanReady }: { onScanReady: (scanId: number | nu
   }
 
   const atRoot = currentDirectory !== null && currentDirectory.id === snapshot?.root.id;
+  const inspecting = selected ?? currentDirectory;
 
   return (
     <div className="stack">
@@ -104,26 +119,51 @@ export function StoragePage({ onScanReady }: { onScanReady: (scanId: number | nu
             </div>
           </div>
 
-          {atRoot ? (
-            <>
-              <StorageOverview snapshot={snapshot} onOpen={storage.openDirectory} />
-              <StorageViews
-                scanId={snapshot.scan.scanId}
-                root={snapshot.root}
-                onOpen={storage.openDirectory}
-                explorer={<ExplorerBody storage={storage} rows={children} total={childTotal} />}
-              />
-              <SnapshotPanel scanId={snapshot.scan.scanId} />
-            </>
-          ) : (
-            <Panel
-              title={currentDirectory?.name}
-              note={currentDirectory ? `${formatCount(childTotal)} items` : undefined}
-              flush
-            >
-              <ExplorerBody storage={storage} rows={children} total={childTotal} />
-            </Panel>
-          )}
+          <div className="workspace">
+            <div className="stack workspace__main">
+              {atRoot ? (
+                <>
+                  <StorageOverview snapshot={snapshot} onOpen={select} />
+                  <StorageViews
+                    scanId={snapshot.scan.scanId}
+                    root={snapshot.root}
+                    onOpen={open}
+                    selectedId={inspecting?.id ?? null}
+                    onSelect={setSelected}
+                    explorer={
+                      <ExplorerBody
+                        storage={storage}
+                        rows={children}
+                        total={childTotal}
+                        onSelect={setSelected}
+                      />
+                    }
+                  />
+                  <SnapshotPanel scanId={snapshot.scan.scanId} />
+                </>
+              ) : (
+                <Panel
+                  title={currentDirectory?.name}
+                  note={currentDirectory ? `${formatCount(childTotal)} items` : undefined}
+                  flush
+                >
+                  <ExplorerBody
+                    storage={storage}
+                    rows={children}
+                    total={childTotal}
+                    onSelect={setSelected}
+                  />
+                </Panel>
+              )}
+            </div>
+
+            <Inspector
+              scanId={snapshot.scan.scanId}
+              entry={inspecting}
+              scanBytes={snapshot.scan.logicalBytes}
+              onOpen={open}
+            />
+          </div>
         </>
       )}
     </div>
@@ -141,10 +181,12 @@ function ExplorerBody({
   storage,
   rows,
   total,
+  onSelect,
 }: {
   storage: ReturnType<typeof useStorage>;
   rows: EntryRow[];
   total: number;
+  onSelect: (row: EntryRow) => void;
 }) {
   const directory = storage.currentDirectory;
   if (directory && !directory.accessible) {
@@ -163,6 +205,7 @@ function ExplorerBody({
       direction={storage.direction}
       onSort={storage.setSort}
       onOpen={storage.openDirectory}
+      onSelect={onSelect}
       emptyMessage="This folder is empty."
     />
   );
