@@ -13,7 +13,7 @@ const NAV = [
   {
     id: "cleanup",
     label: "Cleanup",
-    badge: "11.8 GB",
+    badge: "28.3 GB",
     icon: `<path d="M5 7.5h14"></path><path d="M9.5 7.5V5.2h5v2.3"></path><path d="M7 7.5 8 19h8l1-11.5"></path>`,
   },
   {
@@ -25,7 +25,7 @@ const NAV = [
   {
     id: "memory",
     label: "Memory",
-    badge: "61%",
+    badge: "54%",
     icon: `<rect x="7.2" y="7.2" width="9.6" height="9.6" rx="2.2"></rect><path d="M10 4.2v3M14 4.2v3M10 16.8v3M14 16.8v3M4.2 10h3M4.2 14h3M16.8 10h3M16.8 14h3"></path>`,
   },
 ];
@@ -90,10 +90,10 @@ ${NAV.map(item).join("\n")}
           <span style="flex:16.3;height:100%;background:var(--c-documents)"></span>
           <span style="flex:12.8;height:100%;background:var(--c-downloads)"></span>
           <span style="flex:28.1;height:100%;background:var(--c-other)"></span>
-          <span style="flex:25.6;height:100%;background:transparent"></span>
+          <span style="flex:25;height:100%;background:transparent"></span>
         </div>
         <div class="row num" style="justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--t2)">
-          <span>220 GB used</span><span style="color:var(--t3)">25.6 GB free</span>
+          <span>220 GB used</span><span style="color:var(--t3)">25 GB free</span>
         </div>
       </div>
     </div>
@@ -108,7 +108,7 @@ ${NAV.map(item).join("\n")}
       <div class="row" style="gap:9px;height:28px;padding:0 8px;border-radius:7px">
         <span style="width:6px;height:6px;border-radius:999px;background:var(--c-other);flex:none"></span>
         <span style="font-size:13px;color:var(--t1)">Xcode</span>
-        <span class="num" style="margin-left:auto;font-size:11.5px;color:var(--t3)">34.1 GB</span>
+        <span class="num" style="margin-left:auto;font-size:11.5px;color:var(--t3)">24.6 GB</span>
       </div>
     </div>
 

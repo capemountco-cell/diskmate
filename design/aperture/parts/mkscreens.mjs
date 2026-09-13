@@ -31,7 +31,7 @@ const divider = `        <div style="width:1px;height:38px;background:var(--line
 const hero = (n, unit, caption) =>
   `        <div class="row" style="gap:8px;align-items:baseline">
           <span class="num" style="font-size:46px;font-weight:630;letter-spacing:-.033em;line-height:1">${n}</span>
-          <span style="font-size:19px;font-weight:600;color:var(--t2);letter-spacing:-.02em">${unit}</span>
+          ${unit ? `<span style="font-size:19px;font-weight:600;color:var(--t2);letter-spacing:-.02em">${unit}</span>` : ""}
           <span style="font-size:14px;font-weight:500;color:var(--t3);margin-left:2px">${caption}</span>
         </div>`;
 
@@ -78,7 +78,7 @@ ${toolbar(
         <div class="row" style="gap:14px">
           <svg width="46" height="46" viewBox="0 0 46 46" style="flex:none">
             <circle cx="23" cy="23" r="19" fill="none" stroke="var(--sunken)" stroke-width="5"></circle>
-            <circle cx="23" cy="23" r="19" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="34 86" transform="rotate(-64 23 23)"></circle>
+            <circle cx="23" cy="23" r="19" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="20 100" transform="rotate(-64 23 23)"></circle>
           </svg>
           <div style="display:flex;flex-direction:column;gap:3px">
 ${hero("1,284,401", "", "files seen")}
@@ -175,12 +175,12 @@ ${[
 /* =============================================================== CLEANUP */
 
 const FINDINGS = [
-  { name: "DerivedData", tint: "developer", size: "2.84", note: "Rebuilds on next build", safe: "Reversible", on: true, glyph: "hammer", inside: [100, 74, 52, 38, 27, 18] },
-  { name: "Homebrew cache", tint: "caches", size: "3.91", note: "Re-downloads on demand", safe: "Reversible", on: true, glyph: "box", inside: [100, 88, 61, 44, 30, 21] },
-  { name: "Duplicate files", tint: "documents", size: "4.31", note: "39 confirmed sets", safe: "Reversible", on: true, glyph: "copy", inside: [100, 30, 24, 19, 12, 9] },
-  { name: "Simulators", tint: "applications", size: "9.62", note: "3 unused since March", safe: "Check first", on: false, glyph: "phone", inside: [100, 96, 92, 40, 22, 14] },
-  { name: "Device backups", tint: "media", size: "6.40", note: "Last opened 11 months ago", safe: "Check first", on: false, glyph: "clock", inside: [100, 62, 20] },
-  { name: "Trash", tint: "other", size: "1.20", note: "Already deleted", safe: "Reversible", on: false, glyph: "bin", inside: [100, 71, 55, 41, 33, 25, 17, 11] },
+  { name: "DerivedData", tint: "developer", size: "2.84", count: "18 projects", note: "Rebuilds on next build", safe: "Reversible", on: true, glyph: "hammer", inside: [100, 74, 52, 38, 27, 18] },
+  { name: "Homebrew cache", tint: "caches", size: "3.91", count: "612 downloads", note: "Re-downloads on demand", safe: "Reversible", on: true, glyph: "box", inside: [100, 88, 61, 44, 30, 21] },
+  { name: "Duplicate files", tint: "documents", size: "4.31", count: "39 sets", note: "Every copy read in full", safe: "Reversible", on: true, glyph: "copy", inside: [100, 30, 24, 19, 12, 9] },
+  { name: "Simulators", tint: "applications", size: "9.62", count: "6 runtimes", note: "3 unused since March", safe: "Check first", on: false, glyph: "phone", inside: [100, 96, 92, 40, 22, 14] },
+  { name: "Device backups", tint: "media", size: "6.40", count: "3 devices", note: "Last opened 11 months ago", safe: "Check first", on: false, glyph: "clock", inside: [100, 62, 20] },
+  { name: "Trash", tint: "other", size: "1.20", count: "212 items", note: "Already deleted", safe: "Reversible", on: false, glyph: "bin", inside: [100, 71, 55, 41, 33, 25, 17, 11] },
 ];
 
 const GLYPH = {
@@ -214,13 +214,13 @@ const card = (f) => {
             <span class="tile" style="width:36px;height:36px;background:linear-gradient(158deg,var(--t-${f.tint}),var(--e-${f.tint}))">
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--c-${f.tint})" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${GLYPH[f.glyph]}</svg>
             </span>
-            <span style="font-size:13.5px;font-weight:590;letter-spacing:-.013em">${f.name}</span>
-            <span style="margin-left:auto">${check}</span>
+            <span style="font-size:13.5px;font-weight:590;letter-spacing:-.013em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+            <span style="margin-left:auto;flex:none">${check}</span>
           </div>
           <div class="row" style="gap:9px;align-items:baseline">
             <span class="num" style="font-size:29px;font-weight:640;letter-spacing:-.03em;line-height:1">${f.size}</span>
             <span style="font-size:13px;font-weight:600;color:var(--t2)">GB</span>
-            <span style="margin-left:auto;font-size:11px;color:var(--t3)">${f.inside.length} items</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--t3)">${f.count}</span>
           </div>
           <div class="row" style="flex:1;min-height:52px;gap:5px;align-items:flex-end">${bars}</div>
           <div style="display:flex;flex-direction:column;gap:7px">
@@ -251,11 +251,11 @@ ${toolbar(`<span style="color:var(--t1);font-weight:560">Cleanup</span><span sty
 
     <div style="flex:none;padding:6px 26px 16px 30px;display:flex;flex-direction:column;gap:14px">
       <div class="row" style="gap:26px">
-${hero("11.8", "GB", "DiskMate can account for")}
+${hero("28.3", "GB", "DiskMate can account for")}
 ${divider}
 ${stat("6", "Findings")}
 ${stat("3", "Selected")}
-${stat("8.95 GB", "Staged")}
+${stat("11.06 GB", "Staged")}
         <div class="row" style="margin-left:auto;gap:8px">
           <span class="btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V9h-4.5"></path></svg>
@@ -316,19 +316,19 @@ ${step("undo", "Put back", "var(--sunken);color:var(--t2)")}
           <span class="cap">Free space after</span>
           <div style="display:flex;flex-direction:column;gap:9px">
             <div style="display:flex;flex-direction:column;gap:5px">
-              <div class="row" style="gap:8px"><span style="font-size:11.5px;color:var(--t2)">Now</span><span class="num" style="margin-left:auto;font-size:12px;font-weight:620">25.6 GB</span></div>
-              <div style="height:8px;border-radius:999px;background:var(--sunken)"><div style="width:10.4%;height:100%;border-radius:999px;background:var(--c-other)"></div></div>
+              <div class="row" style="gap:8px"><span style="font-size:11.5px;color:var(--t2)">Now</span><span class="num" style="margin-left:auto;font-size:12px;font-weight:620">25.0 GB</span></div>
+              <div style="height:8px;border-radius:999px;background:var(--sunken)"><div style="width:10.2%;height:100%;border-radius:999px;background:var(--c-other)"></div></div>
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
-              <div class="row" style="gap:8px"><span style="font-size:11.5px;color:var(--t2)">Once the Trash is emptied</span><span class="num" style="margin-left:auto;font-size:12px;font-weight:620">34.6 GB</span></div>
-              <div style="height:8px;border-radius:999px;background:var(--sunken)"><div style="width:14.1%;height:100%;border-radius:999px;background:var(--accent)"></div></div>
+              <div class="row" style="gap:8px"><span style="font-size:11.5px;color:var(--t2)">Once the Trash is emptied</span><span class="num" style="margin-left:auto;font-size:12px;font-weight:620">36.1 GB</span></div>
+              <div style="height:8px;border-radius:999px;background:var(--sunken)"><div style="width:14.7%;height:100%;border-radius:999px;background:var(--accent)"></div></div>
             </div>
           </div>
         </div>
 
         <div style="padding:15px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:11px">
           <div class="row" style="align-items:baseline;gap:8px">
-            <span class="num" style="font-size:26px;font-weight:640;letter-spacing:-.03em">8.95</span>
+            <span class="num" style="font-size:26px;font-weight:640;letter-spacing:-.03em">11.06</span>
             <span style="font-size:13px;font-weight:600;color:var(--t2)">GB</span>
             <span style="margin-left:auto;font-size:11.5px;color:var(--t3)">3 of 6</span>
           </div>
@@ -344,12 +344,12 @@ ${step("undo", "Put back", "var(--sunken);color:var(--t2)")}
 const funnelStep = (label, value, width, tone, sub) =>
   `          <div style="display:flex;flex-direction:column;gap:7px">
             <div class="row" style="gap:10px;align-items:baseline">
-              <span class="num" style="font-size:22px;font-weight:640;letter-spacing:-.028em;width:120px">${value}</span>
-              <span style="font-size:12.5px;font-weight:530;color:var(--t2)">${label}</span>
-              <span style="margin-left:auto;font-size:11.5px;color:var(--t3)">${sub}</span>
+              <span class="num" style="font-size:22px;font-weight:640;letter-spacing:-.028em;min-width:120px">${value}</span>
+              <span style="font-size:12.5px;font-weight:530;color:var(--t2);white-space:nowrap">${label}</span>
+              <span style="margin-left:auto;font-size:11.5px;color:var(--t3);white-space:nowrap">${sub}</span>
             </div>
             <div style="height:30px;border-radius:9px;background:var(--sunken);overflow:hidden">
-              <div style="width:${width}%;height:100%;border-radius:9px;background:${tone}"></div>
+              <div style="width:${width}%;min-width:4px;height:100%;border-radius:9px;background:${tone}"></div>
             </div>
           </div>`;
 
@@ -360,7 +360,7 @@ const setRow = (n, name, each, total, tint) => {
   return `          <div class="row" style="gap:13px;padding:12px 14px;border-radius:12px;background:var(--sunken)">
             <div class="row" style="flex:none">${chips}</div>
             <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
-              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em">${name}</span>
+              <span style="font-size:13px;font-weight:560;letter-spacing:-.012em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
               <span class="mono" style="font-size:10.5px;color:var(--t3)">${n} copies · ${each} each</span>
             </div>
             <div class="row" style="margin-left:auto;gap:12px">
@@ -397,21 +397,24 @@ ${stat("00:09", "Took")}
     <div style="flex:1;min-height:0;display:flex;gap:18px;padding:0 22px 22px 30px">
 
       <div class="card" style="width:440px;flex:none;padding:18px;display:flex;flex-direction:column;gap:16px">
-        <span class="cap">How DiskMate got to 39</span>
+        <div class="row" style="gap:10px">
+          <span class="cap">How DiskMate got to 39</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--t3);white-space:nowrap">each bar is the share that survived</span>
+        </div>
         <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-around;gap:14px">
-${funnelStep("files on disk", "2,038,441", 100, "var(--c-other)", "every file indexed")}
-${funnelStep("shared a size", "405", 58, "var(--c-applications)", "index only, nothing opened")}
-${funnelStep("matched a sample", "154", 32, "var(--c-developer)", "16 KB from each end")}
-${funnelStep("identical sets", "39", 14, "var(--accent)", "read in full")}
+${funnelStep("files on disk", "2,038,441", 100, "var(--c-other)", "all of them")}
+${funnelStep("shared a size", "405", 0.02, "var(--c-applications)", "0.02% of those")}
+${funnelStep("matched a sample", "154", 38, "var(--c-developer)", "38% of those")}
+${funnelStep("identical sets", "39", 25, "var(--accent)", "25% of those")}
         </div>
 
         <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px">
           <div class="row" style="gap:8px">
-            <span class="cap">Bytes opened to prove it</span>
+            <span class="cap">Opened to prove it</span>
             <span class="num" style="margin-left:auto;font-size:12px;font-weight:620;color:var(--t2)">571 MB of 220 GB</span>
           </div>
           <div style="height:8px;border-radius:999px;background:var(--sunken);overflow:hidden">
-            <div style="width:2.4%;height:100%;border-radius:999px;background:var(--accent)"></div>
+            <div style="width:0.26%;min-width:4px;height:100%;border-radius:999px;background:var(--accent)"></div>
           </div>
         </div>
       </div>
@@ -435,7 +438,6 @@ ${setRow(3, "backup-2025-11.tar.gz", "41 MB", "82 MB", "other")}
 ${setRow(2, "Keynote deck (final).key", "37 MB", "37 MB", "documents")}
 ${setRow(4, "podcast-ep-114.aiff", "9 MB", "27 MB", "media")}
 ${setRow(2, "Contract signed.pdf", "24 MB", "24 MB", "documents")}
-${setRow(3, "sf-pro-display.zip", "11 MB", "22 MB", "other")}
 
         </div>
         <div class="row" style="margin-top:auto;gap:10px;padding:14px 18px;border-top:1px solid var(--line)">
@@ -449,30 +451,24 @@ ${setRow(3, "sf-pro-display.zip", "11 MB", "22 MB", "other")}
 
 /* ================================================================ MEMORY */
 
-const memRaw = Array.from({ length: 64 }, (_, i) => {
-  const app = 0.3 + 0.16 * wave(i, 9, 4.3, 17);
-  const wired = 0.08 + 0.02 * wave(i + 20, 11, 5, 7);
-  const comp = 0.04 + 0.03 * wave(i + 40, 7, 3.1, 13);
-  const cached = 0.16 + 0.07 * wave(i + 5, 13, 6.2, 9);
-  return { app, wired, comp, cached };
-});
+const INSTALLED = 32;
+const NOW = { app: 12.4, wired: 3.2, comp: 1.8, cached: 6.6 };
 
-// Scaled so the tallest column nearly fills the plot: an honest series that
-// renders as a flat strip along the floor tells the reader nothing.
-const memPeak = Math.max(...memRaw.map((p) => p.app + p.wired + p.comp + p.cached));
+const memRaw = Array.from({ length: 64 }, (_, i) => ({
+  app: NOW.app * (0.78 + 0.3 * wave(i, 9, 4.3, 17)),
+  wired: NOW.wired * (0.92 + 0.16 * wave(i + 20, 11, 5, 7)),
+  comp: NOW.comp * (0.7 + 0.6 * wave(i + 40, 7, 3.1, 13)),
+  cached: NOW.cached * (0.8 + 0.4 * wave(i + 5, 13, 6.2, 9)),
+}));
+memRaw[memRaw.length - 1] = { ...NOW };
+
 const memBars = memRaw
-  .map((p) => ({
-    app: (p.app / memPeak) * 0.93,
-    wired: (p.wired / memPeak) * 0.93,
-    comp: (p.comp / memPeak) * 0.93,
-    cached: (p.cached / memPeak) * 0.93,
-  }))
   .map(
     (p) => `<span style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:1px;height:100%">
-          <span style="height:${(p.comp * 100).toFixed(1)}%;background:var(--c-media);border-radius:2px 2px 0 0"></span>
-          <span style="height:${(p.wired * 100).toFixed(1)}%;background:var(--c-developer)"></span>
-          <span style="height:${(p.app * 100).toFixed(1)}%;background:var(--accent)"></span>
-          <span style="height:${(p.cached * 100).toFixed(1)}%;background:var(--c-other);border-radius:0 0 2px 2px"></span>
+          <span style="height:${((p.comp / INSTALLED) * 100).toFixed(1)}%;background:var(--c-media);border-radius:2px 2px 0 0"></span>
+          <span style="height:${((p.wired / INSTALLED) * 100).toFixed(1)}%;background:var(--c-developer)"></span>
+          <span style="height:${((p.app / INSTALLED) * 100).toFixed(1)}%;background:var(--accent)"></span>
+          <span style="height:${((p.cached / INSTALLED) * 100).toFixed(1)}%;background:var(--c-other);border-radius:0 0 2px 2px"></span>
         </span>`,
   )
   .join("\n        ");
@@ -497,7 +493,7 @@ ${toolbar(`<span style="color:var(--t1);font-weight:560">Memory</span><span styl
 
     <div style="flex:none;padding:6px 26px 16px 30px;display:flex;flex-direction:column;gap:14px">
       <div class="row" style="gap:26px">
-${hero("61", "%", "of 32 GB in use")}
+${hero("54", "%", "of 32 GB in use")}
 ${divider}
 ${stat("12.4 GB", "App")}
 ${stat("3.2 GB", "Wired")}
@@ -516,7 +512,7 @@ ${stat("0 B", "Swap")}
 
       <div class="card" style="flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;gap:14px">
         <div class="row" style="gap:18px">
-          <span class="cap">Last 60 seconds</span>
+          <span class="cap">Last 60 seconds · full height is 32 GB</span>
           <div class="row" style="margin-left:auto;gap:16px">
             <span class="row" style="gap:6px"><span class="dot" style="background:var(--c-media)"></span><span style="font-size:11.5px;color:var(--t2)">Compressed</span></span>
             <span class="row" style="gap:6px"><span class="dot" style="background:var(--c-developer)"></span><span style="font-size:11.5px;color:var(--t2)">Wired</span></span>
@@ -535,13 +531,13 @@ ${stat("0 B", "Swap")}
         </div>
 
         <div class="row" style="gap:14px;padding-top:14px;border-top:1px solid var(--line)">
-          <div style="flex:1;display:flex;flex-direction:column;gap:7px">
-            <div class="row" style="gap:8px"><span class="cap">Swap used</span><span class="num" style="margin-left:auto;font-size:12px;font-weight:620">0 B</span></div>
-            <div style="height:8px;border-radius:999px;background:var(--sunken)"></div>
+          <div class="row" style="flex:1;gap:10px">
+            <span class="cap">Swap used</span>
+            <span class="num" style="margin-left:auto;font-size:13px;font-weight:630">0 B</span>
           </div>
-          <div style="flex:1;display:flex;flex-direction:column;gap:7px">
-            <div class="row" style="gap:8px"><span class="cap">Compression ratio</span><span class="num" style="margin-left:auto;font-size:12px;font-weight:620">2.4×</span></div>
-            <div style="height:8px;border-radius:999px;background:var(--sunken)"><div style="width:41%;height:100%;border-radius:999px;background:var(--c-media)"></div></div>
+          <div style="flex:1.6;display:flex;flex-direction:column;gap:7px">
+            <div class="row" style="gap:8px"><span class="cap">Compressed from 4.3 GB</span><span class="num" style="margin-left:auto;font-size:12px;font-weight:620">1.8 GB</span></div>
+            <div style="height:8px;border-radius:999px;background:var(--sunken)"><div style="width:42%;height:100%;border-radius:999px;background:var(--c-media)"></div></div>
           </div>
         </div>
       </div>
@@ -552,17 +548,15 @@ ${stat("0 B", "Swap")}
           <span class="num" style="font-size:11px;color:var(--t3)">of 412</span>
         </div>
         <div style="flex:1;min-height:0;padding:0 18px 16px;display:flex;flex-direction:column;gap:11px">
-${proc("Google Chrome", "applications", "3.84 GB", 100)}
-${proc("Xcode", "developer", "2.91 GB", 76)}
-${proc("Final Cut Pro", "media", "1.62 GB", 42)}
-${proc("Simulator", "applications", "1.08 GB", 28)}
-${proc("Slack", "applications", "842 MB", 21)}
-${proc("WindowServer", "system", "611 MB", 16)}
-${proc("Safari", "applications", "588 MB", 15)}
-${proc("Photos", "media", "441 MB", 11)}
-${proc("Music", "media", "305 MB", 8)}
-${proc("Figma", "applications", "288 MB", 7)}
-${proc("Docker", "developer", "241 MB", 6)}
+${proc("Google Chrome", "applications", "3.24 GB", 100)}
+${proc("Xcode", "developer", "2.41 GB", 74)}
+${proc("Final Cut Pro", "media", "1.32 GB", 41)}
+${proc("Simulator", "applications", "880 MB", 27)}
+${proc("Slack", "applications", "642 MB", 20)}
+${proc("WindowServer", "system", "511 MB", 16)}
+${proc("Safari", "applications", "478 MB", 15)}
+${proc("Photos", "media", "362 MB", 11)}
+${proc("Music", "media", "241 MB", 7)}
         </div>
 
         <div style="margin-top:auto;padding:16px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:11px">
