@@ -86,6 +86,30 @@
   --cat-other: #b4b8c1;
   --cat-unknown: #c8cad1;
 
+  /*
+   * A treemap cell is a card now rather than a flat fill, so each category
+   * also carries a tint. The solid hue stays for the dot and the bars, which
+   * is what keeps the name and the size legible on top of it.
+   */
+  --tint-applications: #eff2fb;
+  --edge-applications: #e3e9f8;
+  --tint-documents: #edf8f2;
+  --edge-documents: #dff2e8;
+  --tint-media: #f4eef6;
+  --edge-media: #ece0ef;
+  --tint-downloads: #f8f1e7;
+  --edge-downloads: #f2e7d7;
+  --tint-developer: #e8f5f3;
+  --edge-developer: #d8efeb;
+  --tint-caches: #f6f0e6;
+  --edge-caches: #f0e6d4;
+  --tint-system: #f0f1f4;
+  --edge-system: #e5e7ed;
+  --tint-other: #f2f3f6;
+  --edge-other: #e9eaef;
+  --tint-unknown: #f4f4f7;
+  --edge-unknown: #ebebf0;
+
   /* Status. Used for text and small marks only, never as a full-bleed alarm. */
   --status-info: #2f6fd0;
   --status-caution: #a8762a;
@@ -104,6 +128,13 @@
   --text-lg: 20px;
   --text-xl: 28px;
   --text-2xl: 34px;
+  /*
+   * The display sizes. DiskMate used to explain itself in sentences at 13px;
+   * the redesign says the same thing with a number you can read at a glance,
+   * and a figure that large needs a size the body scale does not reach.
+   */
+  --text-figure: 36px;
+  --text-display: 46px;
 
   /* Spacing, on a 4px grid. */
   --space-1: 4px;
@@ -117,9 +148,14 @@
   --radius-sm: 5px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-xl: 16px;
 
   /* Depth is almost absent by design: one soft shadow, used sparingly. */
   --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.05), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  /* One step deeper, for the cards that now float over the window ground. */
+  --shadow-card:
+    0 0 0 0.5px rgba(0, 0, 0, 0.055), 0 1px 2px rgba(0, 0, 0, 0.04),
+    0 14px 30px -20px rgba(0, 0, 0, 0.3);
 
   --duration-fast: 110ms;
   --duration-base: 180ms;
@@ -170,6 +206,54 @@
     --cat-system: #8f97a6;
     --cat-other: #6e7380;
     --cat-unknown: #5c606b;
+
+  /*
+   * A treemap cell is a card now rather than a flat fill, so each category
+   * also carries a tint. The solid hue stays for the dot and the bars, which
+   * is what keeps the name and the size legible on top of it.
+   */
+  --tint-applications: #262a39;
+  --edge-applications: #1f222d;
+  --tint-documents: #16271f;
+  --edge-documents: #12201a;
+  --tint-media: #2c2432;
+  --edge-media: #241e29;
+  --tint-downloads: #322b16;
+  --edge-downloads: #292312;
+  --tint-developer: #1b2f2d;
+  --edge-developer: #172625;
+  --tint-caches: #2f2718;
+  --edge-caches: #262014;
+  --tint-system: #2b2e34;
+  --edge-system: #23252b;
+  --tint-other: #2a2b31;
+  --edge-other: #222327;
+  --tint-unknown: #26262b;
+  --edge-unknown: #1f1f24;
+
+    /*
+     * A treemap cell is a card now rather than a flat fill, so each category
+   * also carries a tint. The solid hue stays for the dot and the bars, which
+   * is what keeps the name and the size legible on top of it.
+     */
+    --tint-applications: #262a39;
+    --edge-applications: #1f222d;
+    --tint-documents: #16271f;
+    --edge-documents: #12201a;
+    --tint-media: #2c2432;
+    --edge-media: #241e29;
+    --tint-downloads: #322b16;
+    --edge-downloads: #292312;
+    --tint-developer: #1b2f2d;
+    --edge-developer: #172625;
+    --tint-caches: #2f2718;
+    --edge-caches: #262014;
+    --tint-system: #2b2e34;
+    --edge-system: #23252b;
+    --tint-other: #2a2b31;
+    --edge-other: #222327;
+    --tint-unknown: #26262b;
+    --edge-unknown: #1f1f24;
 
     --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
   }

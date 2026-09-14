@@ -22,18 +22,28 @@
 }
 
 .sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   padding: 0 var(--space-2);
+}
+
+.sidebar__mark {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 8px;
+  color: #fff;
+  background: linear-gradient(158deg, var(--accent), var(--accent-strong));
+  box-shadow: 0 1px 2px rgba(47, 111, 208, 0.35);
 }
 
 .sidebar__title {
   font-size: var(--text-md);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.sidebar__tagline {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  font-weight: 640;
+  letter-spacing: -0.018em;
 }
 
 .sidebar__nav {
@@ -57,9 +67,10 @@
   align-items: center;
   gap: var(--space-2);
   width: 100%;
-  padding: 5px var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-2);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: transparent;
   font-size: var(--text-base);
   text-align: left;
@@ -95,6 +106,9 @@
 }
 
 .sidebar__footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   margin-top: auto;
   padding: var(--space-2);
   font-size: var(--text-xs);
@@ -113,7 +127,7 @@
 
 .main__header {
   flex: none;
-  padding: 34px var(--space-6) var(--space-4);
+  padding: 34px var(--space-6) var(--space-3);
   -webkit-app-region: drag;
 }
 
@@ -134,12 +148,6 @@
   font-size: var(--text-lg);
   font-weight: 600;
   letter-spacing: -0.015em;
-}
-
-.page-subtitle {
-  margin-top: 2px;
-  font-size: var(--text-base);
-  color: var(--text-secondary);
 }
 
 .section-heading {
@@ -295,19 +303,7 @@
 
 /* ---------------------------------------------------------------- meter -- */
 
-.meter {
-  display: flex;
-  height: 12px;
-  border-radius: 6px;
-  overflow: hidden;
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
 
-.meter__segment {
-  min-width: 2px;
-  transition: flex-grow var(--duration-base) var(--ease);
-}
 
 .meter__legend {
   display: flex;
@@ -695,49 +691,82 @@
 
 /* ------------------------------------------------------------ volumes -- */
 
-.volume-list {
+/* One wrapping row of chips. The full description of a volume lives in the
+   chip's tooltip, where it is available without being in the way. */
+.volume-bar {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-1);
+}
+
+.volume-bar__actions {
+  display: flex;
+  align-items: center;
   gap: var(--space-1);
+  margin-left: auto;
 }
 
-.volume-option {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px var(--space-3);
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: transparent;
-  text-align: left;
+.volume-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 30px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: 999px;
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-panel);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
   cursor: default;
+  transition: box-shadow var(--duration-fast) var(--ease);
 }
 
-.volume-option:hover {
+.volume-chip:hover {
   background: var(--surface-hover);
 }
 
-.volume-option[aria-pressed="true"] {
-  border-color: var(--accent);
+.volume-chip--selected {
   background: var(--surface-selected);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  color: var(--accent-strong);
 }
 
-.volume-option__name {
-  font-weight: 500;
+.volume-chip__name {
+  font-weight: 560;
+  letter-spacing: -0.01em;
 }
 
-.volume-option__meta {
-  grid-column: 1 / -1;
-  font-size: var(--text-sm);
+.volume-chip__meter {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 0.5px var(--line);
+  overflow: hidden;
+}
+
+.volume-chip__meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--grey-5);
+}
+
+.volume-chip--selected .volume-chip__meter > span {
+  background: var(--accent);
+}
+
+.volume-chip__size {
   color: var(--text-tertiary);
+  white-space: nowrap;
 }
 
-.volume-option__capacity {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.volume-chip__flag {
+  color: var(--status-caution);
+  font-weight: 560;
 }
 
 /* ============================================================ views ===== */
@@ -779,9 +808,237 @@
   box-shadow: var(--shadow-panel);
 }
 
+/* ------------------------------------------------------- headline ----- */
+
+/*
+ * The top of the Storage screen: one figure, one bar, one legend. It carries
+ * what three stacked panels used to say in prose.
+ */
+.headline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-1) 0;
+}
+
+.headline__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.headline__figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.headline__number {
+  font-size: var(--text-display);
+  font-weight: 630;
+  letter-spacing: -0.033em;
+  line-height: 1;
+}
+
+.headline__caption {
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.headline__rule {
+  width: 1px;
+  height: 38px;
+  background: var(--line);
+}
+
+.headline__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.headline__stat > :first-child {
+  font-size: var(--text-lg);
+  font-weight: 620;
+  letter-spacing: -0.025em;
+}
+
+.headline__stat > :last-child {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.headline__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.headline__when {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+/* The meter and the legend are one object: the bar gives the proportions and
+   the chips underneath name them. */
+.headline__bar {
+  display: flex;
+  gap: 2px;
+  height: 16px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 0.5px var(--line);
+}
+
+.headline__bar > span {
+  min-width: 0;
+}
+
+.headline__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.headline__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.headline__chip > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.headline__chip > .num {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.headline__chip--muted {
+  color: var(--text-secondary);
+}
+
 /* -------------------------------------------------------- treemap ----- */
 
 .treemap,
+.sunburst {
+  margin: 0;
+}
+
+/*
+ * The plot keeps the aspect ratio the layout was computed in, so a cell can be
+ * positioned as a percentage and stay exactly where squarify put it at any
+ * window width.
+ */
+.treemap__plot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 960 / 560;
+}
+
+.treemap__cell {
+  position: absolute;
+}
+
+.treemap__card {
+  position: absolute;
+  /* The gap between cells is inset rather than a border, so neighbouring cards
+     are separated by the window ground instead of by a line. */
+  inset: 2.5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: 11px 12px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition:
+    box-shadow var(--duration-fast) var(--ease),
+    filter var(--duration-fast) var(--ease);
+}
+
+.treemap__card--hover {
+  filter: brightness(0.975);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.treemap__card--selected,
+.treemap__card--selected.treemap__card--hover {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.treemap__cell-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.treemap__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.treemap__cell-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 590;
+  letter-spacing: -0.013em;
+  color: var(--text-primary);
+}
+
+.treemap__cell-size {
+  font-weight: 630;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* The caption is reserved at a fixed height so hovering does not reflow the
+   chart underneath it. */
+.treemap__caption {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-height: 34px;
+  padding: var(--space-3) var(--space-1) 0;
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.treemap__name {
+  font-weight: 600;
+}
+
+.treemap__meta {
+  color: var(--text-secondary);
+}
+
+.treemap__path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
 .sunburst {
   margin: 0;
 }
@@ -1407,6 +1664,182 @@
     position: static;
     max-height: none;
   }
+}
+
+/* ----------------------------------------------------------- bars ----- */
+
+/*
+ * Stacked columns whose full height is a fixed ceiling. The gap between them
+ * is what makes it read as samples over time rather than as one area.
+ */
+.bars-plot {
+  position: relative;
+}
+
+.bars-plot__ceiling {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.bars {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+  /* A line every quarter of the ceiling. The columns are drawn against a fixed
+     maximum, so the headroom above them is the reading. */
+  background:
+    linear-gradient(to top, var(--line) 0 1px, transparent 1px) 0 100% / 100% 25% repeat-y;
+  border-top: 1px solid var(--line);
+}
+
+.bars__column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1px;
+}
+
+.bars__column > span:first-child {
+  border-radius: 2px 2px 0 0;
+}
+
+.bars__column > span:last-child {
+  border-radius: 0 0 2px 2px;
+}
+
+.bars__waiting {
+  align-self: flex-end;
+  width: 100%;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ------------------------------------------------------- findings ----- */
+
+/*
+ * A finding is a card, not a panel with a table in it.
+ *
+ * The old shape put a title, a summary sentence, a per-item reason and a full
+ * path on screen for every candidate, which is a great deal of prose to say
+ * "this is build output". The card says the size, draws what is inside it, and
+ * keeps the rows a disclosure away for when the detail is the point.
+ */
+.findings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: var(--space-4);
+}
+
+.finding {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-card);
+}
+
+.finding--staged {
+  box-shadow: var(--shadow-card), inset 0 0 0 1.5px var(--accent);
+}
+
+.finding__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.finding__tile {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 11px;
+  color: var(--text-secondary);
+}
+
+.finding__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-base);
+  font-weight: 590;
+  letter-spacing: -0.013em;
+}
+
+.finding__check {
+  margin-left: auto;
+  flex: none;
+}
+
+.finding__figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.finding__figure > .num {
+  font-size: 29px;
+  font-weight: 640;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.finding__count {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* The biggest things inside the finding, on the finding's own scale. */
+.finding__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 56px;
+}
+
+.finding__bars > span {
+  flex: 1;
+  border-radius: 4px;
+  min-width: 0;
+}
+
+.finding__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.finding__reason {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.finding__items > summary {
+  padding-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.finding__items[open] > summary {
+  margin-bottom: var(--space-2);
 }
 
 /* ------------------------------------------------- duplicate funnel ------ */

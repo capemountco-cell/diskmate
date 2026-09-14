@@ -4,7 +4,10 @@ import { buildHierarchy, squarify, type PlacedNode } from "../lib/hierarchy";
 import { formatBytes, formatPercent } from "../lib/format";
 import type { EntryRow } from "../lib/types";
 
-import { CATEGORY_COLORS } from "./Meter";
+import { CATEGORY_COLORS, categoryFill } from "./categories";
+
+/** The coordinate space the layout is computed in. Cells render as a share of it. */
+const SPACE = { width: 960, height: 560 };
 
 /**
  * The treemap.
@@ -14,22 +17,20 @@ import { CATEGORY_COLORS } from "./Meter";
  * colour here as in the breakdown bar above it; it is not decoration and it is
  * not random.
  *
- * Labels appear only where they fit. A treemap covered in truncated text is
- * harder to read than one that lets you hover.
+ * Drawn as elements rather than SVG rects. A rect can hold a fill and a
+ * clipped label; a card can hold a tint, a category dot, a name that truncates
+ * properly and the size set large enough to read without hovering - which is
+ * the difference between a chart you interrogate and one you glance at.
  */
 export function Treemap({
   rows,
   rootId,
-  width = 900,
-  height = 460,
   onOpen,
   selectedId = null,
   onSelect,
 }: {
   rows: EntryRow[];
   rootId: number;
-  width?: number;
-  height?: number;
   onOpen: (row: EntryRow) => void;
   /** Drawn with a ring, so the inspector and the map agree on what is chosen. */
   selectedId?: number | null;
@@ -39,8 +40,13 @@ export function Treemap({
 
   const placed = useMemo(() => {
     const tree = buildHierarchy(rows, rootId);
-    return squarify(tree, { x: 0, y: 0, width, height }, 0, 3);
-  }, [rows, rootId, width, height]);
+    // Top level only: maxDepth is an inclusive bound, so 0 means no children.
+    // Nested rectangles worked when a cell was a flat fill; as cards they stack
+    // their own tint, padding and label on top of the parent's and the map
+    // stops being readable at a glance. Depth is reached by opening the folder,
+    // which is what the double-click is for.
+    return squarify(tree, { x: 0, y: 0, ...SPACE }, 0, 0);
+  }, [rows, rootId]);
 
   if (placed.length === 0) {
     return (
@@ -56,10 +62,8 @@ export function Treemap({
 
   return (
     <figure className="treemap">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        width="100%"
-        height={height}
+      <div
+        className="treemap__plot"
         role="img"
         aria-label="Treemap of folder sizes"
         onMouseLeave={() => setHovered(null)}
@@ -75,22 +79,20 @@ export function Treemap({
             onSelect={onSelect}
           />
         ))}
-      </svg>
+      </div>
 
       <figcaption className="treemap__caption">
         {hovered ? (
           <>
             <span className="treemap__name">{hovered.node.row.name}</span>
-            <span className="treemap__meta">
+            <span className="treemap__meta num">
               {formatBytes(hovered.node.row.size)}
               {total > 0 && ` · ${formatPercent(hovered.node.row.size / total)} of this view`}
             </span>
             <span className="treemap__path mono">{hovered.node.row.path}</span>
           </>
         ) : (
-          <span className="muted">
-            Click a rectangle to inspect it. Double-click a folder to go into it.
-          </span>
+          <span className="muted">Click to inspect · double-click a folder to open it</span>
         )}
       </figcaption>
     </figure>
@@ -99,12 +101,25 @@ export function Treemap({
 
 function cellClass(isHovered: boolean, isSelected: boolean): string {
   return [
-    "treemap__rect",
-    isHovered ? "treemap__rect--hover" : "",
-    isSelected ? "treemap__rect--selected" : "",
+    "treemap__card",
+    isHovered ? "treemap__card--hover" : "",
+    isSelected ? "treemap__card--selected" : "",
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+/**
+ * How large the size reads, by how much room the cell has.
+ *
+ * Returning null is a real answer: a number crammed into a sliver is noise,
+ * and the cell still carries its colour, its name and its area.
+ */
+function figureSize(width: number, height: number): number | null {
+  if (width < 80 || height < 58) return null;
+  if (width >= 190 && height >= 150) return 24;
+  if (height >= 104) return 20;
+  return 16;
 }
 
 function Cell({
@@ -123,65 +138,45 @@ function Cell({
   onSelect?: (row: EntryRow) => void;
 }) {
   const { node, depth, x, y, width, height } = item;
-  if (width < 1 || height < 1) return null;
+  if (width < 3 || height < 3) return null;
 
-  const isFolder = node.row.kind === "directory";
-  const color = CATEGORY_COLORS[node.row.category] ?? "var(--cat-unknown)";
-  // Nested rectangles sit on top of their parent, so they lighten rather than
-  // repeat the same fill: depth reads as depth without a second colour scale.
-  const opacity = depth === 0 ? 0.9 : 0.55 + depth * 0.14;
-  const showLabel = width > 52 && height > 18;
+  const row = node.row;
+  const isFolder = row.kind === "directory";
+  const color = CATEGORY_COLORS[row.category] ?? "var(--cat-unknown)";
+  const showName = width > 62 && height > 26;
+  const figure = figureSize(width, height);
 
   return (
-    <g
+    <div
+      className="treemap__cell"
+      style={{
+        left: `${(x / SPACE.width) * 100}%`,
+        top: `${(y / SPACE.height) * 100}%`,
+        width: `${(width / SPACE.width) * 100}%`,
+        height: `${(height / SPACE.height) * 100}%`,
+        zIndex: depth + 1,
+      }}
       onMouseEnter={() => onHover(item)}
-      onClick={onSelect ? () => onSelect(node.row) : undefined}
-      onDoubleClick={isFolder ? () => onOpen(node.row) : undefined}
-      style={{ cursor: "default" }}
+      onClick={onSelect ? () => onSelect(row) : undefined}
+      onDoubleClick={isFolder ? () => onOpen(row) : undefined}
     >
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={color}
-        fillOpacity={opacity}
-        stroke="var(--surface-panel)"
-        strokeWidth={depth === 0 ? 1.5 : 0.75}
-        rx={depth === 0 ? 3 : 1.5}
+      <div
         className={cellClass(isHovered, isSelected)}
-      />
-      {showLabel && (
-        <text
-          x={x + 6}
-          y={y + 13}
-          className="treemap__label"
-          clipPath={`inset(0 0 0 0)`}
-          style={{ fontSize: depth === 0 ? 11 : 10 }}
-        >
-          {truncateToWidth(node.row.name, width - 10, depth === 0 ? 11 : 10)}
-        </text>
-      )}
-      {showLabel && height > 32 && depth === 0 && (
-        <text x={x + 6} y={y + 27} className="treemap__sublabel">
-          {formatBytes(node.row.size)}
-        </text>
-      )}
-    </g>
+        style={{ background: categoryFill(row.category) }}
+        title={`${row.name} — ${formatBytes(row.size)}`}
+      >
+        {showName && (
+          <div className="treemap__cell-head">
+            <i className="treemap__dot" style={{ background: color }} />
+            <span className="treemap__cell-name">{row.name}</span>
+          </div>
+        )}
+        {figure !== null && (
+          <div className="treemap__cell-size num" style={{ fontSize: figure }}>
+            {formatBytes(row.size)}
+          </div>
+        )}
+      </div>
+    </div>
   );
-}
-
-/**
- * Trim a label to the space available.
- *
- * SVG has no text overflow, so this estimates from an average glyph width
- * rather than measuring. Slightly conservative on purpose: a label that stops
- * short reads better than one that spills over its rectangle.
- */
-function truncateToWidth(text: string, pixels: number, fontSize: number): string {
-  const perChar = fontSize * 0.56;
-  const max = Math.floor(pixels / perChar);
-  if (max <= 1) return "";
-  if (text.length <= max) return text;
-  return `${text.slice(0, Math.max(max - 1, 1))}…`;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { CATEGORY_COLORS } from "../../components/Meter";
+import { CATEGORY_COLORS } from "../../components/categories";
 import { Button, Safety } from "../../components/primitives";
 import {
   formatBytes,

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { Meter } from "../../components/Meter";
 import { Button, Note, Panel, Spinner, Stat } from "../../components/primitives";
 import { Sparkline } from "../../components/Sparkline";
+import { StackedBars } from "../../components/StackedBars";
 import { formatBytes, formatPercent } from "../../lib/format";
 import { describeError, engine, engineAvailable } from "../../lib/ipc";
 import type { MemoryPressure, MonitorReport } from "../../lib/types";
@@ -84,32 +84,39 @@ export function MemoryPage() {
         }
       >
         {latest && (
-          <Meter
-            total={total}
-            segments={[
-              {
-                id: "used",
-                label: "App memory and wired",
-                value: latest.memoryUsedBytes,
-                color: "var(--accent)",
-              },
-              {
-                id: "cached",
-                label: "Cached files",
-                value: latest.memoryCachedBytes,
-                color: "var(--cat-documents)",
-              },
-            ]}
-          />
+          <div className="headline__top" style={{ gap: "var(--space-6)" }}>
+            <div className="headline__figure">
+              <span className="headline__number num">
+                {total > 0 ? formatPercent(latest.memoryUsedBytes / total) : "—"}
+              </span>
+              <span className="headline__caption">of {formatBytes(total)} in use</span>
+            </div>
+            <span className="headline__rule" />
+            <div className="headline__stat">
+              <span className="num">{formatBytes(latest.memoryUsedBytes)}</span>
+              <span>App and wired</span>
+            </div>
+            <div className="headline__stat">
+              <span className="num">{formatBytes(latest.memoryCachedBytes)}</span>
+              <span>Cached</span>
+            </div>
+            <div className="headline__stat">
+              <span className="num">{formatBytes(latest.swapUsedBytes ?? 0)}</span>
+              <span>Swap</span>
+            </div>
+          </div>
         )}
       </Panel>
 
       <div className="monitor-grid">
         <Panel title="Memory in use" note={windowLabel}>
-          <Sparkline
-            values={used}
-            baseline={cached}
+          <StackedBars
+            series={[
+              { key: "used", color: "var(--accent)", values: used },
+              { key: "cached", color: "var(--cat-documents)", values: cached },
+            ]}
             max={total}
+            ceiling={formatBytes(total)}
             label="Memory in use over time, with cache stacked beneath"
           />
           <ul className="meter__legend">
@@ -156,14 +163,9 @@ export function MemoryPage() {
         </Panel>
       </div>
 
-      <Note tone="info" title="Cached memory is not wasted memory.">
-        Your Mac keeps recently used files in memory that nothing else needs right now. That is
-        why a healthy machine reports very little free memory, and why DiskMate does not offer
-        to empty it.
-      </Note>
-
       <p className="faint">
-        Per-process memory and any action on a running process are not part of this build.
+        Cached memory is not wasted memory, so DiskMate does not offer to empty it. Per-process
+        memory is not part of this build.
       </p>
     </div>
   );

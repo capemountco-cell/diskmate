@@ -12,7 +12,8 @@ import {
 } from "../../components/primitives";
 import { formatBytes, formatCount, formatRelative, truncatePath } from "../../lib/format";
 import { engine, engineAvailable } from "../../lib/ipc";
-import type { CleanupCandidate, DuplicateStats } from "../../lib/types";
+import { FolderIcon } from "../../components/icons";
+import type { CandidateGroup, CleanupCandidate, DuplicateStats } from "../../lib/types";
 
 import { useCleanup, type CleanupTab } from "./useCleanup";
 
@@ -117,6 +118,23 @@ export function CleanupPage({
 
 type Controller = ReturnType<typeof useCleanup>;
 
+/**
+ * The tint a finding's card carries, borrowed from the storage categories so a
+ * cache looks like a cache on both screens.
+ */
+const KIND_TINT: Record<string, string> = {
+  trash: "other",
+  cache: "caches",
+  log: "caches",
+  developerArtifact: "developer",
+  oldDownload: "downloads",
+  bigAndUntouched: "media",
+  duplicateCopy: "documents",
+  appLeftover: "applications",
+  appBundle: "applications",
+  other: "other",
+};
+
 function Suggestions({ cleanup }: { cleanup: Controller }) {
   if (cleanup.busy && cleanup.groups.length === 0) return <Spinner />;
   if (cleanup.groups.length === 0) {
@@ -131,43 +149,96 @@ function Suggestions({ cleanup }: { cleanup: Controller }) {
   }
 
   return (
-    <div className="stack">
-      {cleanup.groups.map((group) => {
-        const items = cleanup.candidates.filter(
-          (candidate) => candidate.kind === group.kind && candidate.safety === group.safety,
-        );
-        const unstaged = items.filter((item) => !cleanup.stagedIds.has(item.id));
-        return (
-          <Panel
-            key={`${group.kind}-${group.safety}`}
-            title={
-              <span className="row">
-                {group.label} <Safety safety={group.safety} />
-              </span>
-            }
-            note={group.summary}
-            action={
-              unstaged.length > 0 && (
-                <Button onClick={() => cleanup.stage(unstaged.map((item) => item.id))}>
-                  Add {formatCount(unstaged.length)} ·{" "}
-                  {formatBytes(unstaged.reduce((sum, item) => sum + item.bytes, 0))}
-                </Button>
-              )
-            }
-            flush
-          >
-            {items.slice(0, 12).map((candidate) => (
-              <CandidateRow key={candidate.id} candidate={candidate} cleanup={cleanup} />
-            ))}
-            {items.length > 12 && (
-              <p className="faint" style={{ padding: "var(--space-3) var(--space-4)" }}>
-                and {formatCount(items.length - 12)} more, included when you add the group.
-              </p>
-            )}
-          </Panel>
-        );
-      })}
+    <div className="findings">
+      {cleanup.groups.map((group) => (
+        <FindingCard key={`${group.kind}-${group.safety}`} group={group} cleanup={cleanup} />
+      ))}
     </div>
+  );
+}
+
+/**
+ * One finding, as a card.
+ *
+ * The bars are the biggest things inside the finding, on the finding's own
+ * scale. They replace a paragraph: a cache made of one enormous entry and a
+ * cache made of four hundred even ones need different decisions, and that is
+ * visible at a glance rather than described.
+ */
+function FindingCard({ group, cleanup }: { group: CandidateGroup; cleanup: Controller }) {
+  const items = cleanup.candidates.filter(
+    (candidate) => candidate.kind === group.kind && candidate.safety === group.safety,
+  );
+  const unstaged = items.filter((item) => !cleanup.stagedIds.has(item.id));
+  const allStaged = items.length > 0 && unstaged.length === 0;
+  const tint = KIND_TINT[group.kind] ?? "other";
+  const bars = [...items].sort((a, b) => b.bytes - a.bytes).slice(0, 8);
+  const widest = Math.max(1, ...bars.map((item) => item.bytes));
+
+  return (
+    <section className={allStaged ? "finding finding--staged" : "finding"}>
+      <div className="finding__head">
+        <span
+          className="finding__tile"
+          style={{ background: `linear-gradient(158deg, var(--tint-${tint}), var(--edge-${tint}))` }}
+          aria-hidden="true"
+        >
+          <FolderIcon size={18} />
+        </span>
+        <span className="finding__name">{group.label}</span>
+        <input
+          type="checkbox"
+          className="finding__check"
+          checked={allStaged}
+          aria-label={`Add ${group.label} to the queue`}
+          onChange={() =>
+            allStaged
+              ? cleanup.unstage(items.map((item) => item.id))
+              : cleanup.stage(unstaged.map((item) => item.id))
+          }
+        />
+      </div>
+
+      <div className="finding__figure">
+        <span className="num">{formatBytes(group.bytes)}</span>
+        <span className="finding__count">{formatCount(group.count)} items</span>
+      </div>
+
+      {bars.length > 1 && (
+        <div className="finding__bars" aria-hidden="true">
+          {bars.map((item) => (
+            <span
+              key={item.id}
+              style={{
+                height: `${Math.max(7, (item.bytes / widest) * 100)}%`,
+                background: `var(--cat-${tint})`,
+                opacity: 0.35 + (item.bytes / widest) * 0.55,
+              }}
+              title={`${item.name} — ${formatBytes(item.bytes)}`}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="finding__foot">
+        <Safety safety={group.safety} />
+        <span className="finding__reason" title={group.summary}>
+          {group.summary}
+        </span>
+      </div>
+
+      <details className="finding__items">
+        <summary>{formatCount(items.length)} items</summary>
+        {items.slice(0, 12).map((candidate) => (
+          <CandidateRow key={candidate.id} candidate={candidate} cleanup={cleanup} />
+        ))}
+        {items.length > 12 && (
+          <p className="faint" style={{ padding: "var(--space-3) var(--space-4)" }}>
+            and {formatCount(items.length - 12)} more, included when you add the group.
+          </p>
+        )}
+      </details>
+    </section>
   );
 }
 
@@ -396,10 +467,7 @@ function Queue({ cleanup }: { cleanup: Controller }) {
             <RemovalFlow />
 
             <p className="stat__hint" style={{ marginTop: "var(--space-3)" }}>
-              DiskMate removes exactly the {formatCount(cleanup.staged.length)} items listed
-              here, totalling {formatBytes(cleanup.stagedTotal)}, and nothing else. If the list
-              or the total changes before you click, the whole operation is refused rather than
-              partly done.
+              This list and this total, or nothing.
             </p>
           </>
         )}
@@ -474,11 +542,14 @@ function Funnel({ stats, totalFiles }: { stats: DuplicateStats; totalFiles: numb
  * every cleaner on the App Store makes; the steps are checkable.
  */
 function RemovalFlow() {
+  // Four words and four icons. Each step used to carry a second line
+  // explaining itself, which is a paragraph of reassurance next to a button
+  // whose whole job is to be unsurprising.
   const steps = [
-    { key: "queue", title: "Your list", note: "only what you added", icon: ListIcon },
-    { key: "check", title: "Checked", note: "protected, changed, gone", icon: ShieldIcon },
-    { key: "trash", title: "Trash", note: "not deleted", icon: TrashIcon },
-    { key: "back", title: "Put Back", note: "whenever you like", icon: UndoIcon },
+    { key: "queue", title: "Your list", icon: ListIcon },
+    { key: "check", title: "Checked", icon: ShieldIcon },
+    { key: "trash", title: "Trash", icon: TrashIcon },
+    { key: "back", title: "Put Back", icon: UndoIcon },
   ];
 
   return (
@@ -494,7 +565,6 @@ function RemovalFlow() {
             <step.icon />
           </span>
           <span className="flow__title">{step.title}</span>
-          <span className="flow__note">{step.note}</span>
         </li>
       ))}
     </ol>

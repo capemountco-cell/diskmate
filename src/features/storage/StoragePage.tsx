@@ -10,9 +10,10 @@ import { Inspector } from "./Inspector";
 import { EntryTable } from "./EntryTable";
 import { ScanStatusBar } from "./ScanStatusBar";
 import { SnapshotPanel } from "./SnapshotPanel";
-import { StorageOverview } from "./StorageOverview";
+import { ScanHeadline } from "./ScanHeadline";
+import { ScanNotes } from "./ScanNotes";
 import { StorageViews } from "./StorageViews";
-import { CapacitySummary, VolumePicker } from "./VolumePicker";
+import { VolumePicker } from "./VolumePicker";
 import { useStorage, type ScanSummary } from "./useStorage";
 
 export function StoragePage({
@@ -38,8 +39,6 @@ export function StoragePage({
     setSelected(null);
     void storage.openDirectory(row);
   };
-  const select = (row: EntryRow) => setSelected(row);
-
   if (!engineAvailable()) {
     return (
       <EmptyState title="The DiskMate engine is not running">
@@ -71,13 +70,6 @@ export function StoragePage({
         </Note>
       )}
 
-      {selectedVolume && (
-        <CapacitySummary
-          volume={selectedVolume}
-          indexedBytes={snapshot ? snapshot.scan.logicalBytes : null}
-        />
-      )}
-
       {phase === "scanning" && (
         <ScanStatusBar progress={storage.progress} onCancel={storage.cancelScan} />
       )}
@@ -104,6 +96,12 @@ export function StoragePage({
 
       {snapshot && phase !== "scanning" && (
         <>
+          <ScanHeadline
+            snapshot={snapshot}
+            volume={selectedVolume ?? null}
+            onRescan={storage.startScan}
+          />
+
           <div className="row row--between">
             <Breadcrumbs trail={ancestors} onNavigate={storage.openDirectory} />
             <div className="row">
@@ -115,7 +113,6 @@ export function StoragePage({
                 />
                 Hide hidden items
               </label>
-              <Button onClick={storage.startScan}>Scan again</Button>
             </div>
           </div>
 
@@ -123,7 +120,6 @@ export function StoragePage({
             <div className="stack workspace__main">
               {atRoot ? (
                 <>
-                  <StorageOverview snapshot={snapshot} onOpen={select} />
                   <StorageViews
                     scanId={snapshot.scan.scanId}
                     root={snapshot.root}
@@ -139,6 +135,7 @@ export function StoragePage({
                       />
                     }
                   />
+                  <ScanNotes snapshot={snapshot} />
                   <SnapshotPanel scanId={snapshot.scan.scanId} />
                 </>
               ) : (

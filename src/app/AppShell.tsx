@@ -39,7 +39,6 @@ export function AppShell() {
       <main className="main">
         <header className="main__header">
           <h1 className="page-title">{current.title}</h1>
-          <p className="page-subtitle">{current.subtitle}</p>
         </header>
 
         <div className="main__body">

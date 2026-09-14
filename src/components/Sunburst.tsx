@@ -4,7 +4,7 @@ import { buildHierarchy, radialLayout, type Arc } from "../lib/hierarchy";
 import { formatBytes, formatPercent } from "../lib/format";
 import type { EntryRow } from "../lib/types";
 
-import { CATEGORY_COLORS } from "./Meter";
+import { CATEGORY_COLORS } from "./categories";
 
 /**
  * The sunburst.
