@@ -68,7 +68,16 @@ jobs:
 
   macos:
     name: App (macOS)
-    runs-on: macos-14
+    # Deliberately not pinned to a numbered image. This job passed on macos-14
+    # in September and stopped existing on 2 November 2026, when that image was
+    # retired - a job asking for a retired label is cancelled one second in
+    # with no runner assigned and no logs, which reads as an infrastructure
+    # fault rather than as the workflow naming a machine that is gone.
+    # tauri.conf.json pins minimumSystemVersion to 12.0, so the image version
+    # does not decide which macOS the artifact supports, and the DMG is for
+    # whatever Mac the user actually has. Tracking the GA image is the safer
+    # default here than a pin that expires on GitHub's schedule.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
