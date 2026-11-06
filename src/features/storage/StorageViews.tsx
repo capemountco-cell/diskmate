@@ -71,7 +71,7 @@ export function StorageViews({
   }, [view, scanId, ages.length]);
 
   const note = {
-    map: "Every rectangle is sized by what it holds.",
+    map: "",
     rings: "Each ring is one folder deeper.",
     age: "What is big is rarely the question. What is big and untouched usually is.",
     browse: "Double-click a folder to look inside.",

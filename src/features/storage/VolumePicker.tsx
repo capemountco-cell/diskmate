@@ -1,8 +1,15 @@
-import { Meter } from "../../components/Meter";
-import { Button, EmptyState, Note, Panel } from "../../components/primitives";
+import { Button, EmptyState, Note } from "../../components/primitives";
 import { formatBytes, formatPercent } from "../../lib/format";
 import type { VolumeInfo } from "../../lib/types";
 
+/**
+ * Which disk, in one row.
+ *
+ * This used to be a panel of tall rows, each with a name, a capacity and a
+ * third line spelling out "Internal · APFS · Read only · /Volumes/…". That line
+ * is worth having when you need it and noise the rest of the time, so it is the
+ * chip's tooltip now and the capacity is a bar you can read without reading.
+ */
 export function VolumePicker({
   volumes,
   selectedRoot,
@@ -23,55 +30,49 @@ export function VolumePicker({
   const folderSelected =
     selectedRoot !== null && !volumes.some((v) => v.mountPoint === selectedRoot);
 
+  if (error) return <Note tone="caution">{error}</Note>;
+
+  if (!loading && volumes.length === 0 && !folderSelected) {
+    return (
+      <EmptyState title="No volumes found">
+        DiskMate could not read the list of mounted volumes on this system.
+      </EmptyState>
+    );
+  }
+
   return (
-    <Panel
-      title="Volumes"
-      action={
-        <span className="row">
-          <Button variant="quiet" onClick={onChooseFolder}>
-            Choose a folder…
-          </Button>
-          <Button variant="quiet" onClick={onRefresh} disabled={loading}>
-            Refresh
-          </Button>
+    <div className="volume-bar">
+      {loading && volumes.length === 0 && <span className="muted">Looking for volumes…</span>}
+
+      {volumes.map((volume) => (
+        <VolumeChip
+          key={volume.mountPoint}
+          volume={volume}
+          selected={volume.mountPoint === selectedRoot}
+          onSelect={() => onSelect(volume.mountPoint)}
+        />
+      ))}
+
+      {folderSelected && (
+        <span className="volume-chip" aria-current="true" title={selectedRoot!}>
+          <span className="volume-chip__name">{folderName(selectedRoot!)}</span>
+          <span className="volume-chip__size">Folder</span>
         </span>
-      }
-    >
-      {error && <Note tone="caution">{error}</Note>}
-
-      {!error && loading && volumes.length === 0 && (
-        <p className="muted">Looking for volumes…</p>
       )}
 
-      {!error && !loading && volumes.length === 0 && (
-        <EmptyState title="No volumes found">
-          DiskMate could not read the list of mounted volumes on this system.
-        </EmptyState>
-      )}
-
-      <div className="volume-list">
-        {volumes.map((volume) => (
-          <VolumeOption
-            key={volume.mountPoint}
-            volume={volume}
-            selected={volume.mountPoint === selectedRoot}
-            onSelect={() => onSelect(volume.mountPoint)}
-          />
-        ))}
-
-        {folderSelected && (
-          <button type="button" className="volume-option" aria-pressed onClick={() => {}}>
-            <span className="volume-option__name">{folderName(selectedRoot!)}</span>
-            <span className="volume-option__capacity">Folder</span>
-            <span className="volume-option__meta">{selectedRoot}</span>
-          </button>
-        )}
-      </div>
-    </Panel>
+      <span className="volume-bar__actions">
+        <Button variant="quiet" onClick={onChooseFolder}>
+          Choose a folder…
+        </Button>
+        <Button variant="quiet" onClick={onRefresh} disabled={loading}>
+          Refresh
+        </Button>
+      </span>
+    </div>
   );
 }
 
-function VolumeOption({
+function VolumeChip({
   volume,
   selected,
   onSelect,
@@ -85,17 +86,27 @@ function VolumeOption({
   const share = used !== null && total ? used / total : null;
 
   return (
-    <button type="button" className="volume-option" aria-pressed={selected} onClick={onSelect}>
-      <span className="volume-option__name">{volume.name}</span>
-      <span className="volume-option__capacity">
-        {used !== null && total
-          ? `${formatBytes(used)} of ${formatBytes(total)}`
-          : "Capacity unknown"}
-      </span>
-      <span className="volume-option__meta">
-        {describeVolume(volume)}
-        {share !== null && ` · ${formatPercent(share)} used`}
-      </span>
+    <button
+      type="button"
+      className={selected ? "volume-chip volume-chip--selected" : "volume-chip"}
+      aria-pressed={selected}
+      onClick={onSelect}
+      title={describeVolume(volume)}
+    >
+      <span className="volume-chip__name">{volume.name}</span>
+      {share !== null ? (
+        <>
+          <span className="volume-chip__meter" aria-hidden="true">
+            <span style={{ width: `${Math.min(100, share * 100)}%` }} />
+          </span>
+          <span className="volume-chip__size num">
+            {formatBytes(used!)} of {formatBytes(total!)}
+          </span>
+        </>
+      ) : (
+        <span className="volume-chip__size">Capacity unknown</span>
+      )}
+      {!volume.isReadable && <span className="volume-chip__flag">Not readable</span>}
     </button>
   );
 }
@@ -126,6 +137,9 @@ function describeVolume(volume: VolumeInfo): string {
   if (volume.isReadOnly) parts.push("Read only");
   if (!volume.isReadable) parts.push("Not readable by DiskMate");
   parts.push(volume.mountPoint);
+  const used = volume.usedBytes;
+  const total = volume.totalBytes;
+  if (used !== null && total) parts.push(`${formatPercent(used / total)} used`);
   return parts.join(" · ");
 }
 
@@ -133,47 +147,4 @@ function folderName(path: string): string {
   const trimmed = path.replace(/\/+$/, "");
   const cut = trimmed.lastIndexOf("/");
   return cut >= 0 ? trimmed.slice(cut + 1) || "/" : trimmed;
-}
-
-/** The capacity bar shown above the explorer once a volume is chosen. */
-export function CapacitySummary({
-  volume,
-  indexedBytes,
-}: {
-  volume: VolumeInfo;
-  indexedBytes: number | null;
-}) {
-  const total = volume.totalBytes ?? 0;
-  const used = volume.usedBytes ?? 0;
-
-  const segments = [
-    // What DiskMate actually walked, and the rest of what the volume reports as
-    // used. Keeping them distinct is what stops the product from implying it
-    // understands more of the disk than it does.
-    ...(indexedBytes !== null
-      ? [
-          {
-            id: "indexed",
-            label: "Indexed by DiskMate",
-            value: Math.min(indexedBytes, used),
-            color: "var(--accent)",
-          },
-          {
-            id: "other-used",
-            label: "Used, not indexed",
-            value: Math.max(used - indexedBytes, 0),
-            color: "var(--grey-5)",
-          },
-        ]
-      : [{ id: "used", label: "Used", value: used, color: "var(--grey-5)" }]),
-  ];
-
-  return (
-    <Panel
-      title={volume.name}
-      note={`${formatBytes(volume.availableBytes)} available of ${formatBytes(total)}`}
-    >
-      <Meter segments={segments} total={total} />
-    </Panel>
-  );
 }
