@@ -89,3 +89,93 @@ export const LockIcon = (props: IconProps) => (
     <path d="M5.8 7V5.2a2.2 2.2 0 0 1 4.4 0V7" />
   </Svg>
 );
+
+export const MacIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <rect x="2" y="2.8" width="12" height="8" rx="1.4" />
+    <path d="M5.6 13.6h4.8M8 10.8v2.8" />
+  </Svg>
+);
+
+export const DuplicatesIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <rect x="5.4" y="5.4" width="8.4" height="8.4" rx="1.4" />
+    <path d="M10.8 5.4V3.6a1.2 1.2 0 0 0-1.2-1.2H3.6a1.2 1.2 0 0 0-1.2 1.2v6a1.2 1.2 0 0 0 1.2 1.2h1.8" />
+  </Svg>
+);
+
+export const ApplicationsIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <rect x="2.4" y="2.4" width="4.6" height="4.6" rx="1.2" />
+    <rect x="9" y="2.4" width="4.6" height="4.6" rx="1.2" />
+    <rect x="2.4" y="9" width="4.6" height="4.6" rx="1.2" />
+    <rect x="9" y="9" width="4.6" height="4.6" rx="1.2" />
+  </Svg>
+);
+
+export const ChevronLeftIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M9.8 3.4 5.2 8l4.6 4.6" />
+  </Svg>
+);
+
+export const BoxIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M8 1.8 2.6 4.6v6.8L8 14.2l5.4-2.8V4.6z" />
+    <path d="M2.6 4.6 8 7.4l5.4-2.8M8 7.4v6.8" />
+  </Svg>
+);
+
+export const CodeIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M5.4 4.4 1.8 8l3.6 3.6M10.6 4.4 14.2 8l-3.6 3.6M9.2 2.6l-2.4 10.8" />
+  </Svg>
+);
+
+export const DownloadIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M8 2.2v7.6M4.8 6.8 8 10l3.2-3.2" />
+    <path d="M2.4 11.2v1.2a1.2 1.2 0 0 0 1.2 1.2h8.8a1.2 1.2 0 0 0 1.2-1.2v-1.2" />
+  </Svg>
+);
+
+export const ClockIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <circle cx="8" cy="8" r="5.8" />
+    <path d="M8 4.6V8l2.2 1.4" />
+  </Svg>
+);
+
+export const DocumentIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M9.2 2H4.6a1.2 1.2 0 0 0-1.2 1.2v9.6A1.2 1.2 0 0 0 4.6 14h6.8a1.2 1.2 0 0 0 1.2-1.2V5.2z" />
+    <path d="M9.2 2v3.2h3.4M5.8 8.4h4.4M5.8 10.8h4.4" />
+  </Svg>
+);
+
+export const MapIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <rect x="2" y="2" width="12" height="12" rx="1.6" />
+    <path d="M7 2v12M7 8h7M10.6 8v6" />
+  </Svg>
+);
+
+export const RankIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M2.6 4h10.8M2.6 8h7.2M2.6 12h3.6" />
+  </Svg>
+);
+
+export const TrendIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M2 11.6 6 7.6l2.6 2.6L14 4.8" />
+    <path d="M10.4 4.8H14v3.6" />
+  </Svg>
+);
+
+export const LeftBehindIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M2.6 4.4h10.8M2.6 8h6.4M2.6 11.6h4" />
+    <path d="m10.4 10.4 3.2 3.2M13.6 10.4l-3.2 3.2" />
+  </Svg>
+);

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Meter } from "../../components/Meter";
 import { Button, Note, Panel, Spinner, Stat } from "../../components/primitives";
 import { Sparkline } from "../../components/Sparkline";
+import { DisplayTitle } from "../../components/layout";
 import { formatBytes, formatPercent } from "../../lib/format";
 import { describeError, engine, engineAvailable } from "../../lib/ipc";
 import type { MemoryPressure, MonitorReport } from "../../lib/types";
@@ -45,8 +46,20 @@ export function MemoryPage() {
     };
   }, [poll]);
 
-  if (error) return <Note tone="caution">{error}</Note>;
-  if (!report) return <Spinner />;
+  if (error)
+    return (
+      <div className="page page--dashboard">
+        <DisplayTitle title="Memory" />
+        <Note tone="caution">{error}</Note>
+      </div>
+    );
+  if (!report)
+    return (
+      <div className="page page--dashboard">
+        <DisplayTitle title="Memory" />
+        <Spinner />
+      </div>
+    );
 
   const latest = report.latest;
   const total = latest?.memoryTotalBytes ?? 0;
@@ -63,108 +76,111 @@ export function MemoryPage() {
       : `Over the last ${Math.round(windowMinutes)} minutes`;
 
   return (
-    <div className="stack">
-      <Panel
-        title={
-          <span>
-            <span className={`pressure-dot pressure-dot--${report.peakPressure}`} />
-            {report.headline}
-          </span>
-        }
-        note={report.detail}
-        action={
-          <Button
-            variant="quiet"
-            onClick={() =>
-              report.running ? engine.monitorStop() : engine.monitorStart(POLL_MS, null)
-            }
-          >
-            {report.running ? "Pause" : "Resume"}
-          </Button>
-        }
-      >
-        {latest && (
-          <Meter
-            total={total}
-            segments={[
-              {
-                id: "used",
-                label: "App memory and wired",
-                value: latest.memoryUsedBytes,
-                color: "var(--accent)",
-              },
-              {
-                id: "cached",
-                label: "Cached files",
-                value: latest.memoryCachedBytes,
-                color: "var(--cat-documents)",
-              },
-            ]}
-          />
-        )}
-      </Panel>
+    <div className="page page--dashboard">
+      <DisplayTitle title="Memory" aside="Read every second while this screen is open" />
+      <div className="stack">
+        <Panel
+          title={
+            <span>
+              <span className={`pressure-dot pressure-dot--${report.peakPressure}`} />
+              {report.headline}
+            </span>
+          }
+          note={report.detail}
+          action={
+            <Button
+              variant="quiet"
+              onClick={() =>
+                report.running ? engine.monitorStop() : engine.monitorStart(POLL_MS, null)
+              }
+            >
+              {report.running ? "Pause" : "Resume"}
+            </Button>
+          }
+        >
+          {latest && (
+            <Meter
+              total={total}
+              segments={[
+                {
+                  id: "used",
+                  label: "App memory and wired",
+                  value: latest.memoryUsedBytes,
+                  color: "var(--accent)",
+                },
+                {
+                  id: "cached",
+                  label: "Cached files",
+                  value: latest.memoryCachedBytes,
+                  color: "var(--cat-documents)",
+                },
+              ]}
+            />
+          )}
+        </Panel>
 
-      <div className="monitor-grid">
-        <Panel title="Memory in use" note={windowLabel}>
-          <Sparkline
-            values={used}
-            baseline={cached}
-            max={total}
-            label="Memory in use over time, with cache stacked beneath"
-          />
-          <ul className="meter__legend">
-            <li className="legend-item">
-              <span className="legend-item__swatch" style={{ background: "var(--accent)" }} />
-              <span>App memory</span>
-            </li>
-            <li className="legend-item">
-              <span
-                className="legend-item__swatch"
-                style={{ background: "var(--cat-documents)" }}
+        <div className="monitor-grid">
+          <Panel title="Memory in use" note={windowLabel}>
+            <Sparkline
+              values={used}
+              baseline={cached}
+              max={total}
+              label="Memory in use over time, with cache stacked beneath"
+            />
+            <ul className="meter__legend">
+              <li className="legend-item">
+                <span className="legend-item__swatch" style={{ background: "var(--accent)" }} />
+                <span>App memory</span>
+              </li>
+              <li className="legend-item">
+                <span
+                  className="legend-item__swatch"
+                  style={{ background: "var(--cat-documents)" }}
+                />
+                <span>Cached</span>
+              </li>
+            </ul>
+            <div className="stat-row" style={{ marginTop: "var(--space-3)" }}>
+              <Stat
+                label="Now"
+                value={formatBytes(latest?.memoryUsedBytes)}
+                small
+                hint={
+                  total > 0 ? formatPercent((latest?.memoryUsedBytes ?? 0) / total) : undefined
+                }
               />
-              <span>Cached</span>
-            </li>
-          </ul>
-          <div className="stat-row" style={{ marginTop: "var(--space-3)" }}>
-            <Stat
-              label="Now"
-              value={formatBytes(latest?.memoryUsedBytes)}
-              small
-              hint={
-                total > 0 ? formatPercent((latest?.memoryUsedBytes ?? 0) / total) : undefined
-              }
-            />
-            <Stat label="Installed" value={formatBytes(total)} small />
-          </div>
-        </Panel>
+              <Stat label="Installed" value={formatBytes(total)} small />
+            </div>
+          </Panel>
 
-        <Panel title="Swap" note="Memory your Mac had to write to disk.">
-          <Sparkline values={swap} max={peakSwap} label="Swap in use over time" />
-          <div className="stat-row" style={{ marginTop: "var(--space-3)" }}>
-            <Stat label="In use" value={formatBytes(latest?.swapUsedBytes ?? 0)} small />
-            <Stat
-              label="Pressure"
-              value={<PressureLabel pressure={latest?.pressure ?? "unknown"} />}
-              small
-              hint={
-                report.peakPressure !== (latest?.pressure ?? "unknown")
-                  ? `peaked at ${report.peakPressure}`
-                  : undefined
-              }
-            />
-          </div>
-        </Panel>
+          <Panel title="Swap" note="Memory your Mac had to write to disk.">
+            <Sparkline values={swap} max={peakSwap} label="Swap in use over time" />
+            <div className="stat-row" style={{ marginTop: "var(--space-3)" }}>
+              <Stat label="In use" value={formatBytes(latest?.swapUsedBytes ?? 0)} small />
+              <Stat
+                label="Pressure"
+                value={<PressureLabel pressure={latest?.pressure ?? "unknown"} />}
+                small
+                hint={
+                  report.peakPressure !== (latest?.pressure ?? "unknown")
+                    ? `peaked at ${report.peakPressure}`
+                    : undefined
+                }
+              />
+            </div>
+          </Panel>
+        </div>
+
+        <Note tone="info" title="Cached memory is not wasted memory.">
+          Your Mac keeps recently used files in memory that nothing else needs right now. That
+          is why a healthy machine reports very little free memory, and why DiskMate does not
+          offer to empty it.
+        </Note>
+
+        <p className="faint">
+          Per-process memory and any action on a running process are not part of this build.
+        </p>
       </div>
-
-      <Note tone="info" title="Cached memory is not wasted memory.">
-        Your Mac keeps recently used files in memory that nothing else needs right now. That is
-        why a healthy machine reports very little free memory, and why DiskMate does not offer
-        to empty it.
-      </Note>
-
-      <p className="faint">
-        Per-process memory and any action on a running process are not part of this build.
-      </p>
     </div>
   );
 }

@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { ClockIcon, LeftBehindIcon, StartupIcon } from "../../components/icons";
+import { Hero, IntroScreen, PageHeader } from "../../components/layout";
 import { Badge, EmptyState, Note, Panel, Spinner } from "../../components/primitives";
 import { describeError, engine, engineAvailable } from "../../lib/ipc";
 import type { StartupItem, StartupReport } from "../../lib/types";
@@ -11,58 +13,108 @@ import type { StartupItem, StartupReport } from "../../lib/types";
  * filled with guesses: until DiskMate can measure launch cost, saying so is the
  * only defensible thing to print.
  */
-export function StartupPage() {
-  const [report, setReport] = useState<StartupReport | null>(null);
+export function StartupPage({
+  report,
+  onReport,
+}: {
+  /** Held by the shell so leaving and returning does not read everything again. */
+  report: StartupReport | null;
+  onReport: (report: StartupReport) => void;
+}) {
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const look = () => {
     if (!engineAvailable()) {
       setError("The DiskMate engine is not running.");
       return;
     }
+    setLoading(true);
+    setError(null);
     engine
       .startupReport()
-      .then(setReport)
-      .catch((cause) => setError(describeError(cause)));
-  }, []);
+      .then(onReport)
+      .catch((cause) => setError(describeError(cause)))
+      .finally(() => setLoading(false));
+  };
 
-  if (error) return <Note tone="caution">{error}</Note>;
-  if (!report) return <Spinner />;
+  if (!report) {
+    return (
+      <>
+        <IntroScreen
+          title="Startup"
+          subtitle="See everything that starts with your Mac, who put it there, and where it lives."
+          art={
+            <div className="intro-badge" aria-hidden="true">
+              <StartupIcon size={120} />
+            </div>
+          }
+          features={[
+            { icon: <StartupIcon size={20} />, label: "Login Items" },
+            { icon: <ClockIcon size={20} />, label: "Background Items" },
+            { icon: <LeftBehindIcon size={20} />, label: "Part of macOS, Kept Apart" },
+          ]}
+          action={{ label: loading ? "Reading…" : "Scan", onClick: look, disabled: loading }}
+          footnote="Reads launch settings only. Changes nothing."
+        />
+        {error && (
+          <div className="intro__error">
+            <Note tone="caution">{error}</Note>
+          </div>
+        )}
+      </>
+    );
+  }
 
   const userItems = report.items.filter((item) => !item.isOsProvided);
   const osItems = report.items.filter((item) => item.isOsProvided);
 
   return (
-    <div className="stack">
-      <p className="muted">
-        {report.items.length === 0
-          ? "DiskMate found no launch items it can read."
-          : `${report.items.length} items are configured to start automatically. ` +
-            `${osItems.length} of them ship with the operating system.`}
-      </p>
+    <div className="page">
+      <PageHeader title="Startup" back={{ label: "Look again", onClick: look }} />
+      {loading && <Spinner />}
+      <Hero
+        title={
+          report.items.length === 0 ? (
+            "DiskMate found no launch items it can read."
+          ) : (
+            <>
+              <span className="num">{userItems.length}</span>{" "}
+              {userItems.length === 1 ? "thing starts" : "things start"} with this Mac.
+            </>
+          )
+        }
+        subtitle={
+          report.items.length === 0
+            ? undefined
+            : `Installed by apps or by you. Another ${osItems.length} ${osItems.length === 1 ? "ships" : "ship"} with macOS and ${osItems.length === 1 ? "is" : "are"} listed separately.`
+        }
+      />
 
-      {report.impactUnavailable && (
-        <Note tone="info" title="Impact is not measured yet.">
-          DiskMate will not guess how much any of these cost at startup. Until it can measure
-          that properly, it shows what is configured and leaves the judgement to you.
+      <div className="stack">
+        {report.impactUnavailable && (
+          <Note tone="info" title="Impact is not measured yet.">
+            DiskMate will not guess how much any of these cost at startup. Until it can measure
+            that properly, it shows what is configured and leaves the judgement to you.
+          </Note>
+        )}
+
+        <Note tone="info" title="Read only.">
+          This build does not enable, disable or remove launch items. To turn one off, use Login
+          Items in System Settings, which keeps macOS in charge of the change.
         </Note>
-      )}
 
-      <Note tone="info" title="Read only.">
-        This build does not enable, disable or remove launch items. Changing them by hand can
-        stop applications working, so DiskMate will only ever do it with your explicit choice.
-      </Note>
-
-      <ItemGroup
-        title="Installed by apps and by you"
-        note="These come from software on this Mac."
-        items={userItems}
-      />
-      <ItemGroup
-        title="Part of macOS"
-        note="DiskMate will never suggest changing these."
-        items={osItems}
-      />
+        <ItemGroup
+          title="Installed by apps and by you"
+          note="These come from software on this Mac."
+          items={userItems}
+        />
+        <ItemGroup
+          title="Part of macOS"
+          note="DiskMate will never suggest changing these."
+          items={osItems}
+        />
+      </div>
     </div>
   );
 }
