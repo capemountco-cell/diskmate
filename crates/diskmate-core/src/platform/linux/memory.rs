@@ -1,12 +1,54 @@
 //! Memory snapshot from `/proc/meminfo`.
 
 use crate::error::{CoreError, Result};
-use crate::model::{MemoryPressure, MemorySnapshot};
+use crate::model::{MemoryPressure, MemorySnapshot, ProcessMemory};
 
 pub fn snapshot() -> Result<MemorySnapshot> {
     let text =
         std::fs::read_to_string("/proc/meminfo").map_err(|e| CoreError::io("/proc/meminfo", e))?;
     Ok(parse_meminfo(&text))
+}
+
+/// Per-process resident memory from `/proc/<pid>/status`. Processes that
+/// vanish or cannot be read are skipped. Nothing on Linux is offered a Quit.
+pub fn top_apps(limit: usize) -> Vec<ProcessMemory> {
+    let Ok(entries) = std::fs::read_dir("/proc") else {
+        return Vec::new();
+    };
+    let mut rows = Vec::new();
+    for entry in entries.flatten() {
+        let Some(pid) = entry
+            .file_name()
+            .to_str()
+            .and_then(|n| n.parse::<i32>().ok())
+        else {
+            continue;
+        };
+        let Ok(status) = std::fs::read_to_string(entry.path().join("status")) else {
+            continue;
+        };
+        let field = |name: &str| {
+            status
+                .lines()
+                .find(|line| line.starts_with(name))
+                .and_then(|line| line.split_once(':'))
+                .map(|(_, value)| value.trim().to_string())
+        };
+        let Some(rss_kb) = field("VmRSS")
+            .and_then(|v| v.split_whitespace().next().map(str::to_string))
+            .and_then(|v| v.parse::<i64>().ok())
+        else {
+            continue;
+        };
+        let name = field("Name").unwrap_or_else(|| pid.to_string());
+        let path = std::fs::read_link(entry.path().join("exe"))
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        rows.push((pid, path, name, rss_kb * 1024));
+    }
+    let mut apps = crate::platform::group_by_app(rows);
+    apps.truncate(limit);
+    apps
 }
 
 pub(crate) fn parse_meminfo(text: &str) -> MemorySnapshot {

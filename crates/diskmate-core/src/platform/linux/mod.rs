@@ -11,7 +11,7 @@ mod startup;
 use std::path::{Path, PathBuf};
 
 use crate::error::Result;
-use crate::model::{MemorySnapshot, StartupItem, VolumeInfo};
+use crate::model::{MemorySnapshot, ProcessMemory, StartupItem, VolumeInfo};
 
 use super::SystemProbe;
 
@@ -29,6 +29,10 @@ impl SystemProbe for LinuxProbe {
 
     fn memory(&self) -> Result<MemorySnapshot> {
         memory::snapshot()
+    }
+
+    fn top_apps(&self, limit: usize) -> Result<Vec<ProcessMemory>> {
+        Ok(memory::top_apps(limit))
     }
 
     fn startup_items(&self) -> Result<Vec<StartupItem>> {

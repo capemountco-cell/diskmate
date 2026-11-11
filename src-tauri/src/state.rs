@@ -4,13 +4,16 @@ use std::sync::Arc;
 
 use diskmate_core::paths::AppPaths;
 use diskmate_core::scanner::CancellationToken;
-use diskmate_core::services::{MemoryService, MonitorService, StartupService, StorageService};
+use diskmate_core::services::{
+    MemoryService, MonitorService, ProcessService, StartupService, StorageService,
+};
 
 pub struct AppState {
     pub storage: Arc<StorageService>,
     pub memory: MemoryService,
     pub startup: StartupService,
     pub monitor: MonitorService,
+    pub process: ProcessService,
     /// Cancels a running duplicate search. Held here rather than inside the
     /// service so the command layer can reach it while the search owns a
     /// thread.
@@ -27,6 +30,7 @@ impl AppState {
             memory: MemoryService::new(),
             startup: StartupService::new(),
             monitor: MonitorService::new(),
+            process: ProcessService::new(),
             duplicate_cancel: CancellationToken::new(),
         })
     }

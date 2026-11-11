@@ -6,7 +6,7 @@ import { Sparkline } from "../../components/Sparkline";
 import { DisplayTitle } from "../../components/layout";
 import { formatBytes, formatPercent } from "../../lib/format";
 import { describeError, engine, engineAvailable } from "../../lib/ipc";
-import type { MemoryPressure, MonitorReport } from "../../lib/types";
+import type { MemoryPressure, MonitorReport, ProcessMemory } from "../../lib/types";
 
 const POLL_MS = 1_000;
 
@@ -171,14 +171,17 @@ export function MemoryPage() {
           </Panel>
         </div>
 
+        <TopApps />
+
         <Note tone="info" title="Cached memory is not wasted memory.">
-          Your Mac keeps recently used files in memory that nothing else needs right now. That
-          is why a healthy machine reports very little free memory, and why DiskMate does not
-          offer to empty it.
+          Your Mac keeps recently used files in memory that nothing else needs right now, and
+          hands that memory to any app that asks for it. What frees memory when you are running
+          low is quitting an app you are not using, which is what the list above is for.
         </Note>
 
         <p className="faint">
-          Per-process memory and any action on a running process are not part of this build.
+          DiskMate also shows memory in the menu bar while it is running. Closing this window
+          keeps it there; choose Quit DiskMate from that menu to stop it.
         </p>
       </div>
     </div>
@@ -197,5 +200,110 @@ function PressureLabel({ pressure }: { pressure: MemoryPressure }) {
       <span className={`pressure-dot pressure-dot--${pressure}`} />
       {label}
     </span>
+  );
+}
+
+const TOP_APPS = 8;
+
+/**
+ * The apps using the most memory, each with a Quit button when it is an
+ * ordinary app.
+ *
+ * Quit takes two clicks: the first turns the button into "Confirm Quit", and
+ * only the second sends the request. The request is the same one the app's own
+ * Quit menu item sends, so it can still ask about unsaved work.
+ */
+function TopApps() {
+  const [apps, setApps] = useState<ProcessMemory[] | null>(null);
+  const [armed, setArmed] = useState<number | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setApps(await engine.topApps(TOP_APPS));
+    } catch (cause) {
+      setMessage(describeError(cause));
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(load, 3_000);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
+  // An armed button disarms itself, so a stray click later does nothing.
+  useEffect(() => {
+    if (armed === null) return;
+    const timer = window.setTimeout(() => setArmed(null), 4_000);
+    return () => window.clearTimeout(timer);
+  }, [armed]);
+
+  const quit = async (app: ProcessMemory) => {
+    setArmed(null);
+    try {
+      await engine.quitApp(app.pid, app.name);
+      setMessage(`Asked ${app.name} to quit. It may ask you to save first.`);
+      window.setTimeout(load, 1_500);
+    } catch (cause) {
+      setMessage(describeError(cause));
+    }
+  };
+
+  const largest = apps?.[0]?.residentBytes ?? 0;
+
+  return (
+    <Panel
+      title="Using the most memory"
+      note="Helper processes are counted with their app. Background processes are listed but not offered a Quit."
+    >
+      {message && (
+        <div style={{ marginBottom: "var(--space-3)" }}>
+          <Note tone="info">{message}</Note>
+        </div>
+      )}
+      {apps === null ? (
+        <Spinner />
+      ) : apps.length === 0 ? (
+        <p className="muted">DiskMate could not read per-app memory on this Mac.</p>
+      ) : (
+        <ul className="top-apps">
+          {apps.map((app) => (
+            <li key={`${app.pid}-${app.name}`} className="top-apps__row">
+              <div className="top-apps__text">
+                <span className="top-apps__name">{app.name}</span>
+                <span className="top-apps__meta">
+                  {app.instanceCount > 1 ? `${app.instanceCount} processes` : "1 process"}
+                  {!app.canQuit && " · background"}
+                </span>
+                <span className="top-apps__bar" aria-hidden="true">
+                  <span
+                    style={{
+                      width: `${largest > 0 ? (app.residentBytes / largest) * 100 : 0}%`,
+                    }}
+                  />
+                </span>
+              </div>
+              <span className="num top-apps__size">{formatBytes(app.residentBytes)}</span>
+              {app.canQuit ? (
+                armed === app.pid ? (
+                  <Button
+                    variant="primary"
+                    aria-label={`Confirm: quit ${app.name}`}
+                    onClick={() => void quit(app)}
+                  >
+                    Confirm Quit
+                  </Button>
+                ) : (
+                  <Button onClick={() => setArmed(app.pid)}>Quit</Button>
+                )
+              ) : (
+                <span className="top-apps__none" />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }

@@ -8,6 +8,7 @@
 mod commands;
 mod events;
 mod state;
+mod tray;
 
 pub use state::AppState;
 
@@ -23,7 +24,16 @@ pub fn run() {
             // swallowed into a window that silently does nothing.
             let state = AppState::initialise()?;
             app.manage(state);
+            tray::install(app.handle())?;
             Ok(())
+        })
+        // Closing the window keeps DiskMate running in the menu bar, so the
+        // memory readout stays visible. "Quit DiskMate" in that menu ends it.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
@@ -41,6 +51,8 @@ pub fn run() {
             commands::subtree,
             commands::age_breakdown,
             commands::memory_report,
+            commands::top_apps,
+            commands::quit_app,
             commands::startup_report,
             // Cleanup. Every one of these proposes or reviews; only
             // `remove_approved` removes, and the engine checks the approval
@@ -73,6 +85,15 @@ pub fn run() {
             commands::monitor_report,
             commands::monitor_sample,
         ])
-        .run(tauri::generate_context!())
-        .expect("failed to start DiskMate");
+        .build(tauri::generate_context!())
+        .expect("failed to start DiskMate")
+        .run(|app, event| {
+            // Clicking the Dock icon brings the hidden window back.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = event {
+                tray::show_window(app);
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
+        });
 }

@@ -181,6 +181,19 @@ export interface MemorySnapshot {
   sampledAt: number;
 }
 
+/** Memory held by one app, with its helper processes folded in. */
+export interface ProcessMemory {
+  /** The main process; quit requests go to this one. */
+  pid: number;
+  name: string;
+  /** Physical footprint, as Activity Monitor's Memory column shows it. */
+  residentBytes: number;
+  instanceCount: number;
+  bundlePath: string | null;
+  /** Only ordinary apps with a Dock icon can be asked to quit. */
+  canQuit: boolean;
+}
+
 export interface MemoryReport {
   snapshot: MemorySnapshot;
   headline: string;

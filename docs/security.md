@@ -6,10 +6,10 @@ This document states the rules the product is built to.
 
 ## What DiskMate can and cannot do
 
-DiskMate can move a file or folder to the Trash. That is the whole of its
-destructive capability. It cannot delete anything permanently, empty the Trash,
-modify a file's contents, change a launch item, or signal a process — not
-because it chooses not to, but because no such code exists.
+DiskMate can do two things that change anything: move a file or folder to the
+Trash, and ask an ordinary app to quit. It cannot delete anything permanently,
+empty the Trash, modify a file's contents, change a launch item, kill a
+process, or purge memory, because no such code exists.
 
 This is verifiable rather than aspirational:
 
@@ -24,6 +24,28 @@ This is verifiable rather than aspirational:
   `opener:allow-reveal-item-in-dir`. No filesystem, shell, HTTP or process
   permission is granted to the window.
 - The app declares no network entitlement.
+
+## Quitting an app
+
+`services::ProcessService::quit_app(pid, name)` is the only process action, and
+the menu bar item and the Memory screen both go through it. It:
+
+- sends `NSRunningApplication -terminate`, the request an app's own Quit menu
+  item sends, so the app can save, ask about unsaved work, or decline. It never
+  sends a signal;
+- refuses anything without the regular activation policy (a Dock icon), so
+  background agents, daemons and command-line processes are listed for
+  information only;
+- re-reads the running apps and refuses unless `pid` still belongs to the app
+  named `name`, so a stale menu or a reused pid cannot quit the wrong thing;
+- refuses DiskMate itself.
+
+The action sits behind the `platform::AppQuitter` trait, whose one method is
+`request_quit`, for the same reason removal sits behind `Remover`.
+
+There is no "free memory" or purge operation. macOS lends idle memory to the
+file cache and takes it back on demand, so purging makes the number smaller and
+the Mac briefly slower. Quitting the app that holds the memory is what frees it.
 
 ## One cleanup service
 

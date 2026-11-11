@@ -6,10 +6,13 @@
 //! services above them stay portable, and so that the macOS implementation can
 //! be replaced wholesale without touching anything else.
 //!
-//! Every method returns data or an explicit "not supported" error. None of them
-//! modify anything: there is no code path in this module that writes to the
-//! filesystem, changes a launch item, or signals a process.
+//! Every method of [`SystemProbe`] returns data or an explicit "not supported"
+//! error and modifies nothing. The one action in this module is separate, in
+//! [`AppQuitter`]: asking an ordinary app to quit, exactly as its Quit menu
+//! item would. It is only ever called by `services::ProcessService`, after the
+//! person clicked Quit on that app.
 
+mod grouping;
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "macos")]
@@ -18,10 +21,11 @@ mod protected;
 pub mod startup_locations;
 mod unsupported;
 
+pub(crate) use grouping::group_by_app;
 pub use protected::{is_protected_path, protected_prefixes};
 
 use crate::error::Result;
-use crate::model::{MemorySnapshot, StartupItem, VolumeInfo};
+use crate::model::{MemorySnapshot, ProcessMemory, StartupItem, VolumeInfo};
 
 /// Read-only view of the host operating system.
 pub trait SystemProbe: Send + Sync {
@@ -35,6 +39,11 @@ pub trait SystemProbe: Send + Sync {
     /// A point-in-time memory snapshot.
     fn memory(&self) -> Result<MemorySnapshot>;
 
+    /// Applications using the most memory, largest first, helpers folded into
+    /// their app. Processes DiskMate is not allowed to inspect are left out
+    /// rather than estimated.
+    fn top_apps(&self, limit: usize) -> Result<Vec<ProcessMemory>>;
+
     /// Items configured to run automatically. Enumeration only; DiskMate never
     /// enables, disables or removes one.
     fn startup_items(&self) -> Result<Vec<StartupItem>>;
@@ -42,6 +51,40 @@ pub trait SystemProbe: Send + Sync {
     /// Mount points a volume scan should not descend into: other volumes,
     /// network shares and synthetic filesystems.
     fn skip_mount_points(&self, root: &std::path::Path) -> Vec<std::path::PathBuf>;
+}
+
+/// The one process action DiskMate has: asking an app to quit.
+///
+/// A quit request is what the app's own Quit menu item sends, so the app can
+/// save, ask about unsaved work, or decline. It is never a kill signal.
+pub trait AppQuitter: Send + Sync {
+    /// Ask the app whose main process is `pid` to quit. Returns once the
+    /// request is delivered, not when the app has exited.
+    fn request_quit(&self, pid: i32) -> std::result::Result<(), String>;
+
+    fn name(&self) -> &'static str;
+}
+
+/// The real quitter on macOS; refuses everywhere else.
+#[derive(Debug, Default)]
+pub struct SystemQuitter;
+
+impl AppQuitter for SystemQuitter {
+    fn request_quit(&self, pid: i32) -> std::result::Result<(), String> {
+        #[cfg(target_os = "macos")]
+        {
+            macos::request_quit(pid)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = pid;
+            Err("quitting apps is only supported on macOS".to_string())
+        }
+    }
+
+    fn name(&self) -> &'static str {
+        "system"
+    }
 }
 
 #[cfg(target_os = "macos")]
