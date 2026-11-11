@@ -27,10 +27,7 @@ import type {
   RemovalReport,
 } from "../../lib/types";
 
-export type CleanupTab = "suggestions" | "duplicates" | "applications";
-
 export function useCleanup(scanId: number | null) {
-  const [tab, setTab] = useState<CleanupTab>("suggestions");
   const [groups, setGroups] = useState<CandidateGroup[]>([]);
   const [candidates, setCandidates] = useState<CleanupCandidate[]>([]);
   const [staged, setStaged] = useState<CleanupCandidate[]>([]);
@@ -200,8 +197,6 @@ export function useCleanup(scanId: number | null) {
   const stagedIds = useMemo(() => new Set(staged.map((c) => c.id)), [staged]);
 
   return {
-    tab,
-    setTab,
     groups,
     candidates,
     staged,
@@ -225,3 +220,5 @@ export function useCleanup(scanId: number | null) {
     removeApproved,
   };
 }
+
+export type CleanupController = ReturnType<typeof useCleanup>;

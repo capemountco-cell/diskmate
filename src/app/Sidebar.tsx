@@ -1,62 +1,56 @@
-import { CleanupIcon, MemoryIcon, StartupIcon, StorageIcon } from "../components/icons";
+import {
+  ApplicationsIcon,
+  CleanupIcon,
+  DuplicatesIcon,
+  MacIcon,
+  MemoryIcon,
+  StartupIcon,
+  StorageIcon,
+} from "../components/icons";
 import type { AppInfo } from "../lib/types";
 
-export type SectionId = "storage" | "cleanup" | "startup" | "memory";
+export type SectionId =
+  "overview" | "storage" | "cleanup" | "duplicates" | "applications" | "startup" | "memory";
 
 export const SECTIONS: Array<{
   id: SectionId;
   label: string;
-  title: string;
-  subtitle: string;
   icon: (props: { size?: number; className?: string }) => React.ReactElement;
-  status?: string;
 }> = [
-  {
-    id: "storage",
-    label: "Storage",
-    title: "Storage",
-    subtitle: "Where your storage went.",
-    icon: StorageIcon,
-  },
-  {
-    id: "cleanup",
-    label: "Cleanup",
-    title: "Cleanup",
-    subtitle: "What you can safely remove, and why.",
-    icon: CleanupIcon,
-  },
-  {
-    id: "startup",
-    label: "Startup",
-    title: "Startup",
-    subtitle: "What runs when your Mac starts.",
-    icon: StartupIcon,
-  },
-  {
-    id: "memory",
-    label: "Memory",
-    title: "Memory",
-    subtitle: "How your Mac is using its memory, as it happens.",
-    icon: MemoryIcon,
-  },
+  { id: "overview", label: "This Mac", icon: MacIcon },
+  { id: "storage", label: "Storage", icon: StorageIcon },
+  { id: "cleanup", label: "Cleanup", icon: CleanupIcon },
+  { id: "duplicates", label: "Duplicates", icon: DuplicatesIcon },
+  { id: "applications", label: "Applications", icon: ApplicationsIcon },
+  { id: "startup", label: "Startup", icon: StartupIcon },
+  { id: "memory", label: "Memory", icon: MemoryIcon },
 ];
 
+/**
+ * Navigation.
+ *
+ * Two shapes of the same list. On a screen that is introducing a section the
+ * sidebar carries labels, because that is when someone is still finding their
+ * way; once a screen is showing results it folds to an icon rail and gives the
+ * room to the results. The labels never disappear entirely: every icon keeps
+ * its name for assistive technology and as a tooltip.
+ */
 export function Sidebar({
   active,
   onSelect,
   info,
+  expanded,
+  marked,
 }: {
   active: SectionId;
   onSelect: (id: SectionId) => void;
   info: AppInfo | null;
+  expanded: boolean;
+  /** Sections that hold results worth returning to. */
+  marked: ReadonlySet<SectionId>;
 }) {
   return (
-    <aside className="sidebar">
-      <div className="sidebar__brand">
-        <div className="sidebar__title">DiskMate</div>
-        <div className="sidebar__tagline">Storage, understood.</div>
-      </div>
-
+    <aside className={expanded ? "sidebar sidebar--expanded" : "sidebar"}>
       <nav className="sidebar__nav" aria-label="Sections">
         {SECTIONS.map((section) => {
           const Icon = section.icon;
@@ -66,24 +60,38 @@ export function Sidebar({
               type="button"
               className="nav-item"
               aria-current={section.id === active ? "page" : undefined}
+              aria-label={expanded ? undefined : section.label}
+              title={expanded ? undefined : section.label}
+              data-marked={marked.has(section.id) || undefined}
               onClick={() => onSelect(section.id)}
             >
               <span className="nav-item__icon">
-                <Icon size={15} />
+                <Icon size={20} />
               </span>
-              {section.label}
-              {section.status && <span className="nav-item__badge">{section.status}</span>}
+              {expanded && <span className="nav-item__label">{section.label}</span>}
             </button>
           );
         })}
       </nav>
 
       <div className="sidebar__footer">
-        <div>Everything stays on this Mac.</div>
-        {info && (
-          <div title={info.databasePath}>
-            {info.storageMode === "portable" ? "Running portably" : "Version " + info.version}
-          </div>
+        {expanded ? (
+          <>
+            <div>Everything stays on this Mac.</div>
+            {info && (
+              <div title={info.databasePath}>
+                {info.storageMode === "portable"
+                  ? "Running portably"
+                  : "Version " + info.version}
+              </div>
+            )}
+          </>
+        ) : (
+          info && (
+            <div title={`DiskMate ${info.version}. Everything stays on this Mac.`}>
+              {info.version}
+            </div>
+          )
         )}
       </div>
     </aside>

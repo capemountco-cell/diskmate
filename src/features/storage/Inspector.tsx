@@ -11,6 +11,7 @@ import {
 } from "../../lib/format";
 import { describeError, engine } from "../../lib/ipc";
 import type { CleanupCandidate, EntryRow } from "../../lib/types";
+import { reveal } from "../../lib/reveal";
 
 /** Children fetched for the breakdown. Enough to fill the panel, not the disk. */
 const INSIDE_LIMIT = 6;
@@ -285,17 +286,6 @@ function Detail({ term, value, caution }: { term: string; value: string; caution
       <dd className={caution ? "num inspector__caution" : "num"}>{value}</dd>
     </>
   );
-}
-
-/** Opens Finder with the item selected. The window is granted exactly this. */
-async function reveal(path: string): Promise<void> {
-  try {
-    const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
-    await revealItemInDir(path);
-  } catch {
-    // Refusing to reveal is not worth an error banner; the path is on screen
-    // and the Copy button is next to it.
-  }
 }
 
 async function copy(path: string): Promise<void> {
