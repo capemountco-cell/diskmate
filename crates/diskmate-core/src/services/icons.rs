@@ -3,8 +3,9 @@
 //! The interface asks for the icon of an app by its path and gets back a PNG
 //! as a `data:` URL it can put straight into an image. Icons are drawn once
 //! per path and size and kept in memory, so scrolling a list of apps does not
-//! ask macOS for the same icon twice. Only paths that end in `.app` are
-//! answered: this is for app icons, not a way to read arbitrary files.
+//! ask macOS for the same icon twice. Only apps that exist (folders whose path
+//! ends in `.app`) are answered: this is for app icons, not a way to read
+//! arbitrary files, and a missing app gets no stand-in icon.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -44,7 +45,12 @@ impl IconService {
     /// `None` when it is not an app or has no icon that can be read.
     pub fn app_icon(&self, path: &str, size: u32) -> Option<String> {
         let trimmed = path.trim_end_matches('/');
-        if !trimmed.ends_with(".app") || !Path::new(trimmed).is_absolute() {
+        // macOS hands back a generic icon for a path that is not there; an app
+        // that does not exist has no icon to show.
+        if !trimmed.ends_with(".app")
+            || !Path::new(trimmed).is_absolute()
+            || !Path::new(trimmed).is_dir()
+        {
             return None;
         }
         let size = size.clamp(16, MAX_SIZE);
