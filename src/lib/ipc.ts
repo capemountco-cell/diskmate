@@ -12,7 +12,7 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type {
   AgeBucket,
@@ -142,7 +142,45 @@ export const engine = {
   monitorStop: () => call<void>("monitor_stop"),
   monitorReport: () => call<MonitorReport>("monitor_report"),
   monitorSample: () => call<Sample>("monitor_sample"),
+
+  // Windows: the menu bar panel and the app.
+  openMainWindow: () => call<void>("open_main_window"),
+  hidePanel: () => call<void>("hide_panel"),
+  quitMrClean: () => call<void>("quit_mr_clean"),
+
+  // Wipe-down mode: the keyboard and trackpad ignore everything for a while.
+  wipePermission: () => call<boolean>("wipe_permission"),
+  wipeRequestPermission: () => call<boolean>("wipe_request_permission"),
+  wipeStart: (seconds: number) => call<void>("wipe_start", { seconds }),
 };
+
+/** What `wipeStart` rejects with when Accessibility permission is missing. */
+export const WIPE_NEEDS_PERMISSION = "accessibility";
+
+/** Wipe-down mode's events, from the engine and from the menu bar panel. */
+export function onWipe(handlers: {
+  started?: (seconds: number) => void;
+  held?: (fraction: number) => void;
+  ended?: (reason: "timer" | "held") => void;
+  /** The panel asked the main window to show the wipe-down card. */
+  open?: () => void;
+}): Promise<UnlistenFn> {
+  if (!engineAvailable()) return Promise.resolve(() => {});
+  return Promise.all([
+    listen<{ seconds: number }>("wipe:started", (e) => handlers.started?.(e.payload.seconds)),
+    listen<{ fraction: number }>("wipe:held", (e) => handlers.held?.(e.payload.fraction)),
+    listen<{ reason: "timer" | "held" }>("wipe:ended", (e) =>
+      handlers.ended?.(e.payload.reason),
+    ),
+    listen("wipe:open", () => handlers.open?.()),
+  ]).then((fns) => () => fns.forEach((fn) => fn()));
+}
+
+/** Ask the main window to show the wipe-down card (used by the panel). */
+export function requestWipe(): Promise<void> {
+  if (!engineAvailable()) return Promise.resolve();
+  return emit("wipe:open");
+}
 
 /** Subscribe to duplicate-search progress. */
 export function onDuplicateProgress(

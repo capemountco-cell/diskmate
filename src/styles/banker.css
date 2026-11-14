@@ -1839,3 +1839,387 @@
   position: static;
   max-height: none;
 }
+
+/* ----------------------------------------------------------- duplicates -- */
+
+.dup-set__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 22px;
+}
+
+.dup-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 10px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dup-row__keep {
+  justify-self: start;
+  font-size: 12px;
+}
+
+.dup-row__text {
+  min-width: 0;
+}
+
+.dup-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.dup-row__path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dup-row__when {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.dup-proof summary {
+  cursor: default;
+  list-style: none;
+}
+
+.dup-proof summary::-webkit-details-marker {
+  display: none;
+}
+
+/* ------------------------------------------------------------ wipe-down -- */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+}
+
+.sheet__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: default;
+}
+
+.sheet__panel {
+  position: relative;
+  width: min(560px, calc(100% - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-1);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.sheet__title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sheet__body,
+.sheet__steps {
+  color: #c7c7cc;
+  line-height: 1.5;
+}
+
+.sheet__steps {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.sheet__error {
+  color: var(--act);
+}
+
+.sheet__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 32px;
+  background: #000;
+  color: var(--text);
+  text-align: center;
+  cursor: none;
+}
+
+.wipe--done {
+  cursor: default;
+  background: var(--bg);
+}
+
+.wipe__ring {
+  position: relative;
+  width: 220px;
+  height: 220px;
+}
+
+.wipe__ring svg {
+  position: absolute;
+  inset: 0;
+}
+
+.wipe__ring b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 56px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+
+.wipe__track,
+.wipe__left {
+  fill: none;
+  stroke-width: 6;
+}
+
+.wipe__track {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.wipe__left {
+  stroke: #f5f5f7;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s linear;
+}
+
+.wipe__title {
+  font-size: 22px;
+  font-weight: 300;
+}
+
+.wipe__big {
+  font-size: 44px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+
+.wipe__note {
+  max-width: 460px;
+  color: var(--faint);
+}
+
+.wipe__hint {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.wipe__hint kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #c7c7cc;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wipe__hold {
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.wipe__hold i {
+  display: block;
+  height: 100%;
+  background: #f5f5f7;
+}
+
+/* ---------------------------------------------------- menu bar panel ---- */
+
+html[data-window="panel"],
+html[data-window="panel"] body,
+html[data-window="panel"] #root {
+  height: 100%;
+  background: #0b0b0d;
+}
+
+.panel-shell {
+  overflow-y: auto;
+  padding: 14px 16px 16px;
+  gap: 14px;
+}
+
+.panel-shell .bigline b {
+  font-size: 34px;
+}
+
+.panel-shell .bigline span {
+  font-size: 15px;
+}
+
+.panel-shell .sparkline {
+  height: 56px;
+}
+
+.mp__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mp__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.mp__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.mp__figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mp__meta,
+.mp__message {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mp__apps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mp__app {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto 76px;
+  align-items: center;
+  gap: 10px;
+}
+
+.mp__app-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mp__app-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mp__app-size {
+  font-size: 13px;
+}
+
+.mp__app-action {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 12px;
+}
+
+.mp__app-action .button {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.app-tile--small {
+  flex-basis: 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.mp__disk {
+  color: var(--muted);
+}
+
+.mp__disk b {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.ov__bar--thin {
+  height: 6px;
+}
+
+.panel-shell .banner {
+  flex-wrap: nowrap;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+
+.panel-shell .banner__text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.mp__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.mp__foot .button--primary {
+  margin-left: auto;
+}

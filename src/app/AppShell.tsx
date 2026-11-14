@@ -9,7 +9,8 @@ import { DuplicatesPage } from "../features/duplicates/DuplicatesPage";
 import { MemoryPage } from "../features/memory/MemoryPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { StoragePage } from "../features/storage/StoragePage";
-import { engine, engineAvailable, onScanFinished, onScanProgress } from "../lib/ipc";
+import { WipeOverlay, WipeSheet } from "../features/wipe/Wipe";
+import { engine, engineAvailable, onScanFinished, onScanProgress, onWipe } from "../lib/ipc";
 import type { AppInfo, MemoryPressure, ScanSummary, StartupReport } from "../lib/types";
 import type { AppsTab } from "../features/applications/ApplicationsPage";
 
@@ -39,6 +40,14 @@ export function AppShell() {
   const [queueOpen, setQueueOpen] = useState(false);
   /** Which tab Apps opens on; Overview's "Starts with your Mac" opens Startup. */
   const [appsTab, setAppsTab] = useState<AppsTab>("uninstall");
+  /** The wipe-down sheet; the menu bar panel can open it too. */
+  const [wipeOpen, setWipeOpen] = useState(false);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void onWipe({ open: () => setWipeOpen(true) }).then((fn) => (unlisten = fn));
+    return () => unlisten?.();
+  }, []);
 
   /**
    * One cleanup controller for the whole app.
@@ -140,6 +149,7 @@ export function AppShell() {
               onPressure={setPressure}
               onGo={go}
               onGoToStartup={goToStartup}
+              onWipe={() => setWipeOpen(true)}
             />
           )}
           {section === "storage" && <StoragePage onScanReady={onScanReady} />}
@@ -176,6 +186,8 @@ export function AppShell() {
       </main>
 
       <QueueDrawer cleanup={cleanup} open={queueOpen} onClose={() => setQueueOpen(false)} />
+      <WipeSheet open={wipeOpen} onClose={() => setWipeOpen(false)} />
+      <WipeOverlay onAgain={() => setWipeOpen(true)} />
     </div>
   );
 }

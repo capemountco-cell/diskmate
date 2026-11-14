@@ -4,6 +4,7 @@ import { Button, Note, Spinner } from "../../components/primitives";
 import { Sparkline } from "../../components/Sparkline";
 import { formatBytes } from "../../lib/format";
 import { describeError, engine, engineAvailable } from "../../lib/ipc";
+import { foldByName } from "../../lib/processes";
 import type { MemoryPressure, MonitorReport, ProcessMemory } from "../../lib/types";
 import { StatusChip } from "../overview/OverviewPage";
 
@@ -54,7 +55,7 @@ export function MemoryPage({
 
   const loadApps = useCallback(async () => {
     try {
-      setApps(await engine.topApps(TOP_APPS));
+      setApps(foldByName(await engine.topApps(TOP_APPS + 4)).slice(0, TOP_APPS));
     } catch (cause) {
       setMessage(describeError(cause));
     }

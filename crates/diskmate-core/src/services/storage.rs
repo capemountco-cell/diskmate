@@ -465,7 +465,7 @@ impl StorageService {
 fn explain(kind: ScanErrorKind) -> String {
     match kind {
         ScanErrorKind::PermissionDenied => {
-            "macOS did not allow DiskMate to read these. Granting Full Disk Access in \
+            "macOS did not allow Mr Clean to read these. Granting Full Disk Access in \
              System Settings > Privacy & Security lets them be included."
         }
         ScanErrorKind::NotFound | ScanErrorKind::Vanished => {

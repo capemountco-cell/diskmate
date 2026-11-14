@@ -9,6 +9,7 @@ mod commands;
 mod events;
 mod state;
 mod tray;
+mod wipe;
 
 pub use state::AppState;
 
@@ -29,11 +30,17 @@ pub fn run() {
         })
         // Closing the window keeps Mr Clean running in the menu bar, so the
         // memory readout stays visible. "Quit Mr Clean" in that menu ends it.
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            // Closing the window keeps Mr Clean in the menu bar.
+            tauri::WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // The menu bar panel closes when you click anywhere else.
+            tauri::WindowEvent::Focused(false) if window.label() == tray::PANEL => {
+                let _ = window.hide();
+            }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
@@ -84,6 +91,12 @@ pub fn run() {
             commands::monitor_stop,
             commands::monitor_report,
             commands::monitor_sample,
+            commands::open_main_window,
+            commands::hide_panel,
+            commands::quit_mr_clean,
+            wipe::wipe_permission,
+            wipe::wipe_request_permission,
+            wipe::wipe_start,
         ])
         .build(tauri::generate_context!())
         .expect("failed to start Mr Clean")

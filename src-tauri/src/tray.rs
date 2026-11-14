@@ -1,113 +1,78 @@
-//! The menu bar readout.
+//! The menu bar: Mr Clean's broom, memory in use beside it, and a panel.
 //!
-//! Shows memory in use and a pressure dot in the menu bar, all the time, and a
-//! menu with the apps using the most memory. Each app that can be asked to quit
-//! has a Quit item; that goes through `ProcessService` like the Quit buttons in
-//! the window, so the same checks apply.
+//! Clicking the broom opens a small window drawn by the same interface as the
+//! app (the "panel" window): memory now, the last few minutes, the apps using
+//! the most with a Quit for each, free space, and a way into wipe-down mode.
+//! Clicking away closes it. Right-clicking shows a plain menu with Open and
+//! Quit, for anyone who expects one.
 //!
-//! Reading is cheap (one memory snapshot and one process walk), so it refreshes
-//! every few seconds for as long as Mr Clean is running. Closing the window
-//! keeps Mr Clean in the menu bar; "Quit Mr Clean" in this menu ends it.
+//! The broom is a template image, so macOS draws it white or black to match
+//! the menu bar. It turns orange when memory is under pressure and red when
+//! pressure is high: colour only when something is true.
+//!
+//! Reading is cheap (one memory snapshot), so the title refreshes every few
+//! seconds for as long as Mr Clean is running. Closing the main window keeps
+//! Mr Clean in the menu bar; Quit in the panel or the menu ends it.
 
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use diskmate_core::model::{MemoryPressure, MemorySnapshot, ProcessMemory};
-use diskmate_core::services::{MemoryService, ProcessService};
+use diskmate_core::model::MemoryPressure;
+use diskmate_core::services::MemoryService;
 use tauri::image::Image;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
-use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::{
+    AppHandle, Manager, PhysicalPosition, Runtime, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+};
 
 const TRAY_ID: &str = "memory";
+pub const PANEL: &str = "panel";
 const REFRESH: Duration = Duration::from_secs(3);
-const APP_SLOTS: usize = 5;
-
-/// One row in the "using the most memory" part of the menu.
-struct Slot<R: Runtime> {
-    menu: Submenu<R>,
-    quit: MenuItem<R>,
-}
-
-/// Which app each slot currently shows, so a click quits what was on screen.
-type Shown = Arc<Mutex<Vec<Option<(i32, String)>>>>;
+/// The panel's size in points. The interface lays itself out to fit.
+const PANEL_WIDTH: f64 = 360.0;
+const PANEL_HEIGHT: f64 = 660.0;
+/// The broom: 36 × 36 RGBA, black with alpha, drawn for 18 points at 2x.
+const BROOM: &[u8] = include_bytes!("../icons/tray-broom.rgba");
+const BROOM_SIZE: u32 = 36;
 
 pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
-    let used = MenuItem::with_id(app, "info:used", "Reading memory…", false, None::<&str>)?;
-    let pressure = MenuItem::with_id(app, "info:pressure", "", false, None::<&str>)?;
-    let swap = MenuItem::with_id(app, "info:swap", "", false, None::<&str>)?;
-    let header = MenuItem::with_id(
-        app,
-        "info:header",
-        "Using the most memory",
-        false,
-        None::<&str>,
-    )?;
-
-    let mut slots = Vec::with_capacity(APP_SLOTS);
-    for index in 0..APP_SLOTS {
-        let quit = MenuItem::with_id(app, format!("quit:{index}"), "Quit", false, None::<&str>)?;
-        let menu = Submenu::with_items(app, "", false, &[&quit])?;
-        slots.push(Slot { menu, quit });
-    }
+    build_panel(app)?;
 
     let open = MenuItem::with_id(app, "open", "Open Mr Clean", true, None::<&str>)?;
     let exit = MenuItem::with_id(app, "exit", "Quit Mr Clean", true, Some("CmdOrCtrl+Q"))?;
-
-    let menu = Menu::new(app)?;
-    menu.append_items(&[
-        &used,
-        &pressure,
-        &swap,
-        &PredefinedMenuItem::separator(app)?,
-        &header,
-    ])?;
-    for slot in &slots {
-        menu.append(&slot.menu)?;
-    }
-    menu.append_items(&[&PredefinedMenuItem::separator(app)?, &open, &exit])?;
-
-    let shown: Shown = Arc::new(Mutex::new(vec![None; APP_SLOTS]));
-    let clicked = shown.clone();
+    let menu = Menu::with_items(app, &[&open, &PredefinedMenuItem::separator(app)?, &exit])?;
 
     TrayIconBuilder::with_id(TRAY_ID)
-        .icon(dot(MemoryPressure::Unknown))
-        .icon_as_template(false)
-        .tooltip("Mr Clean: memory")
+        .icon(broom(MemoryPressure::Unknown))
+        .icon_as_template(true)
+        .tooltip("Mr Clean")
         .menu(&menu)
-        .on_menu_event(move |app, event| match event.id().as_ref() {
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
             "open" => show_window(app),
             "exit" => app.exit(0),
-            id => {
-                let Some(index) = id
-                    .strip_prefix("quit:")
-                    .and_then(|i| i.parse::<usize>().ok())
-                else {
-                    return;
-                };
-                let target = clicked
-                    .lock()
-                    .ok()
-                    .and_then(|s| s.get(index).cloned().flatten());
-                if let Some((pid, name)) = target {
-                    if let Err(error) = ProcessService::new().quit_app(pid, &name) {
-                        eprintln!("Mr Clean: quit from the menu bar was refused: {error}");
-                    }
-                }
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                rect,
+                ..
+            } = event
+            {
+                toggle_panel(tray.app_handle(), rect);
             }
         })
         .build(app)?;
 
     let handle = app.clone();
     std::thread::Builder::new()
-        .name("diskmate-menubar".into())
+        .name("mrclean-menubar".into())
         .spawn(move || {
             let memory = MemoryService::new();
-            let processes = ProcessService::new();
             loop {
-                refresh(
-                    &handle, &memory, &processes, &used, &pressure, &swap, &slots, &shown,
-                );
+                refresh(&handle, &memory);
                 std::thread::sleep(REFRESH);
             }
         })?;
@@ -115,82 +80,87 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-fn refresh<R: Runtime>(
-    app: &AppHandle<R>,
-    memory: &MemoryService,
-    processes: &ProcessService,
-    used: &MenuItem<R>,
-    pressure: &MenuItem<R>,
-    swap: &MenuItem<R>,
-    slots: &[Slot<R>],
-    shown: &Shown,
-) {
+/// The panel window, made once and hidden; the broom shows and hides it.
+fn build_panel<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<WebviewWindow<R>> {
+    WebviewWindowBuilder::new(app, PANEL, WebviewUrl::App("index.html".into()))
+        .title("Mr Clean")
+        .inner_size(PANEL_WIDTH, PANEL_HEIGHT)
+        .resizable(false)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .visible_on_all_workspaces(true)
+        .shadow(true)
+        .visible(false)
+        .build()
+}
+
+fn toggle_panel<R: Runtime>(app: &AppHandle<R>, icon: tauri::Rect) {
+    let Some(panel) = app.get_webview_window(PANEL) else {
+        return;
+    };
+    if panel.is_visible().unwrap_or(false) {
+        let _ = panel.hide();
+        return;
+    }
+    let scale = panel.scale_factor().unwrap_or(2.0);
+    let at = icon.position.to_physical::<f64>(scale);
+    let size = icon.size.to_physical::<f64>(scale);
+    let width = PANEL_WIDTH * scale;
+    // Centred under the broom, a few points below the menu bar, and kept on
+    // screen at the right-hand edge.
+    let mut x = at.x + size.width / 2.0 - width / 2.0;
+    if let Ok(Some(monitor)) = panel.current_monitor() {
+        let right = f64::from(monitor.position().x) + f64::from(monitor.size().width);
+        x = x.min(right - width - 8.0 * scale);
+    }
+    let y = at.y + size.height + 6.0 * scale;
+    let _ = panel.set_position(PhysicalPosition::new(x.max(8.0 * scale), y));
+    let _ = panel.show();
+    let _ = panel.set_focus();
+}
+
+pub fn hide_panel<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(panel) = app.get_webview_window(PANEL) {
+        let _ = panel.hide();
+    }
+}
+
+fn refresh<R: Runtime>(app: &AppHandle<R>, memory: &MemoryService) {
     let Some(tray) = app.tray_by_id(TRAY_ID) else {
         return;
     };
-
     match memory.snapshot() {
         Ok(snapshot) => {
+            let alert = matches!(
+                snapshot.pressure,
+                MemoryPressure::Warning | MemoryPressure::Critical
+            );
             let _ = tray.set_title(Some(gb(snapshot.used_bytes)));
-            let _ = tray.set_icon(Some(dot(snapshot.pressure)));
-            let _ = used.set_text(used_line(&snapshot));
-            let _ = pressure.set_text(format!("Pressure: {}", pressure_word(snapshot.pressure)));
-            let _ = swap.set_text(match snapshot.swap_used_bytes {
-                Some(bytes) => format!("Swap in use: {}", gb(bytes)),
-                None => "Swap: not reported".to_string(),
-            });
+            let _ = tray.set_icon(Some(broom(snapshot.pressure)));
+            // Template images take the menu bar's own colour; an alert
+            // needs its colour kept.
+            let _ = tray.set_icon_as_template(!alert);
+            let _ = tray.set_tooltip(Some(format!(
+                "Mr Clean: {} of {} memory in use, pressure {}",
+                gb(snapshot.used_bytes),
+                gb(snapshot.total_bytes),
+                pressure_word(snapshot.pressure)
+            )));
         }
-        Err(error) => {
+        Err(_) => {
             let _ = tray.set_title(Some("–"));
-            let _ = used.set_text(format!("Memory unavailable: {error}"));
         }
-    }
-
-    let apps: Vec<ProcessMemory> = processes.top_apps(APP_SLOTS).unwrap_or_default();
-    let mut current = vec![None; APP_SLOTS];
-    for (index, slot) in slots.iter().enumerate() {
-        match apps.get(index) {
-            Some(app) => {
-                let _ = slot
-                    .menu
-                    .set_text(format!("{}    {}", app.name, gb(app.resident_bytes)));
-                let _ = slot.menu.set_enabled(true);
-                if app.can_quit {
-                    let _ = slot.quit.set_text(format!("Quit {}", app.name));
-                    let _ = slot.quit.set_enabled(true);
-                    current[index] = Some((app.pid, app.name.clone()));
-                } else {
-                    let _ = slot.quit.set_text("Runs in the background; not offered");
-                    let _ = slot.quit.set_enabled(false);
-                }
-            }
-            None => {
-                let _ = slot.menu.set_text("");
-                let _ = slot.menu.set_enabled(false);
-                let _ = slot.quit.set_enabled(false);
-            }
-        }
-    }
-    if let Ok(mut guard) = shown.lock() {
-        *guard = current;
     }
 }
 
 pub fn show_window<R: Runtime>(app: &AppHandle<R>) {
+    hide_panel(app);
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
     }
-}
-
-fn used_line(snapshot: &MemorySnapshot) -> String {
-    format!(
-        "Memory in use: {} of {}",
-        gb(snapshot.used_bytes),
-        gb(snapshot.total_bytes)
-    )
 }
 
 fn pressure_word(pressure: MemoryPressure) -> &'static str {
@@ -212,33 +182,29 @@ fn gb(bytes: i64) -> String {
     }
 }
 
-/// A filled circle in the pressure colour. Drawn here rather than shipped as
-/// image files: three colours of one circle do not need assets.
-fn dot(pressure: MemoryPressure) -> Image<'static> {
-    let (r, g, b) = match pressure {
-        MemoryPressure::Normal => (52, 199, 89),
-        MemoryPressure::Warning => (255, 196, 0),
-        MemoryPressure::Critical => (255, 69, 58),
-        MemoryPressure::Unknown => (142, 142, 147),
+/// The broom, black for the template, or in a status colour when pressure is
+/// up (the same orange and red the app uses).
+fn broom(pressure: MemoryPressure) -> Image<'static> {
+    let colour = match pressure {
+        MemoryPressure::Warning => Some((251, 146, 60)),
+        MemoryPressure::Critical => Some((248, 113, 113)),
+        MemoryPressure::Normal | MemoryPressure::Unknown => None,
     };
-    const SIZE: u32 = 36;
-    let centre = (SIZE as f64 - 1.0) / 2.0;
-    let radius = 10.5;
-    let mut rgba = Vec::with_capacity((SIZE * SIZE * 4) as usize);
-    for y in 0..SIZE {
-        for x in 0..SIZE {
-            let distance = ((x as f64 - centre).powi(2) + (y as f64 - centre).powi(2)).sqrt();
-            // One pixel of anti-aliasing at the edge.
-            let alpha = ((radius + 0.5 - distance).clamp(0.0, 1.0) * 255.0) as u8;
-            rgba.extend_from_slice(&[r, g, b, alpha]);
+    let mut rgba = BROOM.to_vec();
+    if let Some((r, g, b)) = colour {
+        for pixel in rgba.chunks_exact_mut(4) {
+            pixel[0] = r;
+            pixel[1] = g;
+            pixel[2] = b;
         }
     }
-    Image::new_owned(rgba, SIZE, SIZE)
+    Image::new_owned(rgba, BROOM_SIZE, BROOM_SIZE)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::gb;
+    use super::{broom, gb, BROOM, BROOM_SIZE};
+    use diskmate_core::model::MemoryPressure;
 
     #[test]
     fn gigabytes_read_like_the_window() {
@@ -247,5 +213,11 @@ mod tests {
         assert_eq!(gb(3_840_000_000), "3.8 GB");
         assert_eq!(gb(0), "0.0 GB");
         assert_eq!(gb(-5), "0.0 GB");
+    }
+
+    #[test]
+    fn the_broom_is_a_whole_image() {
+        assert_eq!(BROOM.len(), (BROOM_SIZE * BROOM_SIZE * 4) as usize);
+        let _ = broom(MemoryPressure::Critical);
     }
 }

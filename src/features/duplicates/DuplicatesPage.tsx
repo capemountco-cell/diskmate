@@ -1,9 +1,11 @@
-import { DuplicatesIcon } from "../../components/icons";
-import { FindingCard, GlassTile, Hero, PageHeader } from "../../components/layout";
-import { Badge, Button, EmptyState, Note, Panel } from "../../components/primitives";
+import { useEffect, useMemo, useState } from "react";
+
+import { Hero, PageHeader } from "../../components/layout";
+import { Button, EmptyState, Note } from "../../components/primitives";
 import { formatBytes, formatCount, formatRelative, truncatePath } from "../../lib/format";
-import { engine, engineAvailable } from "../../lib/ipc";
-import type { DuplicateStats } from "../../lib/types";
+import { describeError, engine, engineAvailable } from "../../lib/ipc";
+import { reveal } from "../../lib/reveal";
+import type { CleanupCandidate, DuplicateGroup, DuplicateStats } from "../../lib/types";
 import { RemovalReportNote } from "../cleanup/Queue";
 import type { CleanupController } from "../cleanup/useCleanup";
 
@@ -25,7 +27,7 @@ export function DuplicatesPage({
   cleanup: CleanupController;
   onGoToStorage: () => void;
 }) {
-  const { duplicateProgress: progress, duplicateStats: stats, duplicates } = cleanup;
+  const { duplicateProgress: progress, duplicateStats: stats } = cleanup;
 
   if (!engineAvailable()) {
     return (
@@ -118,76 +120,214 @@ export function DuplicatesPage({
         />
       ) : (
         <>
-          <Hero
-            title={
-              stats.groups === 0 ? (
-                "No identical files found."
-              ) : (
-                <>
-                  You have <span className="num">{formatCount(stats.groups)}</span> sets of
-                  identical files.
-                </>
-              )
-            }
-            subtitle={
-              stats.groups === 0
-                ? "Every file Mr Clean compared turned out to be different."
-                : `${formatBytes(stats.reclaimableBytes)} is held more than once. Each set was compared byte for byte, never by name.`
-            }
+          <DuplicateResults
+            scanId={scanId}
+            stats={stats}
+            totalFiles={totalFiles}
+            cleanup={cleanup}
           />
-
-          <section className="findings">
-            <FindingCard
-              layout="wide"
-              title="What Mr Clean read to prove it"
-              emblem={
-                <GlassTile>
-                  <DuplicatesIcon size={24} />
-                </GlassTile>
-              }
-            >
-              <Funnel stats={stats} totalFiles={totalFiles} />
-            </FindingCard>
-          </section>
-
-          {duplicates.map((group) => (
-            <Panel
-              key={group.id}
-              title={`${formatCount(group.memberCount)} identical copies`}
-              note={`${formatBytes(group.logicalSize)} each · ${formatBytes(group.reclaimable)} held more than once`}
-              flush
-            >
-              {group.members.map((member) => (
-                <div className="candidate" key={member.entryId}>
-                  <span style={{ width: 13 }} />
-                  <div style={{ minWidth: 0 }}>
-                    <div className="table__name-text">{member.name}</div>
-                    <div className="candidate__path mono" title={member.path}>
-                      {truncatePath(member.path, 78)}
-                    </div>
-                  </div>
-                  <span className="candidate__size faint">
-                    {formatRelative(member.modifiedAt)}
-                  </span>
-                  {member.isKeeper ? (
-                    <Badge tone="accent">Keeping</Badge>
-                  ) : (
-                    <Badge>Extra copy</Badge>
-                  )}
-                </div>
-              ))}
-            </Panel>
-          ))}
-
-          {duplicates.length > 0 && (
-            <Note tone="info" title="The oldest copy is kept.">
-              The extra copies appear in Cleanup under Duplicates, where you can add them to the
-              queue. The copy being kept is never proposed.
-            </Note>
-          )}
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * The answer, and what you can do about it.
+ *
+ * One figure (the space held more than once), one button that queues every
+ * extra copy, then each set with the copy being kept marked and a box on every
+ * extra copy. The oldest copy is kept and is never offered. Ticking goes to
+ * the same queue as everything else, and nothing moves until the queue is
+ * reviewed, and then only to the Trash.
+ */
+function DuplicateResults({
+  scanId,
+  stats,
+  totalFiles,
+  cleanup,
+}: {
+  scanId: number;
+  stats: DuplicateStats;
+  totalFiles: number | null;
+  cleanup: CleanupController;
+}) {
+  const [copies, setCopies] = useState<CleanupCandidate[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { duplicates, stagedIds } = cleanup;
+
+  // The extra copies become cleanup candidates once proposed; read them so
+  // each one on screen can be ticked.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await engine.proposeCleanup(scanId);
+        const rows = await engine.cleanupCandidates(scanId, null, 20_000);
+        if (!cancelled) setCopies(rows.filter((row) => row.kind === "duplicateCopy"));
+      } catch (cause) {
+        if (!cancelled) setError(describeError(cause));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [scanId, stats]);
+
+  const byPath = useMemo(
+    () => new Map((copies ?? []).map((candidate) => [candidate.path, candidate])),
+    [copies],
+  );
+  const allIds = (copies ?? []).map((candidate) => candidate.id);
+  const queued = allIds.filter((id) => stagedIds.has(id));
+  const allQueued = allIds.length > 0 && queued.length === allIds.length;
+  const queuedBytes = (copies ?? [])
+    .filter((candidate) => stagedIds.has(candidate.id))
+    .reduce((sum, candidate) => sum + candidate.bytes, 0);
+
+  const idsFor = (group: DuplicateGroup) =>
+    group.members
+      .filter((member) => !member.isKeeper)
+      .map((member) => byPath.get(member.path)?.id)
+      .filter((id): id is number => id !== undefined);
+
+  if (stats.groups === 0) {
+    return (
+      <Hero
+        title="No identical files found."
+        subtitle="Every file Mr Clean compared turned out to be different."
+      />
+    );
+  }
+
+  return (
+    <>
+      <header className="page-head">
+        <p className="kicker">
+          Compared byte for byte, never by name · {formatCount(stats.groups)} sets
+        </p>
+        <p className="bigline">
+          <b className="num">{formatBytes(stats.reclaimableBytes)}</b>
+          <span>held more than once</span>
+        </p>
+        <div className="ov__lede-row">
+          <p className="lede">
+            {queued.length > 0 ? (
+              <>
+                <strong className="num">{formatCount(queued.length)}</strong> extra copies (
+                {formatBytes(queuedBytes)}) are in your queue. The oldest copy of each file is
+                always kept.
+              </>
+            ) : (
+              "Tick the extra copies you want gone, or queue them all. The oldest copy of each file is always kept."
+            )}
+          </p>
+          {copies === null ? (
+            <Button disabled>Reading copies…</Button>
+          ) : allQueued ? (
+            <Button onClick={() => void cleanup.unstage(allIds)}>
+              Take all out of the queue
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              disabled={allIds.length === 0}
+              onClick={() => void cleanup.stage(allIds.filter((id) => !stagedIds.has(id)))}
+            >
+              Queue every extra copy
+            </Button>
+          )}
+        </div>
+      </header>
+
+      {error && <Note tone="caution">{error}</Note>}
+
+      {duplicates.map((group) => {
+        const ids = idsFor(group);
+        const groupQueued = ids.length > 0 && ids.every((id) => stagedIds.has(id));
+        return (
+          <section
+            key={group.id}
+            className="rows dup-set"
+            aria-label={`${group.memberCount} identical copies`}
+          >
+            <div className="dup-set__head">
+              <div>
+                <p className="row-item__title">
+                  {formatCount(group.memberCount)} identical copies
+                </p>
+                <p className="row-item__detail">
+                  {formatBytes(group.logicalSize)} each · {formatBytes(group.reclaimable)} held
+                  more than once
+                </p>
+              </div>
+              {ids.length > 0 &&
+                (groupQueued ? (
+                  <Button onClick={() => void cleanup.unstage(ids)}>Take out of queue</Button>
+                ) : (
+                  <Button
+                    onClick={() => void cleanup.stage(ids.filter((id) => !stagedIds.has(id)))}
+                  >
+                    Queue extra copies
+                  </Button>
+                ))}
+            </div>
+            {group.members.map((member) => {
+              const candidate = member.isKeeper ? undefined : byPath.get(member.path);
+              return (
+                <div className="dup-row" key={member.entryId}>
+                  {member.isKeeper ? (
+                    <span className="status-chip status-chip--quiet dup-row__keep">
+                      Keeping
+                    </span>
+                  ) : candidate ? (
+                    <input
+                      type="checkbox"
+                      className="box"
+                      checked={stagedIds.has(candidate.id)}
+                      onChange={() =>
+                        void (stagedIds.has(candidate.id)
+                          ? cleanup.unstage([candidate.id])
+                          : cleanup.stage([candidate.id]))
+                      }
+                      aria-label={`Add the copy at ${member.path} to the queue`}
+                    />
+                  ) : (
+                    <span className="dup-row__keep faint">Not offered</span>
+                  )}
+                  <div className="dup-row__text">
+                    <p className="dup-row__name">{member.name}</p>
+                    <p className="dup-row__path mono" title={member.path}>
+                      {truncatePath(member.path, 90)}
+                    </p>
+                  </div>
+                  <span className="faint dup-row__when">
+                    {formatRelative(member.modifiedAt)}
+                  </span>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => void reveal(member.path)}
+                  >
+                    Show in Finder
+                  </button>
+                </div>
+              );
+            })}
+          </section>
+        );
+      })}
+
+      <details className="card dup-proof">
+        <summary className="card__head">
+          <span className="card__title">How Mr Clean proved it</span>
+          <span className="card__note">{formatBytes(stats.bytesRead)} read</span>
+        </summary>
+        <div className="card__chart">
+          <Funnel stats={stats} totalFiles={totalFiles} />
+        </div>
+      </details>
+    </>
   );
 }
 
