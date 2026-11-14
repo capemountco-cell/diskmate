@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Note } from "../components/primitives";
 import { ApplicationsPage } from "../features/applications/ApplicationsPage";
@@ -8,10 +8,10 @@ import { useCleanup } from "../features/cleanup/useCleanup";
 import { DuplicatesPage } from "../features/duplicates/DuplicatesPage";
 import { MemoryPage } from "../features/memory/MemoryPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
-import { StartupPage } from "../features/startup/StartupPage";
 import { StoragePage } from "../features/storage/StoragePage";
 import { engine, engineAvailable, onScanFinished, onScanProgress } from "../lib/ipc";
 import type { AppInfo, MemoryPressure, ScanSummary, StartupReport } from "../lib/types";
+import type { AppsTab } from "../features/applications/ApplicationsPage";
 
 import { TopNav, type SectionId } from "./TopNav";
 
@@ -37,6 +37,8 @@ export function AppShell() {
   const [pressure, setPressure] = useState<MemoryPressure>("unknown");
   const [startup, setStartup] = useState<StartupReport | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
+  /** Which tab Apps opens on; Overview's "Starts with your Mac" opens Startup. */
+  const [appsTab, setAppsTab] = useState<AppsTab>("uninstall");
 
   /**
    * One cleanup controller for the whole app.
@@ -65,8 +67,8 @@ export function AppShell() {
       .catch(() => undefined);
   }, []);
 
-  // A scan is the main thing that turns the window amber. Listened to here,
-  // not in Storage, so the colour holds while you look at other sections.
+  // Listened to here, not in Storage, so the top bar can say a scan is running
+  // while you look at other sections.
   useEffect(() => {
     const unlisteners: Array<() => void> = [];
     void onScanProgress(() => setScanning(true)).then((fn) => unlisteners.push(fn));
@@ -82,38 +84,15 @@ export function AppShell() {
 
   const go = useCallback((next: SectionId) => {
     setSection(next);
+    setAppsTab("uninstall");
     setQueueOpen(false);
   }, []);
 
-  /**
-   * What is true right now, which is the only thing that colours the window.
-   *
-   * Black and white until something is true; then one colour, meaning one
-   * thing, in this order of precedence:
-   *   working  amber  a scan or a duplicate search is running
-   *   high     red    memory pressure is high (Memory only)
-   *   done     green  the queue was just moved to the Trash
-   *   found    teal   Cleanup or Duplicates has space to show you
-   *   calm     green  memory pressure is normal (Memory only)
-   */
-  const state = useMemo(() => {
-    if (scanning || cleanup.duplicateProgress) return "working";
-    if (section === "memory" && pressure === "critical") return "high";
-    if (section === "memory" && pressure === "warning") return "working";
-    if (cleanup.report && cleanup.report.removedCount > 0) return "done";
-    if (section === "cleanup" && cleanup.groups.length > 0) return "found";
-    if (section === "duplicates" && cleanup.duplicates.length > 0) return "copies";
-    if (section === "memory" && pressure === "normal") return "calm";
-    return "idle";
-  }, [
-    scanning,
-    cleanup.duplicateProgress,
-    cleanup.report,
-    cleanup.groups.length,
-    cleanup.duplicates.length,
-    section,
-    pressure,
-  ]);
+  const goToStartup = useCallback(() => {
+    setSection("applications");
+    setAppsTab("startup");
+    setQueueOpen(false);
+  }, []);
 
   const volumeName = scan
     ? scan.rootPath === "/"
@@ -122,7 +101,7 @@ export function AppShell() {
     : null;
 
   return (
-    <div className="shell" data-section={section} data-state={state}>
+    <div className="shell" data-section={section}>
       <TopNav
         active={section}
         onSelect={go}
@@ -130,12 +109,13 @@ export function AppShell() {
         groups={cleanup.groups}
         stagedCount={cleanup.staged.length}
         stagedBytes={cleanup.stagedTotal}
+        scanning={scanning}
+        pressure={pressure}
       />
 
       <main
         className={[
           "main",
-          section === "applications" ? "main--framed" : "",
           QUEUE_SECTIONS.has(section) && cleanup.staged.length > 0 ? "main--queue" : "",
         ]
           .filter(Boolean)
@@ -153,11 +133,13 @@ export function AppShell() {
 
           {section === "overview" && (
             <OverviewPage
-              info={info}
               scan={scan}
-              groups={cleanup.groups}
+              scanning={scanning}
+              cleanup={cleanup}
               startup={startup}
+              onPressure={setPressure}
               onGo={go}
+              onGoToStartup={goToStartup}
             />
           )}
           {section === "storage" && <StoragePage onScanReady={onScanReady} />}
@@ -177,9 +159,14 @@ export function AppShell() {
             />
           )}
           {section === "applications" && (
-            <ApplicationsPage cleanup={cleanup} onBack={() => go("cleanup")} />
+            <ApplicationsPage
+              cleanup={cleanup}
+              tab={appsTab}
+              onTab={setAppsTab}
+              startup={startup}
+              onStartup={setStartup}
+            />
           )}
-          {section === "startup" && <StartupPage report={startup} onReport={setStartup} />}
           {section === "memory" && <MemoryPage onPressure={setPressure} />}
         </div>
 

@@ -1,21 +1,48 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { formatBytes } from "../lib/format";
 import { engine, engineAvailable } from "../lib/ipc";
-import type { CandidateGroup, MemoryReport, ProcessMemory, VolumeInfo } from "../lib/types";
+import type {
+  CandidateGroup,
+  MemoryPressure,
+  MemoryReport,
+  ProcessMemory,
+  VolumeInfo,
+} from "../lib/types";
 
 export type SectionId =
-  "overview" | "storage" | "cleanup" | "duplicates" | "applications" | "startup" | "memory";
+  "overview" | "storage" | "cleanup" | "duplicates" | "applications" | "memory";
 
-export const SECTIONS: Array<{ id: SectionId; label: string; panel: boolean }> = [
-  { id: "overview", label: "Overview", panel: false },
-  { id: "storage", label: "Storage", panel: true },
-  { id: "cleanup", label: "Cleanup", panel: true },
-  { id: "duplicates", label: "Duplicates", panel: false },
-  { id: "applications", label: "Apps", panel: false },
-  { id: "startup", label: "Startup", panel: false },
-  { id: "memory", label: "Memory", panel: true },
+/**
+ * The sections, each with the colour that marks it as the one you are in.
+ *
+ * `rgb` and `text` are read by the stylesheet as --item and --item-text, so
+ * an item shows its own colour while pressed and once selected. Startup lives
+ * inside Apps, as a tab.
+ */
+export const SECTIONS: Array<{
+  id: SectionId;
+  label: string;
+  panel: boolean;
+  rgb: string;
+  text: string;
+}> = [
+  { id: "overview", label: "Overview", panel: false, rgb: "255, 255, 255", text: "#f5f5f7" },
+  { id: "storage", label: "Storage", panel: true, rgb: "250, 204, 21", text: "#fde047" },
+  { id: "cleanup", label: "Cleanup", panel: true, rgb: "45, 212, 191", text: "#5eead4" },
+  {
+    id: "duplicates",
+    label: "Duplicates",
+    panel: false,
+    rgb: "192, 132, 252",
+    text: "#d8b4fe",
+  },
+  { id: "applications", label: "Apps", panel: false, rgb: "129, 140, 248", text: "#a5b4fc" },
+  { id: "memory", label: "Memory", panel: true, rgb: "56, 189, 248", text: "#7dd3fc" },
 ];
+
+/** Sections whose numbers come from a scan, and so update when one finishes. */
+const FROM_SCAN: ReadonlySet<SectionId> = new Set(["cleanup", "duplicates"]);
 
 type PanelId = "storage" | "cleanup" | "memory";
 
@@ -32,6 +59,10 @@ const CLOSE_DELAY_MS = 220;
  * drops a full-width panel of shortcuts and live figures for that section,
  * and the page behind blurs. Clicking a section goes to it. Escape, a click
  * outside, or moving away closes the panel.
+ *
+ * No item is ever disabled. While a scan runs, Cleanup and Duplicates carry a
+ * small white dot (their numbers update when it finishes) and still open to
+ * the last results. Memory carries an orange or red dot when pressure is up.
  */
 export function TopNav({
   active,
@@ -40,6 +71,8 @@ export function TopNav({
   groups,
   stagedCount,
   stagedBytes,
+  scanning,
+  pressure,
 }: {
   active: SectionId;
   onSelect: (id: SectionId) => void;
@@ -48,6 +81,9 @@ export function TopNav({
   groups: CandidateGroup[];
   stagedCount: number;
   stagedBytes: number;
+  /** A scan is running, so scan-fed sections are showing the previous one. */
+  scanning: boolean;
+  pressure: MemoryPressure;
 }) {
   const [open, setOpen] = useState<PanelId | null>(null);
   const openTimer = useRef<number | undefined>(undefined);
@@ -112,48 +148,70 @@ export function TopNav({
         </button>
 
         <nav className="places" aria-label="Sections">
-          {SECTIONS.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              aria-current={section.id === active ? "page" : undefined}
-              aria-haspopup={section.panel || undefined}
-              aria-expanded={section.panel ? open === section.id : undefined}
-              onMouseEnter={() => hover(section.panel ? (section.id as PanelId) : null)}
-              onFocus={() => section.panel && open && setOpen(section.id as PanelId)}
-              onKeyDown={(event) => {
-                if (section.panel && event.key === "ArrowDown") {
-                  event.preventDefault();
-                  setOpen(section.id as PanelId);
-                }
-              }}
-              onClick={() => go(section.id)}
-            >
-              {section.label}
-            </button>
-          ))}
+          {SECTIONS.map((section) => {
+            const waits = scanning && FROM_SCAN.has(section.id);
+            const alert =
+              section.id === "memory" && (pressure === "warning" || pressure === "critical")
+                ? pressure
+                : null;
+            const label = waits
+              ? `${section.label}, updates when the scan finishes`
+              : alert
+                ? `${section.label}, ${alert === "critical" ? "pressure is high" : "under pressure"}`
+                : undefined;
+            return (
+              <button
+                key={section.id}
+                type="button"
+                style={{ "--item": section.rgb, "--item-text": section.text } as CSSProperties}
+                aria-label={label}
+                aria-current={section.id === active ? "page" : undefined}
+                aria-haspopup={section.panel || undefined}
+                aria-expanded={section.panel ? open === section.id : undefined}
+                onMouseEnter={() => hover(section.panel ? (section.id as PanelId) : null)}
+                onFocus={() => section.panel && open && setOpen(section.id as PanelId)}
+                onKeyDown={(event) => {
+                  if (section.panel && event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setOpen(section.id as PanelId);
+                  }
+                }}
+                onClick={() => go(section.id)}
+              >
+                {section.label}
+                {waits && <span className="places__dot" aria-hidden="true" />}
+                {alert && (
+                  <span className={`places__dot places__dot--${alert}`} aria-hidden="true" />
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         <button
           type="button"
-          className="volume-pill"
+          className={scanning ? "volume-pill volume-pill--working" : "volume-pill"}
           aria-haspopup
           aria-expanded={open === "storage"}
           onClick={() => setOpen(open === "storage" ? null : "storage")}
         >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            aria-hidden="true"
-          >
-            <rect x="2" y="4.5" width="12" height="7" rx="1.6" />
-            <path d="M5 8h.01" />
-          </svg>
-          {volumeName ?? "Choose a volume"}
+          {scanning ? (
+            <span className="volume-pill__dot" aria-hidden="true" />
+          ) : (
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              aria-hidden="true"
+            >
+              <rect x="2" y="4.5" width="12" height="7" rx="1.6" />
+              <path d="M5 8h.01" />
+            </svg>
+          )}
+          {scanning ? `Reading ${volumeName ?? "a volume"}` : (volumeName ?? "Choose a volume")}
           <svg
             width="11"
             height="11"

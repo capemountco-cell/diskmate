@@ -235,7 +235,7 @@ function StorageIntro({ storage }: { storage: ReturnType<typeof useStorage> }) {
         subtitle="See where your space went, folder by folder, and what changed since you last looked."
         art={
           <div className="device-art" aria-hidden="true">
-            <StorageIcon size={72} />
+            <StorageIcon size={30} />
           </div>
         }
         features={[

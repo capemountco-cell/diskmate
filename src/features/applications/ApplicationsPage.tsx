@@ -1,40 +1,51 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { ChevronLeftIcon } from "../../components/icons";
-import { Button, EmptyState, Note, Safety, Spinner } from "../../components/primitives";
-import { formatBytes, formatCount, formatRelative, truncatePath } from "../../lib/format";
+import { Button, EmptyState, Note, Spinner } from "../../components/primitives";
+import { formatBytes, formatCount, truncatePath } from "../../lib/format";
 import { describeError, engine, engineAvailable } from "../../lib/ipc";
 import { reveal } from "../../lib/reveal";
-import type { Application, Leftover } from "../../lib/types";
+import type { Application, CleanupCandidate, StartupReport } from "../../lib/types";
 import { RemovalReportNote } from "../cleanup/Queue";
 import type { CleanupController } from "../cleanup/useCleanup";
+import { StartupTab } from "../startup/StartupPage";
 
-type Filter = "all" | "unused" | "leftovers";
-type Sort = "size" | "name" | "opened";
+export type AppsTab = "uninstall" | "startup";
+type Sort = "opened" | "size" | "name";
 
-/** Six months, the line after which an app counts as not opened lately. */
-const UNUSED_AFTER_SECONDS = 183 * 24 * 60 * 60;
+const DAY = 24 * 60 * 60;
 
 /**
- * Applications.
+ * Apps.
  *
- * A working list rather than a set of cards, so it sits on a plain light panel
- * inside the section's colour: long lists of names and sizes are easier to read
- * dark-on-light. The detail pane shows what an app keeps outside its own
- * folder, read from disk when the app is selected.
+ * One list. Opening an app shows, in place, every file it would take with it,
+ * in three groups: what goes with the app, what to look at first (things you
+ * made or saved with it, left unticked), and what Mr Clean will not touch.
+ * Ticking an app puts it and its own files in the queue; the bar at the bottom
+ * says what the queue holds, and the queue is still the only place anything is
+ * removed, and then only to the Trash.
+ *
+ * Startup sits here as a tab, because what starts with your Mac is put there
+ * by apps.
  */
 export function ApplicationsPage({
   cleanup,
-  onBack,
+  tab,
+  onTab,
+  startup,
+  onStartup,
 }: {
   cleanup: CleanupController;
-  onBack: () => void;
+  tab: AppsTab;
+  onTab: (tab: AppsTab) => void;
+  startup: StartupReport | null;
+  onStartup: (report: StartupReport) => void;
 }) {
-  const [filter, setFilter] = useState<Filter>("all");
-  const [sort, setSort] = useState<Sort>("size");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [leftovers, setLeftovers] = useState<Leftover[] | null>(null);
-  const [leftoverError, setLeftoverError] = useState<string | null>(null);
+  const [sort, setSort] = useState<Sort>("opened");
+  const [query, setQuery] = useState("");
+  const [openId, setOpenId] = useState<number | null>(null);
+  /** What each app would take with it, read when it is first opened or ticked. */
+  const [proposals, setProposals] = useState<Record<number, CleanupCandidate[]>>({});
+  const [proposalError, setProposalError] = useState<string | null>(null);
 
   const { applications, loadApplications, loadingApps } = cleanup;
 
@@ -47,57 +58,63 @@ export function ApplicationsPage({
 
   const now = Math.floor(Date.now() / 1000);
   const visible = useMemo(() => {
-    const filtered = applications.filter((app) => {
-      if (filter === "unused") {
-        return app.lastUsedAt !== null && now - app.lastUsedAt > UNUSED_AFTER_SECONDS;
-      }
-      if (filter === "leftovers") return app.leftoverBytes > 0;
-      return true;
-    });
-    const sorted = [...filtered];
+    const needle = query.trim().toLowerCase();
+    const shown = needle
+      ? applications.filter((app) => app.name.toLowerCase().includes(needle))
+      : [...applications];
     if (sort === "size") {
-      sorted.sort(
-        (a, b) => b.bundleBytes + b.leftoverBytes - (a.bundleBytes + a.leftoverBytes),
-      );
+      shown.sort((a, b) => b.bundleBytes + b.leftoverBytes - (a.bundleBytes + a.leftoverBytes));
     } else if (sort === "name") {
-      sorted.sort((a, b) => a.name.localeCompare(b.name));
+      shown.sort((a, b) => a.name.localeCompare(b.name));
     } else {
-      // Never-recorded last use sorts last: it is unknown, not old.
-      sorted.sort((a, b) => (a.lastUsedAt ?? Infinity) - (b.lastUsedAt ?? Infinity));
+      // Least recently opened first. Never recorded sorts last: it is
+      // unknown, not old.
+      shown.sort((a, b) => (a.lastUsedAt ?? Infinity) - (b.lastUsedAt ?? Infinity));
     }
-    return sorted;
-  }, [applications, filter, sort, now]);
+    return shown;
+  }, [applications, query, sort]);
 
-  const selected: Application | null =
-    visible.find((app) => app.id === selectedId) ?? visible[0] ?? null;
-
-  useEffect(() => {
-    if (!selected || !engineAvailable()) return;
-    let cancelled = false;
-    setLeftovers(null);
-    setLeftoverError(null);
-    engine
-      .applicationLeftovers(selected.id)
-      .then((rows) => !cancelled && setLeftovers(rows))
-      .catch((cause) => !cancelled && setLeftoverError(describeError(cause)));
-    return () => {
-      cancelled = true;
-    };
-  }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const totalBytes = applications.reduce((sum, app) => sum + app.bundleBytes, 0);
-  const counts = {
-    all: applications.length,
-    unused: applications.filter(
-      (app) => app.lastUsedAt !== null && now - app.lastUsedAt > UNUSED_AFTER_SECONDS,
-    ).length,
-    leftovers: applications.filter((app) => app.leftoverBytes > 0).length,
+  const propose = async (app: Application): Promise<CleanupCandidate[] | null> => {
+    const known = proposals[app.id];
+    if (known) return known;
+    try {
+      const rows = await engine.proposeUninstall(app.id);
+      setProposals((current) => ({ ...current, [app.id]: rows }));
+      setProposalError(null);
+      return rows;
+    } catch (cause) {
+      setProposalError(describeError(cause));
+      return null;
+    }
   };
-  const filterLabel = {
-    all: "All Applications",
-    unused: "Not Opened Lately",
-    leftovers: "Keep Files Elsewhere",
+
+  const toggleOpen = (app: Application) => {
+    if (openId === app.id) return setOpenId(null);
+    setOpenId(app.id);
+    void propose(app);
   };
+
+  const isPicked = (app: Application) => cleanup.staged.some((c) => c.path === app.path);
+
+  /** Ticking an app queues it and the files only it uses; never "look at first". */
+  const togglePicked = async (app: Application) => {
+    const rows = await propose(app);
+    if (!rows) return;
+    if (isPicked(app)) {
+      const ids = rows.filter((c) => cleanup.stagedIds.has(c.id)).map((c) => c.id);
+      if (ids.length > 0) await cleanup.unstage(ids);
+    } else {
+      const ids = rows
+        .filter((c) => c.safety !== "protected" && (c.safety === "safe" || c.path === app.path))
+        .map((c) => c.id);
+      if (ids.length > 0) await cleanup.stage(ids);
+    }
+  };
+
+  const toggleFile = (candidate: CleanupCandidate) =>
+    cleanup.stagedIds.has(candidate.id)
+      ? cleanup.unstage([candidate.id])
+      : cleanup.stage([candidate.id]);
 
   if (!engineAvailable()) {
     return (
@@ -107,197 +124,333 @@ export function ApplicationsPage({
     );
   }
 
+  const totalBytes = applications.reduce((sum, app) => sum + app.bundleBytes, 0);
+  const userStartup = startup
+    ? startup.items.filter((item) => !item.isOsProvided).length
+    : null;
+
   return (
-    <div className="apps">
-      <header className="apps__bar">
-        <div>
-          <button type="button" className="apps__ghost" onClick={onBack}>
-            <ChevronLeftIcon size={16} />
-            Back
-          </button>
-        </div>
-        <h1 className="apps__title">Applications</h1>
-        <div className="apps__tools">
-          <label className="apps__sort">
-            Sort by:
-            <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
-              <option value="size">Size</option>
-              <option value="name">Name</option>
-              <option value="opened">Last opened</option>
-            </select>
-          </label>
-          <Button variant="quiet" onClick={loadApplications} disabled={loadingApps}>
-            Rescan
-          </Button>
-        </div>
+    <div className="page">
+      <header className="page-head">
+        <p className="kicker">In Applications, with what each app keeps elsewhere</p>
+        <p className="bigline">
+          {applications.length > 0 ? (
+            <>
+              <b className="num">{formatCount(applications.length)} apps</b>
+              <span>using {formatBytes(totalBytes)}</span>
+            </>
+          ) : (
+            <span>{loadingApps ? "Reading Applications…" : "No apps read yet"}</span>
+          )}
+        </p>
       </header>
 
-      <div className="apps__body">
-        <nav className="apps__filters" aria-label="Application filters">
-          {(Object.keys(filterLabel) as Filter[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              aria-current={filter === key ? "true" : undefined}
-              onClick={() => setFilter(key)}
-            >
-              <span>{filterLabel[key]}</span>
-              <span className="num faint">{formatCount(counts[key])}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="apps__list">
-          <div className="apps__list-head">
-            <h2>{filterLabel[filter]}</h2>
-            <p className="muted">
-              {formatCount(applications.length)} apps using {formatBytes(totalBytes)}, plus what
-              each one keeps outside its own folder. Apps that come with macOS are not listed.
-            </p>
+      <div className="toolbar">
+        <div className="seg" role="group" aria-label="Apps views">
+          <button
+            type="button"
+            aria-pressed={tab === "uninstall"}
+            onClick={() => onTab("uninstall")}
+          >
+            Uninstall
+          </button>
+          <button
+            type="button"
+            aria-pressed={tab === "startup"}
+            onClick={() => onTab("startup")}
+          >
+            Startup
+            {userStartup !== null && <small className="num">{userStartup}</small>}
+          </button>
+        </div>
+        {tab === "uninstall" && (
+          <div className="toolbar__tools">
+            <div className="sort" role="group" aria-label="Sort apps">
+              <span>Sort</span>
+              <button
+                type="button"
+                aria-pressed={sort === "opened"}
+                onClick={() => setSort("opened")}
+              >
+                Last opened
+              </button>
+              <button
+                type="button"
+                aria-pressed={sort === "size"}
+                onClick={() => setSort("size")}
+              >
+                Size
+              </button>
+              <button
+                type="button"
+                aria-pressed={sort === "name"}
+                onClick={() => setSort("name")}
+              >
+                Name
+              </button>
+            </div>
+            <label className="search">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                aria-hidden="true"
+              >
+                <circle cx="6" cy="6" r="4.2" />
+                <path d="m9.2 9.2 3 3" />
+              </svg>
+              <span className="visually-hidden">Search apps</span>
+              <input
+                type="search"
+                placeholder="Search apps"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            <Button variant="quiet" onClick={loadApplications} disabled={loadingApps}>
+              Read again
+            </Button>
           </div>
+        )}
+      </div>
+
+      {tab === "startup" ? (
+        <StartupTab report={startup} onReport={onStartup} />
+      ) : (
+        <>
+          {cleanup.error && <Note tone="caution">{cleanup.error}</Note>}
+          {proposalError && <Note tone="caution">{proposalError}</Note>}
+          <RemovalReportNote cleanup={cleanup} />
+
           {loadingApps && applications.length === 0 ? (
             <Spinner />
           ) : visible.length === 0 ? (
-            <p className="muted" style={{ padding: "var(--space-4)" }}>
-              Nothing matches this filter.
-            </p>
+            <div className="rows">
+              <p className="rows__empty">
+                {applications.length === 0
+                  ? "Mr Clean found no apps in Applications or your home Applications folder."
+                  : "No app matches that search."}
+              </p>
+            </div>
           ) : (
-            visible.slice(0, 120).map((app) => (
-              <button
-                key={app.id}
-                type="button"
-                className="apps__row"
-                aria-pressed={selected?.id === app.id}
-                onClick={() => setSelectedId(app.id)}
-              >
-                <AppMark name={app.name} />
-                <span className="apps__row-text">
-                  <span className="apps__row-name">{app.name}</span>
-                  <span className="apps__row-meta">
-                    {app.lastUsedAt === null
-                      ? "Last opened: not recorded"
-                      : `Opened ${formatRelative(app.lastUsedAt)}`}
-                  </span>
-                </span>
-                <span className="num apps__row-size">
-                  {formatBytes(app.bundleBytes + app.leftoverBytes)}
-                </span>
-              </button>
-            ))
+            <section className="rows" aria-label="Installed apps">
+              {visible.slice(0, 200).map((app) => (
+                <AppRow
+                  key={app.id}
+                  app={app}
+                  now={now}
+                  open={openId === app.id}
+                  picked={isPicked(app)}
+                  proposal={proposals[app.id] ?? null}
+                  stagedIds={cleanup.stagedIds}
+                  onToggleOpen={() => toggleOpen(app)}
+                  onTogglePicked={() => void togglePicked(app)}
+                  onToggleFile={(candidate) => void toggleFile(candidate)}
+                />
+              ))}
+            </section>
           )}
-        </div>
-
-        <div className="apps__detail">
-          {cleanup.error && <Note tone="caution">{cleanup.error}</Note>}
-          <RemovalReportNote cleanup={cleanup} />
-          {selected ? (
-            <>
-              <div className="apps__detail-head">
-                <AppMark name={selected.name} large />
-                <h2>{selected.name}</h2>
-              </div>
-              <dl className="apps__facts">
-                <dt>App size</dt>
-                <dd className="num">{formatBytes(selected.bundleBytes)}</dd>
-                <dt>Kept elsewhere</dt>
-                <dd className="num">
-                  {selected.leftoverCount > 0
-                    ? `${formatBytes(selected.leftoverBytes)} in ${formatCount(selected.leftoverCount)} places`
-                    : "Nothing found"}
-                </dd>
-                <dt>Last opened</dt>
-                <dd>
-                  {selected.lastUsedAt === null
-                    ? "Not recorded"
-                    : formatRelative(selected.lastUsedAt)}
-                </dd>
-                {selected.version && (
-                  <>
-                    <dt>Version</dt>
-                    <dd>{selected.version}</dd>
-                  </>
-                )}
-                {selected.bundleId && (
-                  <>
-                    <dt>Identifier</dt>
-                    <dd className="mono selectable">{selected.bundleId}</dd>
-                  </>
-                )}
-                <dt>Location</dt>
-                <dd className="mono selectable" title={selected.path}>
-                  {truncatePath(selected.path, 48)}
-                </dd>
-              </dl>
-
-              <section className="apps__leftovers">
-                <h3>What it keeps outside Applications</h3>
-                {leftoverError ? (
-                  <p className="muted">{leftoverError}</p>
-                ) : leftovers === null ? (
-                  <Spinner />
-                ) : leftovers.length === 0 ? (
-                  <p className="muted">Mr Clean found nothing for this app in your Library.</p>
-                ) : (
-                  <ul>
-                    {leftovers.map((item) => (
-                      <li key={item.path} title={item.reason}>
-                        <span className="mono apps__leftover-path">
-                          {truncatePath(item.path, 52)}
-                        </span>
-                        <Safety safety={item.safety} />
-                        <span className="num faint">{formatBytes(item.bytes)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              <div className="row">
-                <Button onClick={() => void reveal(selected.path)}>Show in Finder</Button>
-                <Button onClick={() => cleanup.uninstall(selected.id)}>
-                  Add App and Its Files to Queue
-                </Button>
-              </div>
-            </>
-          ) : (
-            !loadingApps && (
-              <EmptyState title="No applications found">
-                Mr Clean looks in Applications and your home Applications folder.
-              </EmptyState>
-            )
-          )}
-        </div>
-      </div>
-
-      <footer className="apps__foot">
-        Adding an app puts it and its files in the queue. Nothing moves until you approve the
-        queue, and then only to the Trash.
-      </footer>
+          <p className="faint">
+            Apps that come with macOS are not listed. Ticking an app adds it to the queue;
+            nothing moves until you review the queue, and then only to the Trash.
+          </p>
+        </>
+      )}
     </div>
   );
 }
 
-/**
- * A stand-in for the app's icon.
- *
- * Reading real icons needs the platform probe and is not built yet, so this is
- * a neutral tile with the first letter of the name. Its colour comes from the
- * name, so the same app always looks the same.
- */
-function AppMark({ name, large }: { name: string; large?: boolean }) {
-  const hues = [222, 168, 280, 24, 340, 196, 132, 48];
-  let hash = 0;
-  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  const hue = hues[hash % hues.length]!;
+function AppRow({
+  app,
+  now,
+  open,
+  picked,
+  proposal,
+  stagedIds,
+  onToggleOpen,
+  onTogglePicked,
+  onToggleFile,
+}: {
+  app: Application;
+  now: number;
+  open: boolean;
+  picked: boolean;
+  proposal: CleanupCandidate[] | null;
+  stagedIds: Set<number>;
+  onToggleOpen: () => void;
+  onTogglePicked: () => void;
+  onToggleFile: (candidate: CleanupCandidate) => void;
+}) {
+  const goes =
+    proposal?.filter(
+      (c) => c.safety === "safe" || (c.path === app.path && c.safety !== "protected"),
+    ) ?? [];
+  const look = proposal?.filter((c) => c.safety === "review" && c.path !== app.path) ?? [];
+  const kept = proposal?.filter((c) => c.safety === "protected") ?? [];
+  const sum = (rows: CleanupCandidate[]) => rows.reduce((n, c) => n + c.bytes, 0);
+
+  const sub = [app.version, formatBytes(app.bundleBytes), describeOpened(app.lastUsedAt, now)]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <span
-      className={large ? "app-mark app-mark--large" : "app-mark"}
-      style={{
-        background: `linear-gradient(150deg, hsl(${hue} 70% 62%), hsl(${hue} 62% 42%))`,
-      }}
-      aria-hidden="true"
-    >
-      {name.trim().charAt(0).toUpperCase() || "?"}
-    </span>
+    <div className={open ? "app-row app-row--open" : "app-row"}>
+      <div className="app-row__head">
+        <button
+          type="button"
+          className="app-row__opener"
+          aria-expanded={open}
+          onClick={onToggleOpen}
+        >
+          <span className="app-tile" aria-hidden="true">
+            {app.name.trim().charAt(0).toUpperCase() || "?"}
+          </span>
+          <span className="app-row__text">
+            <span className="app-row__name">{app.name}</span>
+            <span className="app-row__sub">{sub}</span>
+          </span>
+          <svg
+            className="app-row__chev"
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            aria-hidden="true"
+          >
+            <path d="m3 4.5 3 3 3-3" />
+          </svg>
+        </button>
+        <span className="app-row__summary">
+          {proposal ? (
+            <>
+              Removes <b className="num">{formatBytes(sum(goes))}</b>
+              {look.length > 0 && <> · {formatBytes(sum(look))} more to look at</>}
+            </>
+          ) : app.leftoverBytes > 0 ? (
+            <>
+              <b className="num">{formatBytes(app.bundleBytes)}</b> app ·{" "}
+              {formatBytes(app.leftoverBytes)} elsewhere
+            </>
+          ) : (
+            <>
+              <b className="num">{formatBytes(app.bundleBytes)}</b> app · nothing elsewhere
+            </>
+          )}
+        </span>
+        <input
+          type="checkbox"
+          className="box"
+          checked={picked}
+          onChange={onTogglePicked}
+          aria-label={`Add ${app.name} and the files only it uses to the queue`}
+        />
+      </div>
+
+      {open && (
+        <div className="app-row__files">
+          {proposal === null ? (
+            <Spinner />
+          ) : (
+            <>
+              <FileGroup
+                title="Goes with the app"
+                note="files only it uses"
+                rows={goes}
+                stagedIds={stagedIds}
+                onToggle={onToggleFile}
+              />
+              {look.length > 0 && (
+                <FileGroup
+                  title="Look at first"
+                  note="things you made or saved with it, kept unless you tick them"
+                  rows={look}
+                  stagedIds={stagedIds}
+                  onToggle={onToggleFile}
+                  showWhy
+                />
+              )}
+              {kept.length > 0 && (
+                <FileGroup
+                  title="Mr Clean will not touch"
+                  note="protected"
+                  rows={kept}
+                  showWhy
+                />
+              )}
+              <div className="row">
+                <Button variant="quiet" onClick={() => void reveal(app.path)}>
+                  Show in Finder
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
+}
+
+function FileGroup({
+  title,
+  note,
+  rows,
+  stagedIds,
+  onToggle,
+  showWhy,
+}: {
+  title: string;
+  note: string;
+  rows: CleanupCandidate[];
+  stagedIds?: Set<number>;
+  onToggle?: (candidate: CleanupCandidate) => void;
+  showWhy?: boolean;
+}) {
+  return (
+    <div className="file-group">
+      <p className="file-group__title">
+        {title} <span>· {note}</span>
+      </p>
+      {rows.length === 0 ? (
+        <p className="file-group__empty">Nothing.</p>
+      ) : (
+        rows.map((candidate) => (
+          <div key={candidate.id} className="file-row">
+            {onToggle && stagedIds ? (
+              <input
+                type="checkbox"
+                className="box"
+                checked={stagedIds.has(candidate.id)}
+                onChange={() => onToggle(candidate)}
+                aria-label={`Add ${candidate.name} to the queue`}
+              />
+            ) : (
+              <span aria-hidden="true" />
+            )}
+            <span className="file-row__name">{candidate.name}</span>
+            <span className="file-row__path mono" title={candidate.path}>
+              {truncatePath(candidate.path, 70)}
+            </span>
+            <span className="file-row__size num">{formatBytes(candidate.bytes)}</span>
+            {showWhy && <p className="file-row__why">{candidate.reason}</p>}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function describeOpened(lastUsedAt: number | null, now: number): string {
+  if (lastUsedAt === null) return "last opened not recorded";
+  const days = Math.max(0, Math.floor((now - lastUsedAt) / DAY));
+  if (days < 1) return "opened today";
+  if (days < 2) return "opened yesterday";
+  if (days < 14) return `opened ${days} days ago`;
+  if (days < 60) return `opened ${Math.round(days / 7)} weeks ago`;
+  if (days < 365) return `not opened in ${Math.round(days / 30)} months`;
+  return "not opened in over a year";
 }

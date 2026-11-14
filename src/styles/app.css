@@ -1050,30 +1050,6 @@
   background: var(--grey-5);
 }
 
-/* ===================================================== applications ==== */
-
-.app-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--line);
-}
-
-.app-row:last-child {
-  border-bottom: none;
-}
-
-.app-row:hover {
-  background: var(--surface-hover);
-}
-
-.app-row__meta {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
-}
-
 /* ======================================================== snapshots ==== */
 
 .delta-bar {
