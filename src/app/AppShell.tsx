@@ -10,10 +10,10 @@ import { MemoryPage } from "../features/memory/MemoryPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { StartupPage } from "../features/startup/StartupPage";
 import { StoragePage } from "../features/storage/StoragePage";
-import { engine, engineAvailable } from "../lib/ipc";
-import type { AppInfo, ScanSummary, StartupReport } from "../lib/types";
+import { engine, engineAvailable, onScanFinished, onScanProgress } from "../lib/ipc";
+import type { AppInfo, MemoryPressure, ScanSummary, StartupReport } from "../lib/types";
 
-import { Sidebar, type SectionId } from "./Sidebar";
+import { TopNav, type SectionId } from "./TopNav";
 
 /** Sections whose screens can add to the cleanup queue. */
 const QUEUE_SECTIONS: ReadonlySet<SectionId> = new Set([
@@ -33,7 +33,8 @@ export function AppShell() {
    * the app do the work twice and possibly disagree with itself.
    */
   const [scan, setScan] = useState<ScanSummary | null>(null);
-  const [storageIntro, setStorageIntro] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [pressure, setPressure] = useState<MemoryPressure>("unknown");
   const [startup, setStartup] = useState<StartupReport | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
 
@@ -64,6 +65,15 @@ export function AppShell() {
       .catch(() => undefined);
   }, []);
 
+  // A scan is the main thing that turns the window amber. Listened to here,
+  // not in Storage, so the colour holds while you look at other sections.
+  useEffect(() => {
+    const unlisteners: Array<() => void> = [];
+    void onScanProgress(() => setScanning(true)).then((fn) => unlisteners.push(fn));
+    void onScanFinished(() => setScanning(false)).then((fn) => unlisteners.push(fn));
+    return () => unlisteners.forEach((fn) => fn());
+  }, []);
+
   const onScanReady = useCallback((next: ScanSummary | null) => {
     // Storage reports null while it is still finding its index; that should
     // not erase a scan the shell already knows about.
@@ -73,24 +83,54 @@ export function AppShell() {
   const go = useCallback((next: SectionId) => {
     setSection(next);
     setQueueOpen(false);
-    if (next !== "storage") setStorageIntro(false);
   }, []);
 
-  // The sidebar carries labels while a section is introducing itself.
-  const expanded =
-    (section === "storage" && storageIntro) || (section === "startup" && startup === null);
+  /**
+   * What is true right now, which is the only thing that colours the window.
+   *
+   * Black and white until something is true; then one colour, meaning one
+   * thing, in this order of precedence:
+   *   working  amber  a scan or a duplicate search is running
+   *   high     red    memory pressure is high (Memory only)
+   *   done     green  the queue was just moved to the Trash
+   *   found    teal   Cleanup or Duplicates has space to show you
+   *   calm     green  memory pressure is normal (Memory only)
+   */
+  const state = useMemo(() => {
+    if (scanning || cleanup.duplicateProgress) return "working";
+    if (section === "memory" && pressure === "critical") return "high";
+    if (section === "memory" && pressure === "warning") return "working";
+    if (cleanup.report && cleanup.report.removedCount > 0) return "done";
+    if (section === "cleanup" && cleanup.groups.length > 0) return "found";
+    if (section === "duplicates" && cleanup.duplicates.length > 0) return "copies";
+    if (section === "memory" && pressure === "normal") return "calm";
+    return "idle";
+  }, [
+    scanning,
+    cleanup.duplicateProgress,
+    cleanup.report,
+    cleanup.groups.length,
+    cleanup.duplicates.length,
+    section,
+    pressure,
+  ]);
 
-  const marked = useMemo(() => {
-    const set = new Set<SectionId>();
-    if (cleanup.groups.length > 0) set.add("cleanup");
-    if (cleanup.duplicates.length > 0) set.add("duplicates");
-    if (cleanup.staged.length > 0) set.add("cleanup");
-    return set;
-  }, [cleanup.groups.length, cleanup.duplicates.length, cleanup.staged.length]);
+  const volumeName = scan
+    ? scan.rootPath === "/"
+      ? "Startup disk"
+      : (scan.rootPath.replace(/\/+$/, "").split("/").pop() ?? scan.rootPath)
+    : null;
 
   return (
-    <div className="shell" data-section={section}>
-      <Sidebar active={section} onSelect={go} info={info} expanded={expanded} marked={marked} />
+    <div className="shell" data-section={section} data-state={state}>
+      <TopNav
+        active={section}
+        onSelect={go}
+        volumeName={volumeName}
+        groups={cleanup.groups}
+        stagedCount={cleanup.staged.length}
+        stagedBytes={cleanup.stagedTotal}
+      />
 
       <main
         className={[
@@ -105,7 +145,7 @@ export function AppShell() {
           {info?.portableFallbackReason && (
             <div style={{ marginBottom: "var(--space-4)" }}>
               <Note tone="caution" title="Portable mode is not active.">
-                {info.portableFallbackReason} DiskMate is storing its index on this Mac instead,
+                {info.portableFallbackReason} Mr Clean is storing its index on this Mac instead,
                 at {info.dataDir}.
               </Note>
             </div>
@@ -120,9 +160,7 @@ export function AppShell() {
               onGo={go}
             />
           )}
-          {section === "storage" && (
-            <StoragePage onScanReady={onScanReady} onIntro={setStorageIntro} />
-          )}
+          {section === "storage" && <StoragePage onScanReady={onScanReady} />}
           {section === "cleanup" && (
             <CleanupPage
               scanId={scan?.scanId ?? null}
@@ -142,7 +180,7 @@ export function AppShell() {
             <ApplicationsPage cleanup={cleanup} onBack={() => go("cleanup")} />
           )}
           {section === "startup" && <StartupPage report={startup} onReport={setStartup} />}
-          {section === "memory" && <MemoryPage />}
+          {section === "memory" && <MemoryPage onPressure={setPressure} />}
         </div>
 
         {QUEUE_SECTIONS.has(section) && (

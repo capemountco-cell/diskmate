@@ -126,7 +126,7 @@ function EntryTableRow({
             {row.name}
           </span>
           {!row.accessible && row.kind === "directory" && (
-            <span className="badge" title="DiskMate could not read inside this folder">
+            <span className="badge" title="Mr Clean could not read inside this folder">
               <LockIcon size={11} /> Not readable
             </span>
           )}

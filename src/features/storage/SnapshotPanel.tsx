@@ -61,7 +61,7 @@ export function SnapshotPanel({ scanId }: { scanId: number }) {
 
       {snapshots.length === 0 ? (
         <EmptyState title="No snapshots yet">
-          Take one now, then another after a week, and DiskMate will show you which folders grew
+          Take one now, then another after a week, and Mr Clean will show you which folders grew
           in between.
         </EmptyState>
       ) : (

@@ -355,7 +355,7 @@ impl DuplicateFinder {
                     safety: SafetyClass::Review,
                     rule: "duplicate".into(),
                     reason: format!(
-                        "{} is byte-for-byte identical to a copy DiskMate is keeping.",
+                        "{} is byte-for-byte identical to a copy Mr Clean is keeping.",
                         member.name
                     ),
                     detail: Some(format!("The copy being kept is {keeper_path}.")),

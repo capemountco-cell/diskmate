@@ -267,7 +267,7 @@ pub(crate) fn describe(samples: &[Sample], peak: MemoryPressure) -> (String, Str
         ),
         (MemoryPressure::Unknown, _) => (
             "Memory status unavailable".to_string(),
-            "DiskMate could not read the memory pressure level on this system.".to_string(),
+            "The memory pressure level could not be read on this system.".to_string(),
         ),
     }
 }

@@ -369,7 +369,7 @@ impl ApplicationInspector {
             .ok_or_else(|| crate::CoreError::invalid("that application is not in the list"))?;
         if app.is_os_provided {
             return Err(crate::CoreError::invalid(format!(
-                "{} came with macOS and DiskMate will not uninstall it",
+                "{} came with macOS and Mr Clean will not uninstall it",
                 app.name
             )));
         }

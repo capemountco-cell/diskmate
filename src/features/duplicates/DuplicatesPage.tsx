@@ -10,7 +10,7 @@ import type { CleanupController } from "../cleanup/useCleanup";
 /**
  * Duplicates.
  *
- * Its own section because finding them is its own piece of work: DiskMate
+ * Its own section because finding them is its own piece of work: Mr Clean
  * reads file contents here, which no other screen does, and the cost of that
  * is shown alongside the answer.
  */
@@ -29,7 +29,7 @@ export function DuplicatesPage({
 
   if (!engineAvailable()) {
     return (
-      <EmptyState title="The DiskMate engine is not running">
+      <EmptyState title="The Mr Clean engine is not running">
         Start the application with <code className="mono">npm run dev</code>.
       </EmptyState>
     );
@@ -41,7 +41,7 @@ export function DuplicatesPage({
         <PageHeader title="Duplicates" />
         <Hero
           title="Duplicates are found within a scan."
-          subtitle="Scan a volume first, then DiskMate can compare what it found."
+          subtitle="Scan a volume first, then Mr Clean can compare what it found."
           action={
             <Button variant="primary" onClick={onGoToStorage}>
               Go to Storage
@@ -95,7 +95,7 @@ export function DuplicatesPage({
       ) : !stats ? (
         <Hero
           title="Find files that are stored more than once."
-          subtitle="DiskMate groups files by size first, then reads a sample, and only reads a whole file when it still looks identical. Most of your disk is never opened."
+          subtitle="Mr Clean groups files by size first, then reads a sample, and only reads a whole file when it still looks identical. Most of your disk is never opened."
           action={
             <Button variant="primary" onClick={cleanup.findDuplicates}>
               Find Duplicates
@@ -117,7 +117,7 @@ export function DuplicatesPage({
             }
             subtitle={
               stats.groups === 0
-                ? "Every file DiskMate compared turned out to be different."
+                ? "Every file Mr Clean compared turned out to be different."
                 : `${formatBytes(stats.reclaimableBytes)} is held more than once. Each set was compared byte for byte, never by name.`
             }
           />
@@ -125,7 +125,7 @@ export function DuplicatesPage({
           <section className="findings">
             <FindingCard
               layout="wide"
-              title="What DiskMate read to prove it"
+              title="What Mr Clean read to prove it"
               emblem={
                 <GlassTile>
                   <DuplicatesIcon size={24} />

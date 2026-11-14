@@ -10,7 +10,7 @@ import type { StartupItem, StartupReport } from "../../lib/types";
  * What runs automatically on this Mac.
  *
  * Read-only, and honest about what it does not know. There is no impact column
- * filled with guesses: until DiskMate can measure launch cost, saying so is the
+ * filled with guesses: until Mr Clean can measure launch cost, saying so is the
  * only defensible thing to print.
  */
 export function StartupPage({
@@ -26,7 +26,7 @@ export function StartupPage({
 
   const look = () => {
     if (!engineAvailable()) {
-      setError("The DiskMate engine is not running.");
+      setError("The Mr Clean engine is not running.");
       return;
     }
     setLoading(true);
@@ -45,8 +45,8 @@ export function StartupPage({
           title="Startup"
           subtitle="See everything that starts with your Mac, who put it there, and where it lives."
           art={
-            <div className="intro-badge" aria-hidden="true">
-              <StartupIcon size={120} />
+            <div className="device-art" aria-hidden="true">
+              <StartupIcon size={72} />
             </div>
           }
           features={[
@@ -76,7 +76,7 @@ export function StartupPage({
       <Hero
         title={
           report.items.length === 0 ? (
-            "DiskMate found no launch items it can read."
+            "Mr Clean found no launch items it can read."
           ) : (
             <>
               <span className="num">{userItems.length}</span>{" "}
@@ -94,7 +94,7 @@ export function StartupPage({
       <div className="stack">
         {report.impactUnavailable && (
           <Note tone="info" title="Impact is not measured yet.">
-            DiskMate will not guess how much any of these cost at startup. Until it can measure
+            Mr Clean will not guess how much any of these cost at startup. Until it can measure
             that properly, it shows what is configured and leaves the judgement to you.
           </Note>
         )}
@@ -111,7 +111,7 @@ export function StartupPage({
         />
         <ItemGroup
           title="Part of macOS"
-          note="DiskMate will never suggest changing these."
+          note="Mr Clean will never suggest changing these."
           items={osItems}
         />
       </div>

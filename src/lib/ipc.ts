@@ -5,7 +5,7 @@
  * call `invoke` directly, so the command surface stays visible in one place and
  * the argument shapes cannot drift apart across features.
  *
- * When DiskMate's window is opened by Vite alone (`npm run dev:web`), the Tauri
+ * When Mr Clean's window is opened by Vite alone (`npm run dev:web`), the Tauri
  * bridge is absent. That case reports itself plainly rather than substituting
  * sample data: a storage tool showing invented numbers would be worse than one
  * showing none.
@@ -59,7 +59,7 @@ export function engineAvailable(): boolean {
 export class EngineUnavailableError extends Error {
   constructor() {
     super(
-      "DiskMate's engine is not running. Start the app with `npm run dev` rather than " +
+      "Mr Clean's engine is not running. Start the app with `npm run dev` rather than " +
         "opening the web build directly.",
     );
     this.name = "EngineUnavailableError";

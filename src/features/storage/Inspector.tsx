@@ -21,7 +21,7 @@ const INSIDE_LIMIT = 6;
  *
  * Every storage tool has a details panel, and most of them are a table of
  * numbers you could have worked out yourself. The part that earns the space is
- * the last section: what DiskMate is prepared to say about the thing you have
+ * the last section: what Mr Clean is prepared to say about the thing you have
  * selected, and — just as often — that it has nothing to say. A folder with no
  * finding gets told so explicitly, because silence in a cleaner usually means
  * "we haven't looked".
@@ -98,8 +98,8 @@ export function Inspector({
         <div className="inspector__empty">
           <p className="muted">Select a rectangle or a row.</p>
           <p className="faint">
-            Whatever you pick, this panel says what it is, what is inside it, and whether
-            DiskMate has anything to suggest about it.
+            Whatever you pick, this panel says what it is, what is inside it, and whether Mr
+            Clean has anything to suggest about it.
           </p>
         </div>
       </aside>
@@ -140,10 +140,10 @@ export function Inspector({
       </header>
 
       <section className="inspector__section inspector__section--sunken">
-        <h3 className="inspector__label">What DiskMate can say</h3>
+        <h3 className="inspector__label">What Mr Clean can say</h3>
         {mine.length === 0 ? (
           <p className="muted" style={{ fontSize: "var(--text-sm)" }}>
-            Nothing to suggest here. DiskMate does not recognise anything inside this as
+            Nothing to suggest here. Mr Clean does not recognise anything inside this as
             regeneratable, duplicated or long abandoned, so it has no opinion about it.
           </p>
         ) : (
@@ -221,7 +221,7 @@ export function Inspector({
             <p className="muted" style={{ fontSize: "var(--text-sm)" }}>
               {entry.accessible
                 ? "This folder is empty."
-                : "DiskMate could not read inside it."}
+                : "Mr Clean could not read inside it."}
             </p>
           ) : (
             <ul className="inspector__inside">

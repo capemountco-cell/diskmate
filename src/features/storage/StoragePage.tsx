@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { MapIcon, RankIcon, TrendIcon } from "../../components/icons";
+import { MapIcon, RankIcon, StorageIcon, TrendIcon } from "../../components/icons";
 import { Hero, IntroScreen, PageHeader } from "../../components/layout";
 import { Button, EmptyState, Note, Panel } from "../../components/primitives";
 import { formatCount } from "../../lib/format";
@@ -19,11 +19,8 @@ import { useStorage, type ScanSummary } from "./useStorage";
 
 export function StoragePage({
   onScanReady,
-  onIntro,
 }: {
   onScanReady: (scan: ScanSummary | null) => void;
-  /** Tells the shell when this screen is an introduction, so it can widen the sidebar. */
-  onIntro: (intro: boolean) => void;
 }) {
   const storage = useStorage();
   const currentScan = storage.snapshot?.scan ?? null;
@@ -43,9 +40,6 @@ export function StoragePage({
     !storage.loadingVolumes &&
     !snapshot &&
     (phase === "idle" || phase === "failed");
-  useEffect(() => {
-    onIntro(intro);
-  }, [intro, onIntro]);
 
   const open = (row: EntryRow) => {
     setSelected(null);
@@ -55,7 +49,7 @@ export function StoragePage({
 
   if (!engineAvailable()) {
     return (
-      <EmptyState title="The DiskMate engine is not running">
+      <EmptyState title="The Mr Clean engine is not running">
         This window is showing the web build on its own. Start the application with{" "}
         <code className="mono">npm run dev</code> so the scanner and index are available.
       </EmptyState>
@@ -73,7 +67,7 @@ export function StoragePage({
       {phase === "scanning" && (
         <Hero
           title={`Reading ${targetName(storage)}…`}
-          subtitle="DiskMate reads file and folder sizes. It does not open, move, change or delete anything."
+          subtitle="Mr Clean reads file and folder sizes. It does not open, move, change or delete anything."
         />
       )}
       <div className="stack">
@@ -88,7 +82,7 @@ export function StoragePage({
         />
 
         {selectedVolume && !selectedVolume.isReadable && (
-          <Note tone="caution" title="DiskMate cannot read this volume.">
+          <Note tone="caution" title="Mr Clean cannot read this volume.">
             macOS has not granted access to it. On the boot volume this usually means Full Disk
             Access is off; you can turn it on in System Settings under Privacy &amp; Security.
           </Note>
@@ -202,7 +196,7 @@ function ExplorerBody({
   if (directory && !directory.accessible) {
     return (
       <p className="muted" style={{ padding: "var(--space-5)" }}>
-        DiskMate could not read inside this folder, so its contents are not in the index. This
+        Mr Clean could not read inside this folder, so its contents are not in the index. This
         is not the same as the folder being empty.
       </p>
     );
@@ -234,7 +228,11 @@ function StorageIntro({ storage }: { storage: ReturnType<typeof useStorage> }) {
       <IntroScreen
         title="Storage"
         subtitle="See where your space went, folder by folder, and what changed since you last looked."
-        art={<TreemapSlab />}
+        art={
+          <div className="device-art" aria-hidden="true">
+            <StorageIcon size={72} />
+          </div>
+        }
         features={[
           { icon: <MapIcon size={20} />, label: "Map of Every Folder" },
           { icon: <RankIcon size={20} />, label: "Largest Files, Ranked" },
@@ -282,7 +280,7 @@ function StorageIntro({ storage }: { storage: ReturnType<typeof useStorage> }) {
             </Note>
           )}
           {storage.selectedVolume && !storage.selectedVolume.isReadable && (
-            <Note tone="caution" title="DiskMate cannot read this volume.">
+            <Note tone="caution" title="Mr Clean cannot read this volume.">
               macOS has not granted access to it. On the boot volume this usually means Full
               Disk Access is off; you can turn it on in System Settings under Privacy &amp;
               Security, or choose a folder instead.
@@ -291,40 +289,5 @@ function StorageIntro({ storage }: { storage: ReturnType<typeof useStorage> }) {
         </div>
       )}
     </>
-  );
-}
-
-/**
- * The illustration for the Storage introduction: a slab of glass holding a
- * treemap in the category colours. Decorative; the proportions mean nothing.
- */
-function TreemapSlab() {
-  const cells: Array<[string, number, number, number, number]> = [
-    ["applications", 0, 0, 44, 60],
-    ["developer", 46, 0, 30, 38],
-    ["documents", 78, 0, 22, 38],
-    ["media", 46, 40, 54, 20],
-    ["downloads", 0, 62, 30, 38],
-    ["system", 32, 62, 40, 38],
-    ["caches", 74, 62, 26, 38],
-  ];
-  return (
-    <div className="slab" aria-hidden="true">
-      <div className="slab__inner">
-        {cells.map(([category, left, top, width, height]) => (
-          <span
-            key={category}
-            className="slab__cell"
-            style={{
-              left: `${left}%`,
-              top: `${top}%`,
-              width: `${width}%`,
-              height: `${height}%`,
-              background: `var(--cat-${category})`,
-            }}
-          />
-        ))}
-      </div>
-    </div>
   );
 }

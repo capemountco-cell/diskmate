@@ -18,7 +18,12 @@ const POLL_MS = 1_000;
  * Mac faster, it makes it slower until the cache refills. What matters is
  * pressure over time, which is what this page shows.
  */
-export function MemoryPage() {
+export function MemoryPage({
+  onPressure,
+}: {
+  /** Tells the shell the current pressure, which colours the window. */
+  onPressure?: (pressure: MemoryPressure) => void;
+} = {}) {
   const [report, setReport] = useState<MonitorReport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +38,7 @@ export function MemoryPage() {
 
   useEffect(() => {
     if (!engineAvailable()) {
-      setError("The DiskMate engine is not running.");
+      setError("The Mr Clean engine is not running.");
       return;
     }
     // Start the sampler on arrival and stop it on leaving: a monitor nobody is
@@ -45,6 +50,11 @@ export function MemoryPage() {
       void engine.monitorStop();
     };
   }, [poll]);
+
+  const currentPressure = report?.latest?.pressure ?? "unknown";
+  useEffect(() => {
+    onPressure?.(currentPressure);
+  }, [currentPressure, onPressure]);
 
   if (error)
     return (
@@ -112,7 +122,7 @@ export function MemoryPage() {
                   id: "cached",
                   label: "Cached files",
                   value: latest.memoryCachedBytes,
-                  color: "var(--cat-documents)",
+                  color: "var(--grey-6)",
                 },
               ]}
             />
@@ -135,7 +145,7 @@ export function MemoryPage() {
               <li className="legend-item">
                 <span
                   className="legend-item__swatch"
-                  style={{ background: "var(--cat-documents)" }}
+                  style={{ background: "var(--grey-6)" }}
                 />
                 <span>Cached</span>
               </li>
@@ -180,8 +190,8 @@ export function MemoryPage() {
         </Note>
 
         <p className="faint">
-          DiskMate also shows memory in the menu bar while it is running. Closing this window
-          keeps it there; choose Quit DiskMate from that menu to stop it.
+          Mr Clean also shows memory in the menu bar while it is running. Closing this window
+          keeps it there; choose Quit Mr Clean from that menu to stop it.
         </p>
       </div>
     </div>
@@ -265,7 +275,7 @@ function TopApps() {
       {apps === null ? (
         <Spinner />
       ) : apps.length === 0 ? (
-        <p className="muted">DiskMate could not read per-app memory on this Mac.</p>
+        <p className="muted">Mr Clean could not read per-app memory on this Mac.</p>
       ) : (
         <ul className="top-apps">
           {apps.map((app) => (

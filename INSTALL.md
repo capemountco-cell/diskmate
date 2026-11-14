@@ -1,4 +1,4 @@
-# Installing DiskMate on your Mac
+# Installing Mr Clean on your Mac
 
 Two routes. Pick one.
 
@@ -6,7 +6,7 @@ Two routes. Pick one.
   nothing to install, about five minutes. Use this unless you want to change
   the code.
 - **[Route B: build it yourself](#route-b-build-it-yourself)** — you get
-  `DiskMate.dmg` and `DiskMate.app` from source, and can rebuild after edits.
+  `Mr Clean.dmg` and `Mr Clean.app` from source, and can rebuild after edits.
 
 Both produce the same unsigned application. See
 [Why macOS complains](#why-macos-complains-and-what-to-click) for what that
@@ -16,7 +16,7 @@ means on first launch.
 
 ## Route A: download the disk image
 
-Continuous integration builds `DiskMate.dmg` on every push. You are downloading
+Continuous integration builds `Mr Clean.dmg` on every push. You are downloading
 the exact artefact the build produced.
 
 ### 1. Open the build
@@ -31,27 +31,27 @@ Open the newest run with a green tick.
 ### 2. Download the artefact
 
 Scroll to the bottom of the run summary, to the **Artifacts** section. Click
-**DiskMate-dmg-unsigned-arm64**. You must be signed in to GitHub; artifacts are
+**MrClean-dmg-unsigned-arm64**. You must be signed in to GitHub; artifacts are
 not available to signed-out visitors.
 
 It downloads as a `.zip`, because GitHub always zips artifacts.
 
 ### 3. Unzip and open
 
-Double-click the downloaded zip. You get `DiskMate.dmg`. Double-click that.
+Double-click the downloaded zip. You get `Mr Clean.dmg`. Double-click that.
 
-A window opens showing the DiskMate icon and an Applications shortcut.
+A window opens showing the Mr Clean icon and an Applications shortcut.
 
 ### 4. Install
 
-Drag **DiskMate** onto the **Applications** folder in that window.
+Drag **Mr Clean** onto the **Applications** folder in that window.
 
-Eject the disk image: click the eject arrow next to `DiskMate` in the Finder
+Eject the disk image: click the eject arrow next to `Mr Clean` in the Finder
 sidebar, then delete the `.dmg` and the `.zip` if you like.
 
 ### 5. First launch
 
-Open Applications and double-click DiskMate. macOS will refuse it the first
+Open Applications and double-click Mr Clean. macOS will refuse it the first
 time. That is expected — see
 [Why macOS complains](#why-macos-complains-and-what-to-click).
 
@@ -154,7 +154,7 @@ first run; later builds take a minute or two because Rust caches its work.
 When it finishes it prints the path and a checksum:
 
 ```
-Built ./target/release/bundle/dmg/DiskMate.dmg
+Built ./target/release/bundle/dmg/Mr Clean.dmg
   size   8.4M
   sha256 …
 ```
@@ -162,10 +162,10 @@ Built ./target/release/bundle/dmg/DiskMate.dmg
 ### 8. Install it
 
 ```sh
-open target/release/bundle/dmg/DiskMate.dmg
+open "target/release/bundle/dmg/Mr Clean.dmg"
 ```
 
-Drag **DiskMate** onto **Applications**, then eject the disk image.
+Drag **Mr Clean** onto **Applications**, then eject the disk image.
 
 Because you built it on this Mac, macOS did not quarantine it. It opens on a
 double-click with no warning.
@@ -177,7 +177,7 @@ double-click with no warning.
 open target/release/bundle/macos/
 ```
 
-Drag `DiskMate.app` to Applications yourself.
+Drag `Mr Clean.app` to Applications yourself.
 
 ### Want to run it without installing?
 
@@ -185,13 +185,13 @@ Drag `DiskMate.app` to Applications yourself.
 npm run dev
 ```
 
-This opens DiskMate with live reload, for development.
+This opens Mr Clean with live reload, for development.
 
 ---
 
 ## Why macOS complains, and what to click
 
-DiskMate is not signed with an Apple Developer ID, because this phase
+Mr Clean is not signed with an Apple Developer ID, because this phase
 deliberately does not require a paid Apple Developer Program membership.
 
 macOS only objects to files that arrived from somewhere else, so what you see
@@ -205,7 +205,7 @@ Nothing happens. It opens normally.
 
 The first launch is refused. Which message you get depends on the build:
 
-**"DiskMate is damaged and can't be opened. You should move it to the Trash."**
+**"Mr Clean is damaged and can't be opened. You should move it to the Trash."**
 
 The app is not damaged, and you should not move it to the Trash. This is what
 macOS says about a *completely unsigned* app that has been quarantined — the
@@ -213,16 +213,16 @@ wording is about a missing signature, not a corrupt file. Builds before
 September 2026 were unsigned. Clear the quarantine flag:
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/DiskMate.app
+xattr -dr com.apple.quarantine "/Applications/Mr Clean.app"
 ```
 
 Then open it. If it still refuses, give it an ad-hoc signature yourself:
 
 ```sh
-codesign --force --deep --sign - /Applications/DiskMate.app
+codesign --force --deep --sign - "/Applications/Mr Clean.app"
 ```
 
-**"Apple could not verify DiskMate is free of malware."**
+**"Apple could not verify Mr Clean is free of malware."**
 
 This is the expected message for current builds, which are ad-hoc signed. Click
 **Done**, then:
@@ -231,9 +231,9 @@ This is the expected message for current builds, which are ad-hoc signed. Click
 | --- | --- |
 | 15 Sequoia and later | System Settings → Privacy & Security → scroll to Security → **Open Anyway** → authenticate. The older right-click → Open bypass no longer works. |
 | 14 Sonoma and earlier | Right-click the app → **Open** → **Open**. |
-| Any version | `xattr -dr com.apple.quarantine /Applications/DiskMate.app` |
+| Any version | `xattr -dr com.apple.quarantine "/Applications/Mr Clean.app"` |
 
-Whichever you use, it is once per copy. After that DiskMate opens normally.
+Whichever you use, it is once per copy. After that Mr Clean opens normally.
 
 ### What ad-hoc signing does and does not do
 
@@ -242,21 +242,21 @@ behind it. It stops macOS calling the app damaged, and it lets **Open Anyway**
 work. It does not make the app "verified", and it is not notarization. Only a
 paid Developer ID does that, which is out of scope for this phase.
 
-## Letting DiskMate see your whole disk
+## Letting Mr Clean see your whole disk
 
-DiskMate works immediately, but macOS hides some folders from every application
-until you allow it. Without permission DiskMate cannot see your Mail store,
+Mr Clean works immediately, but macOS hides some folders from every application
+until you allow it. Without permission Mr Clean cannot see your Mail store,
 Messages history, Safari data, or iOS device backups — and iOS backups alone are
 often tens of gigabytes.
 
-DiskMate never reports a folder it cannot read as empty. It marks it **Not
+Mr Clean never reports a folder it cannot read as empty. It marks it **Not
 readable** and tells you how much was left out.
 
 To grant access:
 
 1. **System Settings** → **Privacy & Security** → **Full Disk Access**.
-2. Click **+**, choose DiskMate from Applications, and turn it on.
-3. Quit DiskMate completely (⌘-Q) and open it again. macOS requires the restart.
+2. Click **+**, choose Mr Clean from Applications, and turn it on.
+3. Quit Mr Clean completely (⌘-Q) and open it again. macOS requires the restart.
 
 **You do not have to do this.** The **Choose a folder…** button next to the
 volume list scans any folder you pick, with no setting to change, because macOS
@@ -266,7 +266,7 @@ grants access to whatever you select in an open panel.
 
 ## Using it the first time
 
-1. Open DiskMate. It lists your volumes with capacity.
+1. Open Mr Clean. It lists your volumes with capacity.
 2. Your startup disk is selected. Click **Scan**.
 3. Watch the live count. **Cancel** stops it at once and keeps what it found.
 4. When it finishes you get the category breakdown, the largest folders and
@@ -274,7 +274,7 @@ grants access to whatever you select in an open panel.
 
 Nothing is removed by looking at it. The Cleanup page can move things to the
 Trash, but only items you put in the queue yourself and then approved, and only
-to the Trash — DiskMate has no way to delete anything permanently. It never
+to the Trash — Mr Clean has no way to delete anything permanently. It never
 sends anything off your Mac.
 
 ---
@@ -291,10 +291,10 @@ Rust is installed but not on your PATH in this terminal. Run
 **The build fails on `libsqlite3-sys`**
 Almost always the Command Line Tools. Confirm `xcode-select -p` prints a path.
 
-**"DiskMate is damaged and can't be opened. You should move it to the Trash."**
+**"Mr Clean is damaged and can't be opened. You should move it to the Trash."**
 It is not damaged. macOS says this about an unsigned app that has been
-quarantined. Run `xattr -dr com.apple.quarantine /Applications/DiskMate.app`,
-and if it still refuses, `codesign --force --deep --sign - /Applications/DiskMate.app`.
+quarantined. Run `xattr -dr com.apple.quarantine "/Applications/Mr Clean.app"`,
+and if it still refuses, `codesign --force --deep --sign - "/Applications/Mr Clean.app"`.
 See [Why macOS complains](#why-macos-complains-and-what-to-click).
 
 **The app opens but the volume list is empty**
@@ -302,5 +302,5 @@ Report it — that is a real bug. Include your macOS version and `uname -m`.
 
 **The scan finds much less than Finder says is used**
 Expected without Full Disk Access. The capacity bar separates *indexed by
-DiskMate* from *used, not indexed*, and the scan summary says how many folders
+Mr Clean* from *used, not indexed*, and the scan summary says how many folders
 were skipped and why.

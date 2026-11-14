@@ -58,7 +58,7 @@ export function QueueDrawer({
   return (
     <div className="drawer" role="dialog" aria-modal="true" aria-label="Queue">
       <button type="button" className="drawer__scrim" aria-label="Close" onClick={onClose} />
-      <div className="drawer__panel surface-light">
+      <div className="drawer__panel">
         <div className="row row--between" style={{ marginBottom: "var(--space-3)" }}>
           <strong style={{ fontSize: "var(--text-md)" }}>Queue</strong>
           <Button variant="quiet" onClick={onClose}>
@@ -142,7 +142,7 @@ function Queue({ cleanup }: { cleanup: CleanupController }) {
           <RemovalFlow />
 
           <p className="stat__hint" style={{ marginTop: "var(--space-3)" }}>
-            DiskMate removes exactly the {formatCount(cleanup.staged.length)} items listed here,
+            Mr Clean removes exactly the {formatCount(cleanup.staged.length)} items listed here,
             totalling {formatBytes(cleanup.stagedTotal)}, and nothing else. If the list or the
             total changes before you click, the whole operation is refused rather than partly
             done.

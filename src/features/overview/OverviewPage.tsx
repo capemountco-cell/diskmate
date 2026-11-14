@@ -13,15 +13,24 @@ import type {
   VolumeInfo,
 } from "../../lib/types";
 
-/** The colours for the findings bar, light enough to read on any section ground. */
-const FINDING_COLORS = ["#47c8b9", "#f2c76b", "#f08a5d", "#a7b6f2", "#d9a4e8", "#c3c8d3"];
+/**
+ * The findings bar. Teal means space you can get back, so every group is a
+ * shade of it, told apart by lightness; extra copies keep their violet.
+ */
+const RECLAIM_SHADES = ["#99f6e4", "#5eead4", "#2dd4bf", "#14b8a6", "#0d9488", "#0f766e"];
+const COPIES = "#c4b5fd";
+function findingColor(group: CandidateGroup, index: number): string {
+  return group.kind === "duplicateCopy"
+    ? COPIES
+    : RECLAIM_SHADES[index % RECLAIM_SHADES.length]!;
+}
 
 /**
  * This Mac.
  *
  * A summary of what the other sections have measured, and nothing else. There
  * is no health grade and no "time saved": a grade would be an opinion dressed
- * as a measurement, and DiskMate has no way to know what anyone's time is
+ * as a measurement, and Mr Clean has no way to know what anyone's time is
  * worth. A card with nothing measured behind it says so and offers the button
  * that would measure it.
  */
@@ -55,7 +64,7 @@ export function OverviewPage({
 
   if (!engineAvailable()) {
     return (
-      <EmptyState title="The DiskMate engine is not running">
+      <EmptyState title="The Mr Clean engine is not running">
         Start the application with <code className="mono">npm run dev</code>.
       </EmptyState>
     );
@@ -145,7 +154,7 @@ export function OverviewPage({
                     key={`${group.kind}-${group.safety}`}
                     style={{
                       flexGrow: group.bytes,
-                      background: FINDING_COLORS[index % FINDING_COLORS.length],
+                      background: findingColor(group, index),
                     }}
                   />
                 ))}
@@ -154,10 +163,7 @@ export function OverviewPage({
                 {topGroups.map((group, index) => (
                   <li key={`${group.kind}-${group.safety}`}>
                     <span>
-                      <i
-                        className="dot"
-                        style={{ background: FINDING_COLORS[index % FINDING_COLORS.length] }}
-                      />
+                      <i className="dot" style={{ background: findingColor(group, index) }} />
                       {group.label}
                     </span>
                     <b className="num">{formatBytes(group.bytes)}</b>
@@ -226,7 +232,7 @@ export function OverviewPage({
               <div className="metric__tip-title">Scan a volume</div>
               <p className="metric__tip-body">
                 Everything on this page that is about storage comes from a scan. Until there is
-                one, DiskMate has nothing to point at.
+                one, Mr Clean has nothing to point at.
               </p>
               <div className="metric__foot">
                 <Button onClick={() => onGo("storage")}>Go to Storage</Button>
@@ -274,5 +280,5 @@ function describeSystem(info: AppInfo): string {
       : info.os === "macos" && info.arch === "x86_64"
         ? "Intel"
         : info.arch;
-  return `${os} · ${chip} · DiskMate ${info.version}`;
+  return `${os} · ${chip} · Mr Clean ${info.version}`;
 }

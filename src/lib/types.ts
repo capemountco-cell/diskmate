@@ -58,7 +58,7 @@ export interface EntryRow {
   modifiedAt: number | null;
   category: Category;
   isHidden: boolean;
-  /** False when DiskMate could not read into this folder. Not the same as empty. */
+  /** False when Mr Clean could not read into this folder. Not the same as empty. */
   accessible: boolean;
   shareOfParent: number;
   /** True when the bytes are shared with another hard link to the same file. */

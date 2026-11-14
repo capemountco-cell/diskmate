@@ -7,7 +7,7 @@ import type { EntryRow, StorageSnapshot } from "../../lib/types";
  * What the scan found, before the user navigates anywhere.
  *
  * The order is deliberate: totals, then where the space went, then the specific
- * folders and files worth looking at. Anything DiskMate could not read is
+ * folders and files worth looking at. Anything Mr Clean could not read is
  * stated plainly at the end rather than hidden or dramatised.
  */
 export function StorageOverview({
@@ -29,7 +29,7 @@ export function StorageOverview({
       )}
 
       <Panel
-        title="What DiskMate indexed"
+        title="What Mr Clean indexed"
         note={`${formatRelative(scan.startedAt)} · ${formatDuration(scan.durationMs)}`}
       >
         <div className="stat-row">
@@ -72,7 +72,7 @@ export function StorageOverview({
       {errors.length > 0 && (
         <Panel
           title="Not included in these totals"
-          note="DiskMate reports what it could not read rather than counting it as empty."
+          note="Mr Clean reports what it could not read rather than counting it as empty."
         >
           <div className="stack" style={{ gap: "var(--space-3)" }}>
             {errors.map((bucket) => (

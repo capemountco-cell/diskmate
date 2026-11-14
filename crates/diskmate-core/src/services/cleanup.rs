@@ -402,10 +402,10 @@ impl CleanupService {
     /// Every reason DiskMate declines to remove something, in one place.
     fn refusal_reason(&self, candidate: &CleanupCandidate, path: &Path) -> Option<String> {
         if candidate.safety == SafetyClass::Protected {
-            return Some("DiskMate protects this and will not remove it".to_string());
+            return Some("Mr Clean protects this and will not remove it".to_string());
         }
         if platform::is_protected_path(path) {
-            return Some("this is in a location DiskMate protects and will not remove".to_string());
+            return Some("this is in a location Mr Clean protects and will not remove".to_string());
         }
         if !path.is_absolute() {
             return Some("only absolute paths can be removed".to_string());
