@@ -87,6 +87,33 @@ pub fn is_protected_path(path: &Path) -> bool {
     false
 }
 
+/// Whether `path` is an app bundle sitting directly in an Applications folder
+/// (`/Applications/Name.app` or `~/Applications/Name.app`).
+///
+/// Applications are protected from cleanup, and stay so. This is the one door
+/// through: an uninstall the person chose, for that app's own bundle, and
+/// nothing inside it, beside it or above it. Apps that come with macOS are
+/// refused before they get this far, and those in /System/Applications never
+/// match.
+pub fn is_uninstallable_app_bundle(path: &Path) -> bool {
+    let Some(text) = path.to_str() else {
+        return false;
+    };
+    let Some((parent, name)) = text.rsplit_once('/') else {
+        return false;
+    };
+    if name.len() <= ".app".len() || !name.ends_with(".app") || name.starts_with('.') {
+        return false;
+    }
+    if parent == "/Applications" {
+        return true;
+    }
+    match home_relative(parent) {
+        Some(relative) => relative == "/Applications",
+        None => false,
+    }
+}
+
 fn home_relative(path: &str) -> Option<&str> {
     for root in ["/Users/", "/home/"] {
         if let Some(rest) = path.strip_prefix(root) {
@@ -104,6 +131,30 @@ fn has_prefix(path: &str, prefix: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_an_app_directly_in_an_applications_folder_can_be_uninstalled() {
+        for yes in [
+            "/Applications/Typefully.app",
+            "/Users/nick/Applications/Sketch.app",
+            "/home/nick/Applications/Tool.app",
+        ] {
+            assert!(is_uninstallable_app_bundle(Path::new(yes)), "{yes}");
+        }
+        for no in [
+            "/Applications",
+            "/Applications/.app",
+            "/Applications/Folder/Nested.app",
+            "/Applications/Typefully.app/Contents",
+            "/Applications/notes.txt",
+            "/System/Applications/Mail.app",
+            "/Users/nick/Applications",
+            "/Users/nick/Documents/Thing.app",
+            "/Users/nick/Applications/Folder/Nested.app",
+        ] {
+            assert!(!is_uninstallable_app_bundle(Path::new(no)), "{no}");
+        }
+    }
     use std::path::PathBuf;
 
     #[test]

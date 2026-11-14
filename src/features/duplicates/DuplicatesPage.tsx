@@ -272,7 +272,14 @@ function DuplicateResults({
             {group.members.map((member) => {
               const candidate = member.isKeeper ? undefined : byPath.get(member.path);
               return (
-                <div className="dup-row" key={member.entryId}>
+                <div
+                  className={
+                    candidate && stagedIds.has(candidate.id)
+                      ? "dup-row dup-row--picked"
+                      : "dup-row"
+                  }
+                  key={member.entryId}
+                >
                   {member.isKeeper ? (
                     <span className="status-chip status-chip--quiet dup-row__keep">
                       Keeping

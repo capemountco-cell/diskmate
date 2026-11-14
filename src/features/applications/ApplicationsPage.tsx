@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, EmptyState, Note, Spinner } from "../../components/primitives";
 import { formatBytes, formatCount, truncatePath } from "../../lib/format";
@@ -10,6 +10,7 @@ import type { CleanupController } from "../cleanup/useCleanup";
 import { StartupTab } from "../startup/StartupPage";
 
 export type AppsTab = "uninstall" | "startup";
+type Queued = "all" | "some" | "none";
 type Sort = "opened" | "size" | "name";
 
 const DAY = 24 * 60 * 60;
@@ -94,13 +95,23 @@ export function ApplicationsPage({
     void propose(app);
   };
 
-  const isPicked = (app: Application) => cleanup.staged.some((c) => c.path === app.path);
+  /**
+   * How much of an app is in the queue: all (the app itself), some (only
+   * files it left elsewhere), or none.
+   */
+  const queuedState = (app: Application): Queued => {
+    const mine = cleanup.staged.filter(
+      (c) => c.path === app.path || c.groupKey === `app:${app.id}`,
+    );
+    if (mine.some((c) => c.path === app.path)) return "all";
+    return mine.length > 0 ? "some" : "none";
+  };
 
   /** Ticking an app queues it and the files only it uses; never "look at first". */
   const togglePicked = async (app: Application) => {
     const rows = await propose(app);
     if (!rows) return;
-    if (isPicked(app)) {
+    if (queuedState(app) !== "none") {
       const ids = rows.filter((c) => cleanup.stagedIds.has(c.id)).map((c) => c.id);
       if (ids.length > 0) await cleanup.unstage(ids);
     } else {
@@ -243,7 +254,7 @@ export function ApplicationsPage({
                   app={app}
                   now={now}
                   open={openId === app.id}
-                  picked={isPicked(app)}
+                  queued={queuedState(app)}
                   proposal={proposals[app.id] ?? null}
                   stagedIds={cleanup.stagedIds}
                   onToggleOpen={() => toggleOpen(app)}
@@ -267,7 +278,7 @@ function AppRow({
   app,
   now,
   open,
-  picked,
+  queued,
   proposal,
   stagedIds,
   onToggleOpen,
@@ -277,7 +288,7 @@ function AppRow({
   app: Application;
   now: number;
   open: boolean;
-  picked: boolean;
+  queued: Queued;
   proposal: CleanupCandidate[] | null;
   stagedIds: Set<number>;
   onToggleOpen: () => void;
@@ -292,12 +303,25 @@ function AppRow({
   const kept = proposal?.filter((c) => c.safety === "protected") ?? [];
   const sum = (rows: CleanupCandidate[]) => rows.reduce((n, c) => n + c.bytes, 0);
 
+  const box = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (box.current) box.current.indeterminate = queued === "some";
+  }, [queued]);
+
   const sub = [app.version, formatBytes(app.bundleBytes), describeOpened(app.lastUsedAt, now)]
     .filter(Boolean)
     .join(" · ");
 
   return (
-    <div className={open ? "app-row app-row--open" : "app-row"}>
+    <div
+      className={[
+        "app-row",
+        open ? "app-row--open" : "",
+        queued !== "none" ? "app-row--picked" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div className="app-row__head">
         <button
           type="button"
@@ -326,6 +350,11 @@ function AppRow({
           </svg>
         </button>
         <span className="app-row__summary">
+          {queued !== "none" && (
+            <span className="in-queue">
+              {queued === "all" ? "In queue" : "Some files in queue"}
+            </span>
+          )}
           {proposal ? (
             <>
               Removes <b className="num">{formatBytes(sum(goes))}</b>
@@ -344,8 +373,9 @@ function AppRow({
         </span>
         <input
           type="checkbox"
+          ref={box}
           className="box"
-          checked={picked}
+          checked={queued === "all"}
           onChange={onTogglePicked}
           aria-label={`Add ${app.name} and the files only it uses to the queue`}
         />
