@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
+import brandMark from "../assets/brand-broom.png";
 import { formatBytes } from "../lib/format";
 import { engine, engineAvailable } from "../lib/ipc";
 import type {
@@ -130,21 +131,14 @@ export function TopNav({
   return (
     <>
       <header className="globalnav" onMouseLeave={leave} onMouseEnter={stay}>
-        <button type="button" className="brand" onClick={() => go("overview")}>
-          <span className="brand-mark" aria-hidden="true">
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinejoin="round"
-            >
-              <path d="M8 1.8 9.4 6.6 14.2 8 9.4 9.4 8 14.2 6.6 9.4 1.8 8 6.6 6.6Z" />
-            </svg>
-          </span>
-          Mr Clean
+        <button
+          type="button"
+          className="brand"
+          aria-label="Mr Clean, go to Overview"
+          title="Mr Clean"
+          onClick={() => go("overview")}
+        >
+          <img className="brand-mark" src={brandMark} alt="" draggable={false} />
         </button>
 
         <nav className="places" aria-label="Sections">
