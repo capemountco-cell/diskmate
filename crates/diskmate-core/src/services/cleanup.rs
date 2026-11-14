@@ -46,6 +46,25 @@ use crate::platform;
 /// operation in DiskMate" a fact the type system can show, and it lets the
 /// refusal logic be tested exhaustively without a test ever being able to
 /// delete something by accident.
+/// Whether a candidate sits somewhere Mr Clean will not touch.
+///
+/// Protected locations stay protected, with one narrow exception: the bundle
+/// of an app the person chose to uninstall, when it sits directly in an
+/// Applications folder. Without it an uninstall could only ever remove the
+/// app's leftovers and never the app.
+fn is_protected_candidate(candidate: &CleanupCandidate, path: &Path) -> bool {
+    if candidate.kind == CandidateKind::AppBundle
+        && candidate.rule == UNINSTALL_BUNDLE_RULE
+        && platform::is_uninstallable_app_bundle(path)
+    {
+        return false;
+    }
+    platform::is_protected_path(path)
+}
+
+/// The rule an uninstall gives the app's own bundle.
+pub const UNINSTALL_BUNDLE_RULE: &str = "uninstall:bundle";
+
 pub trait Remover: Send + Sync {
     fn move_to_trash(&self, path: &Path) -> std::result::Result<(), String>;
     fn name(&self) -> &'static str;
@@ -140,7 +159,7 @@ impl CleanupService {
                 // Defence in depth: a rule that proposes a protected path is a
                 // bug in that rule, and it is caught here rather than at
                 // removal time.
-                if platform::is_protected_path(Path::new(&candidate.path)) {
+                if is_protected_candidate(candidate, Path::new(&candidate.path)) {
                     continue;
                 }
                 stmt.execute(params![
@@ -404,7 +423,7 @@ impl CleanupService {
         if candidate.safety == SafetyClass::Protected {
             return Some("Mr Clean protects this and will not remove it".to_string());
         }
-        if platform::is_protected_path(path) {
+        if is_protected_candidate(candidate, path) {
             return Some("this is in a location Mr Clean protects and will not remove".to_string());
         }
         if !path.is_absolute() {

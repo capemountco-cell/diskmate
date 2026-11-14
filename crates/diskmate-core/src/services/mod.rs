@@ -13,7 +13,7 @@ mod rules;
 mod startup;
 mod storage;
 
-pub use cleanup::{CleanupService, DryRunRemover, Remover, TrashRemover};
+pub use cleanup::{CleanupService, DryRunRemover, Remover, TrashRemover, UNINSTALL_BUNDLE_RULE};
 pub use memory::{MemoryReport, MemoryService};
 pub use monitor::{MonitorReport, MonitorService, Sample};
 pub use process::ProcessService;

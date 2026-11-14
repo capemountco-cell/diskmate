@@ -22,7 +22,7 @@ pub mod startup_locations;
 mod unsupported;
 
 pub(crate) use grouping::group_by_app;
-pub use protected::{is_protected_path, protected_prefixes};
+pub use protected::{is_protected_path, is_uninstallable_app_bundle, protected_prefixes};
 
 use crate::error::Result;
 use crate::model::{MemorySnapshot, ProcessMemory, StartupItem, VolumeInfo};

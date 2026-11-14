@@ -383,7 +383,7 @@ impl ApplicationInspector {
             name: format!("{}.app", app.name),
             kind: CandidateKind::AppBundle,
             safety: SafetyClass::Review,
-            rule: "uninstall:bundle".into(),
+            rule: crate::services::UNINSTALL_BUNDLE_RULE.into(),
             reason: format!("Removing this uninstalls {}.", app.name),
             detail: app
                 .version

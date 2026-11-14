@@ -36,7 +36,7 @@ export const SECTIONS: Array<{
   { id: "overview", label: "Overview", panel: false, rgb: "255, 255, 255", text: "#f5f5f7" },
   { id: "storage", label: "Storage", panel: true, rgb: "250, 204, 21", text: "#fde047" },
   { id: "cleanup", label: "Cleanup", panel: true, rgb: "45, 212, 191", text: "#5eead4" },
-  { id: "applications", label: "Apps", panel: false, rgb: "129, 140, 248", text: "#a5b4fc" },
+  { id: "applications", label: "Apps", panel: false, rgb: "244, 63, 94", text: "#fda4af" },
   { id: "memory", label: "Memory", panel: true, rgb: "56, 189, 248", text: "#7dd3fc" },
 ];
 

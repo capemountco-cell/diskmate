@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 
-import { Button, Note, Panel } from "../../components/primitives";
+import { Button, Note } from "../../components/primitives";
 import { formatBytes, formatCount, truncatePath } from "../../lib/format";
+import { reveal } from "../../lib/reveal";
 
 import type { CleanupController } from "./useCleanup";
 
@@ -65,16 +66,10 @@ export function QueueDrawer({
 
   if (!open) return null;
   return (
-    <div className="drawer" role="dialog" aria-modal="true" aria-label="Queue">
+    <div className="drawer" role="dialog" aria-modal="true" aria-labelledby="review-title">
       <button type="button" className="drawer__scrim" aria-label="Close" onClick={onClose} />
       <div className="drawer__panel">
-        <div className="row row--between" style={{ marginBottom: "var(--space-3)" }}>
-          <strong style={{ fontSize: "var(--text-md)" }}>Queue</strong>
-          <Button variant="quiet" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-        <Queue cleanup={cleanup} />
+        <Queue cleanup={cleanup} onClose={onClose} />
       </div>
     </div>
   );
@@ -99,44 +94,75 @@ export function RemovalReportNote({ cleanup }: { cleanup: CleanupController }) {
 }
 
 /**
- * The queue.
+ * The queue, reviewed in a window centred over the page.
  *
  * The only place anything is removed, and the reason the rest of the app can
- * be browsed without consequence.
+ * be browsed without consequence. Every item is listed with where it is, and
+ * each can be taken out or shown in Finder before anything moves.
  */
-function Queue({ cleanup }: { cleanup: CleanupController }) {
+function Queue({ cleanup, onClose }: { cleanup: CleanupController; onClose: () => void }) {
   const empty = cleanup.staged.length === 0;
+  const count = cleanup.staged.length;
 
   return (
-    <Panel
-      title="Ready to move"
-      note={empty ? "Nothing selected yet." : "Review this, then remove it."}
-    >
-      <div className="queue__total">{formatBytes(cleanup.stagedTotal)}</div>
-      <div className="stat__hint">
-        {empty
-          ? "Add things from Cleanup, Duplicates or Applications and they appear here."
-          : `${formatCount(cleanup.staged.length)} items ready to move to the Trash`}
+    <>
+      <header className="review__head">
+        <div>
+          <p className="kicker">Your queue</p>
+          <h2 id="review-title" className="review__title">
+            Review and move to Trash
+          </h2>
+        </div>
+        <Button variant="quiet" onClick={onClose}>
+          Close
+        </Button>
+      </header>
+
+      <div className="review__total">
+        <b className="num">{formatBytes(cleanup.stagedTotal)}</b>
+        <p>
+          {empty
+            ? "Nothing in the queue. Tick things in Cleanup or Apps and they appear here."
+            : `${formatCount(count)} ${count === 1 ? "item" : "items"} will move to the Trash, where you can put any of them back.`}
+        </p>
       </div>
 
       {!empty && (
-        <>
-          <div className="queue__list">
-            {cleanup.staged.map((candidate) => (
-              <div className="queue__item" key={candidate.id}>
-                <span className="queue__item-name">{candidate.name}</span>
-                <span className="candidate__size">{formatBytes(candidate.bytes)}</span>
-                <span className="queue__item-path mono" title={candidate.path}>
-                  {truncatePath(candidate.path, 46)}
-                </span>
+        <div className="review__list">
+          {cleanup.staged.map((candidate) => (
+            <div className="review__item" key={candidate.id}>
+              <div style={{ minWidth: 0 }}>
+                <p className="review__name">{candidate.name}</p>
+                <p className="review__path mono" title={candidate.path}>
+                  {truncatePath(candidate.path, 72)}
+                </p>
               </div>
-            ))}
-          </div>
+              <span className="num">{formatBytes(candidate.bytes)}</span>
+              <span className="review__links">
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => void reveal(candidate.path)}
+                >
+                  Show
+                </button>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => void cleanup.unstage([candidate.id])}
+                >
+                  Take out
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
-          <div
-            className="row"
-            style={{ marginTop: "var(--space-4)", justifyContent: "space-between" }}
-          >
+      {!empty && (
+        <div className="review__foot">
+          <RemovalFlow />
+          <div className="review__actions">
             <Button
               variant="quiet"
               onClick={() => cleanup.unstage(cleanup.staged.map((c) => c.id))}
@@ -144,21 +170,20 @@ function Queue({ cleanup }: { cleanup: CleanupController }) {
               Empty queue
             </Button>
             <Button variant="primary" onClick={cleanup.removeApproved} disabled={cleanup.busy}>
-              Move to Trash
+              {cleanup.busy
+                ? "Moving…"
+                : `Move ${formatCount(count)} ${count === 1 ? "item" : "items"} to Trash`}
             </Button>
           </div>
-
-          <RemovalFlow />
-
-          <p className="stat__hint" style={{ marginTop: "var(--space-3)" }}>
-            Mr Clean removes exactly the {formatCount(cleanup.staged.length)} items listed here,
-            totalling {formatBytes(cleanup.stagedTotal)}, and nothing else. If the list or the
-            total changes before you click, the whole operation is refused rather than partly
-            done.
+          <p className="review__fine">
+            Mr Clean moves exactly the {formatCount(count)} {count === 1 ? "item" : "items"}{" "}
+            listed here, totalling {formatBytes(cleanup.stagedTotal)}, and nothing else. If the
+            list or the total changes before you click, the whole operation is refused rather
+            than partly done.
           </p>
-        </>
+        </div>
       )}
-    </Panel>
+    </>
   );
 }
 
