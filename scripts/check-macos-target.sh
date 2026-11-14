@@ -93,15 +93,20 @@ pub mod model;
 
 pub mod platform {
     use crate::error::Result;
-    use crate::model::{MemorySnapshot, StartupItem, VolumeInfo};
+    use crate::model::{MemorySnapshot, ProcessMemory, StartupItem, VolumeInfo};
 
     pub trait SystemProbe: Send + Sync {
         fn name(&self) -> &'static str;
         fn volumes(&self) -> Result<Vec<VolumeInfo>>;
         fn memory(&self) -> Result<MemorySnapshot>;
+        fn top_apps(&self, limit: usize) -> Result<Vec<ProcessMemory>>;
         fn startup_items(&self) -> Result<Vec<StartupItem>>;
         fn skip_mount_points(&self, root: &std::path::Path) -> Vec<std::path::PathBuf>;
     }
+
+    #[path = "$CORE/platform/grouping.rs"]
+    mod grouping;
+    pub(crate) use grouping::group_by_app;
 
     #[path = "$CORE/platform/startup_locations.rs"]
     pub mod startup_locations;

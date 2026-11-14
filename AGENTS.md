@@ -19,9 +19,13 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) before changing anything structural.
 
 ## Rules
 
-**Milestone 01 is read-only.** No code may delete, move or modify a file, change
-a launch item, or signal a process. When cleanup is built, every destructive
-operation goes through one service — see [docs/security.md](docs/security.md).
+**Two actions, two services, nothing else.** DiskMate may move files to the
+Trash, only through `services::CleanupService`, and ask an ordinary app to
+quit, only through `services::ProcessService`. A quit is the same request the
+app's own Quit menu item sends, offered only for apps with a Dock icon and only
+after the person clicks Quit on that app. No code may delete permanently,
+change a launch item, kill or signal a process any other way, or purge memory.
+See [docs/security.md](docs/security.md).
 
 **Product logic lives in `crates/diskmate-core`.** Not in React components, and
 not in Tauri command handlers. A handler deserialises, calls one service method,

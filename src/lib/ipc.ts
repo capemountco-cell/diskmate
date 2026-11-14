@@ -32,6 +32,7 @@ import type {
   Leftover,
   MemoryReport,
   MonitorReport,
+  ProcessMemory,
   RemovalOutcome,
   RemovalReport,
   Sample,
@@ -89,6 +90,10 @@ export const engine = {
     call<EntryRow | null>("directory_by_path", { scanId, path }),
 
   memoryReport: () => call<MemoryReport>("memory_report"),
+  topApps: (limit: number) => call<ProcessMemory[]>("top_apps", { limit }),
+  // The one process action: a normal quit request to an app the person
+  // clicked. The engine refuses if that pid is no longer the named app.
+  quitApp: (pid: number, name: string) => call<void>("quit_app", { pid, name }),
   startupReport: () => call<StartupReport>("startup_report"),
 
   // Visualisations. Both are bounded queries, not tree dumps.

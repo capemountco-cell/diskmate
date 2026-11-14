@@ -1,13 +1,12 @@
 //! The Memory service.
 //!
-//! Milestone 01 is read-only, and the read-only part is the part that matters:
-//! explaining memory correctly is more useful than acting on it. There is no
-//! "free RAM" operation here and there will not be one, because on modern macOS
-//! unused memory is wasted memory and purging caches makes a machine slower,
-//! not faster.
+//! Explaining memory correctly matters more than acting on it, so this service
+//! only reads. There is no "purge the cache" operation: macOS hands cached
+//! memory to any app that asks for it, and emptying the cache makes a Mac
+//! briefly slower, not faster.
 //!
-//! Process inspection and any future process action will be added behind this
-//! same boundary, with explicit per-action user consent.
+//! What does free memory is quitting the app that is using it. That lives in
+//! `ProcessService`, behind an explicit click on that one app.
 
 use crate::error::Result;
 use crate::model::{MemoryPressure, MemorySnapshot};

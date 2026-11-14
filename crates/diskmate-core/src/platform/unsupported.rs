@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::error::{CoreError, Result};
-use crate::model::{MemorySnapshot, StartupItem, VolumeInfo};
+use crate::model::{MemorySnapshot, ProcessMemory, StartupItem, VolumeInfo};
 
 use super::SystemProbe;
 
@@ -31,6 +31,12 @@ impl SystemProbe for UnsupportedProbe {
     fn memory(&self) -> Result<MemorySnapshot> {
         Err(CoreError::Unsupported {
             feature: "memory inspection",
+        })
+    }
+
+    fn top_apps(&self, _limit: usize) -> Result<Vec<ProcessMemory>> {
+        Err(CoreError::Unsupported {
+            feature: "per-app memory",
         })
     }
 
