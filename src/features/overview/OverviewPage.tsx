@@ -17,7 +17,7 @@ import type {
   StartupReport,
   VolumeInfo,
 } from "../../lib/types";
-import type { SectionId } from "../../app/TopNav";
+import type { Destination } from "../../app/TopNav";
 import type { CleanupController } from "../cleanup/useCleanup";
 
 /** How often the memory row is refreshed while Overview is open. */
@@ -41,14 +41,16 @@ export function OverviewPage({
   onPressure,
   onGo,
   onGoToStartup,
+  onWipe,
 }: {
   scan: ScanSummary | null;
   scanning: boolean;
   cleanup: CleanupController;
   startup: StartupReport | null;
   onPressure: (pressure: MemoryPressure) => void;
-  onGo: (section: SectionId) => void;
+  onGo: (destination: Destination) => void;
   onGoToStartup: () => void;
+  onWipe: () => void;
 }) {
   const [volumes, setVolumes] = useState<VolumeInfo[] | null>(null);
   const [memory, setMemory] = useState<MemoryReport | null>(null);
@@ -259,6 +261,33 @@ export function OverviewPage({
           action={pressure === "warning" || pressure === "critical" ? "See heavy apps" : "Open"}
           onOpen={() => onGo("memory")}
         />
+      </section>
+
+      <section className="rows" aria-label="Wipe down this Mac">
+        <div className="row-item">
+          <span className="row-item__tile" aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="2.5" y="5" width="15" height="9" rx="1.5" />
+              <path d="M5.5 8h.01M8.5 8h.01M11.5 8h.01M14.5 8h.01M6.5 11h7" />
+            </svg>
+          </span>
+          <div className="row-item__text">
+            <p className="row-item__title">Wipe down this Mac</p>
+            <p className="row-item__detail">
+              Locks the keyboard and trackpad and turns the screen black while you clean them.
+            </p>
+          </div>
+          <Button onClick={onWipe}>Start…</Button>
+        </div>
       </section>
 
       <footer className="ov__foot">

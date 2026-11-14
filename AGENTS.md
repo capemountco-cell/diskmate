@@ -27,6 +27,14 @@ after the person clicks Quit on that app. No code may delete permanently,
 change a launch item, kill or signal a process any other way, or purge memory.
 See [docs/security.md](docs/security.md).
 
+**Wipe-down mode is the one exception, and it is bounded.** `src-tauri/src/wipe.rs`
+may pause the keyboard and trackpad with an event tap, only after the person
+starts it, for at most three minutes, ending on its own deadline (checked by
+the thread that holds the tap, not by the interface) or when Esc and Return
+are held together for three seconds. It reads no key but those two, stores
+nothing, and needs macOS Accessibility permission, asked for only when it is
+first started. Nothing else may use that permission.
+
 **Product logic lives in `crates/diskmate-core`.** Not in React components, and
 not in Tauri command handlers. A handler deserialises, calls one service method,
 and serialises.

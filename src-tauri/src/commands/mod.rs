@@ -9,6 +9,7 @@ mod monitor;
 mod scan;
 mod storage;
 mod system;
+mod window;
 
 // Glob re-exports, not named ones: `#[tauri::command]` generates hidden items
 // alongside each function, and `generate_handler!` needs them in this module.
@@ -17,6 +18,7 @@ pub use monitor::*;
 pub use scan::*;
 pub use storage::*;
 pub use system::*;
+pub use window::*;
 
 /// Result type for commands. Tauri needs a serialisable error.
 pub type CommandResult<T> = Result<T, String>;

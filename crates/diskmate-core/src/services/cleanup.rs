@@ -531,7 +531,7 @@ fn describe_group(kind: CandidateKind, safety: SafetyClass, count: i64) -> Strin
         ),
         (CandidateKind::DuplicateCopy, _) => format!(
             "{count} extra {noun} whose contents are byte-for-byte identical to a copy \
-             DiskMate is keeping."
+             Mr Clean is keeping."
         ),
         (CandidateKind::AppLeftover, _) => {
             format!("{count} {noun} left behind by applications that are no longer installed.")
