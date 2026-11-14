@@ -17,7 +17,7 @@ import type {
   StartupReport,
   VolumeInfo,
 } from "../../lib/types";
-import type { SectionId } from "../../app/TopNav";
+import type { Destination } from "../../app/TopNav";
 import type { CleanupController } from "../cleanup/useCleanup";
 
 /** How often the memory row is refreshed while Overview is open. */
@@ -48,7 +48,7 @@ export function OverviewPage({
   cleanup: CleanupController;
   startup: StartupReport | null;
   onPressure: (pressure: MemoryPressure) => void;
-  onGo: (section: SectionId) => void;
+  onGo: (destination: Destination) => void;
   onGoToStartup: () => void;
   onWipe: () => void;
 }) {

@@ -18,6 +18,8 @@ import { formatBytes, formatCount, truncatePath } from "../../lib/format";
 import { engineAvailable } from "../../lib/ipc";
 import type { CandidateGroup, CandidateKind, CleanupCandidate } from "../../lib/types";
 
+import { DuplicatesView } from "../duplicates/DuplicatesPage";
+
 import { RemovalReportNote } from "./Queue";
 import type { CleanupController } from "./useCleanup";
 
@@ -31,11 +33,18 @@ import type { CleanupController } from "./useCleanup";
  */
 export function CleanupPage({
   scanId,
+  totalFiles,
   cleanup,
+  showDuplicates,
+  onShowDuplicates,
   onGoToStorage,
 }: {
   scanId: number | null;
+  totalFiles: number | null;
   cleanup: CleanupController;
+  /** Duplicates lives here: its row opens the full duplicates view. */
+  showDuplicates: boolean;
+  onShowDuplicates: (show: boolean) => void;
   onGoToStorage: () => void;
 }) {
   // Null shows the cards; "all" every group; otherwise one group's key.
@@ -66,7 +75,19 @@ export function CleanupPage({
     );
   }
 
+  if (showDuplicates) {
+    return (
+      <DuplicatesView
+        scanId={scanId}
+        totalFiles={totalFiles}
+        cleanup={cleanup}
+        onBack={() => onShowDuplicates(false)}
+      />
+    );
+  }
+
   const groups = cleanup.groups;
+  const hasCopies = groups.some((group) => group.kind === "duplicateCopy");
   const shown =
     open === null
       ? []
@@ -158,12 +179,35 @@ export function CleanupPage({
                 <Button
                   variant={index === 0 ? "primary" : "default"}
                   aria-label={`Review ${group.label}`}
-                  onClick={() => setOpen(groupKey(group))}
+                  onClick={() =>
+                    group.kind === "duplicateCopy"
+                      ? onShowDuplicates(true)
+                      : setOpen(groupKey(group))
+                  }
                 >
                   Review
                 </Button>
               </div>
             ))}
+            {!hasCopies && (
+              <div className="finding-row">
+                <span className="finding-row__tile" aria-hidden="true">
+                  <DuplicatesIcon size={24} />
+                </span>
+                <div className="finding-row__text">
+                  <div className="finding-row__name">Duplicates</div>
+                  <div className="finding-row__why">
+                    Files stored more than once, compared byte for byte. Not searched yet.
+                  </div>
+                </div>
+                <span />
+                <div className="finding-row__size">
+                  <div className="num">—</div>
+                  <div className="finding-row__count">not compared</div>
+                </div>
+                <Button onClick={() => onShowDuplicates(true)}>Find</Button>
+              </div>
+            )}
           </section>
         </>
       )}

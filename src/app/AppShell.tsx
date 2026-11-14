@@ -5,7 +5,6 @@ import { ApplicationsPage } from "../features/applications/ApplicationsPage";
 import { CleanupPage } from "../features/cleanup/CleanupPage";
 import { QueueBar, QueueDrawer } from "../features/cleanup/Queue";
 import { useCleanup } from "../features/cleanup/useCleanup";
-import { DuplicatesPage } from "../features/duplicates/DuplicatesPage";
 import { MemoryPage } from "../features/memory/MemoryPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { StoragePage } from "../features/storage/StoragePage";
@@ -14,14 +13,10 @@ import { engine, engineAvailable, onScanFinished, onScanProgress, onWipe } from 
 import type { AppInfo, MemoryPressure, ScanSummary, StartupReport } from "../lib/types";
 import type { AppsTab } from "../features/applications/ApplicationsPage";
 
-import { TopNav, type SectionId } from "./TopNav";
+import { TopNav, type Destination, type SectionId } from "./TopNav";
 
 /** Sections whose screens can add to the cleanup queue. */
-const QUEUE_SECTIONS: ReadonlySet<SectionId> = new Set([
-  "cleanup",
-  "duplicates",
-  "applications",
-]);
+const QUEUE_SECTIONS: ReadonlySet<SectionId> = new Set(["cleanup", "applications"]);
 
 export function AppShell() {
   const [section, setSection] = useState<SectionId>("overview");
@@ -91,8 +86,12 @@ export function AppShell() {
     if (next) setScan(next);
   }, []);
 
-  const go = useCallback((next: SectionId) => {
-    setSection(next);
+  /** Cleanup shows its findings, or the duplicates view opened from them. */
+  const [showDuplicates, setShowDuplicates] = useState(false);
+
+  const go = useCallback((next: Destination) => {
+    setSection(next === "duplicates" ? "cleanup" : next);
+    setShowDuplicates(next === "duplicates");
     setAppsTab("uninstall");
     setQueueOpen(false);
   }, []);
@@ -156,15 +155,10 @@ export function AppShell() {
           {section === "cleanup" && (
             <CleanupPage
               scanId={scan?.scanId ?? null}
-              cleanup={cleanup}
-              onGoToStorage={() => go("storage")}
-            />
-          )}
-          {section === "duplicates" && (
-            <DuplicatesPage
-              scanId={scan?.scanId ?? null}
               totalFiles={scan?.fileCount ?? null}
               cleanup={cleanup}
+              showDuplicates={showDuplicates}
+              onShowDuplicates={setShowDuplicates}
               onGoToStorage={() => go("storage")}
             />
           )}

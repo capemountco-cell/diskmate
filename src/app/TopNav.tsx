@@ -11,8 +11,13 @@ import type {
   VolumeInfo,
 } from "../lib/types";
 
-export type SectionId =
-  "overview" | "storage" | "cleanup" | "duplicates" | "applications" | "memory";
+export type SectionId = "overview" | "storage" | "cleanup" | "applications" | "memory";
+
+/**
+ * Somewhere the app can be sent: a section, or Duplicates, which lives inside
+ * Cleanup (opened from its Duplicates row) rather than in the top bar.
+ */
+export type Destination = SectionId | "duplicates";
 
 /**
  * The sections, each with the colour that marks it as the one you are in.
@@ -31,19 +36,12 @@ export const SECTIONS: Array<{
   { id: "overview", label: "Overview", panel: false, rgb: "255, 255, 255", text: "#f5f5f7" },
   { id: "storage", label: "Storage", panel: true, rgb: "250, 204, 21", text: "#fde047" },
   { id: "cleanup", label: "Cleanup", panel: true, rgb: "45, 212, 191", text: "#5eead4" },
-  {
-    id: "duplicates",
-    label: "Duplicates",
-    panel: false,
-    rgb: "192, 132, 252",
-    text: "#d8b4fe",
-  },
   { id: "applications", label: "Apps", panel: false, rgb: "129, 140, 248", text: "#a5b4fc" },
   { id: "memory", label: "Memory", panel: true, rgb: "56, 189, 248", text: "#7dd3fc" },
 ];
 
 /** Sections whose numbers come from a scan, and so update when one finishes. */
-const FROM_SCAN: ReadonlySet<SectionId> = new Set(["cleanup", "duplicates"]);
+const FROM_SCAN: ReadonlySet<SectionId> = new Set(["cleanup"]);
 
 type PanelId = "storage" | "cleanup" | "memory";
 
@@ -61,9 +59,9 @@ const CLOSE_DELAY_MS = 220;
  * and the page behind blurs. Clicking a section goes to it. Escape, a click
  * outside, or moving away closes the panel.
  *
- * No item is ever disabled. While a scan runs, Cleanup and Duplicates carry a
- * small white dot (their numbers update when it finishes) and still open to
- * the last results. Memory carries an orange or red dot when pressure is up.
+ * No item is ever disabled. While a scan runs, Cleanup carries a small white
+ * dot (its numbers update when the scan finishes) and still opens to the last
+ * results. Memory carries an orange or red dot when pressure is up.
  */
 export function TopNav({
   active,
@@ -76,7 +74,7 @@ export function TopNav({
   pressure,
 }: {
   active: SectionId;
-  onSelect: (id: SectionId) => void;
+  onSelect: (id: Destination) => void;
   /** The volume the current scan is of, if there is one. */
   volumeName: string | null;
   groups: CandidateGroup[];
@@ -121,7 +119,7 @@ export function TopNav({
   };
   const stay = () => window.clearTimeout(closeTimer.current);
 
-  const go = (id: SectionId) => {
+  const go = (id: Destination) => {
     window.clearTimeout(openTimer.current);
     suppressed.current = true;
     setOpen(null);
@@ -251,7 +249,7 @@ export function TopNav({
   );
 }
 
-function StorageFlyout({ go }: { go: (id: SectionId) => void }) {
+function StorageFlyout({ go }: { go: (id: Destination) => void }) {
   const [volumes, setVolumes] = useState<VolumeInfo[] | null>(null);
   useEffect(() => {
     if (!engineAvailable()) return setVolumes([]);
@@ -328,7 +326,7 @@ function CleanupFlyout({
   stagedCount,
   stagedBytes,
 }: {
-  go: (id: SectionId) => void;
+  go: (id: Destination) => void;
   groups: CandidateGroup[];
   stagedCount: number;
   stagedBytes: number;
@@ -385,7 +383,7 @@ function CleanupFlyout({
   );
 }
 
-function MemoryFlyout({ go }: { go: (id: SectionId) => void }) {
+function MemoryFlyout({ go }: { go: (id: Destination) => void }) {
   const [report, setReport] = useState<MemoryReport | null>(null);
   const [apps, setApps] = useState<ProcessMemory[] | null>(null);
   useEffect(() => {

@@ -2223,3 +2223,12 @@ html[data-window="panel"] #root {
 .mp__foot .button--primary {
   margin-left: auto;
 }
+
+/* A results headline written as a sentence (Duplicates). */
+.headline {
+  max-width: 900px;
+  font-size: 44px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}

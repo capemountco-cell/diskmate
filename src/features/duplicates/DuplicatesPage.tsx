@@ -10,22 +10,23 @@ import { RemovalReportNote } from "../cleanup/Queue";
 import type { CleanupController } from "../cleanup/useCleanup";
 
 /**
- * Duplicates.
+ * Duplicates, opened from its row in Cleanup.
  *
- * Its own section because finding them is its own piece of work: Mr Clean
- * reads file contents here, which no other screen does, and the cost of that
- * is shown alongside the answer.
+ * A view of its own because finding them is its own piece of work: Mr Clean
+ * reads file contents here, which nothing else does, and what that cost is
+ * shown alongside the answer. Then every set, with the copy being kept marked
+ * and a box on every extra copy.
  */
-export function DuplicatesPage({
+export function DuplicatesView({
   scanId,
   totalFiles,
   cleanup,
-  onGoToStorage,
+  onBack,
 }: {
-  scanId: number | null;
+  scanId: number;
   totalFiles: number | null;
   cleanup: CleanupController;
-  onGoToStorage: () => void;
+  onBack: () => void;
 }) {
   const { duplicateProgress: progress, duplicateStats: stats } = cleanup;
 
@@ -37,27 +38,11 @@ export function DuplicatesPage({
     );
   }
 
-  if (scanId === null) {
-    return (
-      <div className="page">
-        <PageHeader title="Duplicates" />
-        <Hero
-          title="Duplicates are found within a scan."
-          subtitle="Scan a volume first, then Mr Clean can compare what it found."
-          action={
-            <Button variant="primary" onClick={onGoToStorage}>
-              Go to Storage
-            </Button>
-          }
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="page">
       <PageHeader
-        title="Duplicates"
+        title="Cleanup"
+        back={{ label: "All findings", onClick: onBack }}
         aside={
           progress ? (
             <Button variant="quiet" onClick={() => void engine.cancelDuplicateSearch()}>
@@ -203,12 +188,14 @@ function DuplicateResults({
   return (
     <>
       <header className="page-head">
-        <p className="kicker">
-          Compared byte for byte, never by name · {formatCount(stats.groups)} sets
-        </p>
-        <p className="bigline">
-          <b className="num">{formatBytes(stats.reclaimableBytes)}</b>
-          <span>held more than once</span>
+        <p className="kicker">Duplicates</p>
+        <h1 className="headline">
+          You have <span className="num">{formatCount(stats.groups)}</span> sets of identical
+          files.
+        </h1>
+        <p className="lede">
+          <strong className="num">{formatBytes(stats.reclaimableBytes)}</strong> is held more
+          than once. Each set was compared byte for byte, never by name.
         </p>
         <div className="ov__lede-row">
           <p className="lede">
@@ -241,6 +228,16 @@ function DuplicateResults({
       </header>
 
       {error && <Note tone="caution">{error}</Note>}
+
+      <section className="card" aria-label="What Mr Clean read to prove it">
+        <div className="card__head">
+          <p className="card__title">What Mr Clean read to prove it</p>
+          <p className="card__note">Most files are never opened</p>
+        </div>
+        <div className="card__chart">
+          <Funnel stats={stats} totalFiles={totalFiles} />
+        </div>
+      </section>
 
       {duplicates.map((group) => {
         const ids = idsFor(group);
@@ -317,16 +314,6 @@ function DuplicateResults({
           </section>
         );
       })}
-
-      <details className="card dup-proof">
-        <summary className="card__head">
-          <span className="card__title">How Mr Clean proved it</span>
-          <span className="card__note">{formatBytes(stats.bytesRead)} read</span>
-        </summary>
-        <div className="card__chart">
-          <Funnel stats={stats} totalFiles={totalFiles} />
-        </div>
-      </details>
     </>
   );
 }
