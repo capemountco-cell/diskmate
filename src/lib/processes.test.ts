@@ -17,7 +17,9 @@ const row = (
 
 describe("process names", () => {
   it("names WebKit's content processes for what they are", () => {
-    expect(displayName("com.apple.WebKit.WebContent")).toBe("Web pages (WebKit)");
+    expect(displayName("com.apple.WebKit.WebContent")).toBe(
+      "Web pages (Safari, Mail and other apps)",
+    );
     expect(displayName("Finder")).toBe("Finder");
   });
 
@@ -28,7 +30,11 @@ describe("process names", () => {
       row(3, "com.apple.WebKit.WebContent", 400, false),
       row(4, "Dropbox", 700),
     ]);
-    expect(folded.map((app) => app.name)).toEqual(["Claude", "Web pages (WebKit)", "Dropbox"]);
+    expect(folded.map((app) => app.name)).toEqual([
+      "Claude",
+      "Web pages (Safari, Mail and other apps)",
+      "Dropbox",
+    ]);
     expect(folded[1]).toMatchObject({ residentBytes: 900, instanceCount: 2, canQuit: false });
     expect(folded[0]).toMatchObject({ pid: 1, canQuit: true });
   });
