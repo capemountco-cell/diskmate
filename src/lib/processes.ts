@@ -3,14 +3,16 @@ import type { ProcessMemory } from "./types";
 /**
  * Names people recognise for processes that only have a bundle identifier.
  *
- * WebKit's content processes belong to whichever apps show web pages (Safari,
- * Mail, and many others), so they are named for what they are rather than
- * listed one by one as "com.apple.WebKit.WebContent".
+ * WebKit's processes draw the web pages of every app that shows one: Safari
+ * mostly, but also Mail, Messages, the App Store and others. macOS only says
+ * which app each belongs to through a private interface Mr Clean does not
+ * use, so they are named for what they are, with the usual owners, rather
+ * than credited to Safari on a guess.
  */
 const KNOWN: Record<string, string> = {
-  "com.apple.WebKit.WebContent": "Web pages (WebKit)",
-  "com.apple.WebKit.GPU": "Web page graphics (WebKit)",
-  "com.apple.WebKit.Networking": "Web page networking (WebKit)",
+  "com.apple.WebKit.WebContent": "Web pages (Safari, Mail and other apps)",
+  "com.apple.WebKit.GPU": "Web page graphics (Safari and other apps)",
+  "com.apple.WebKit.Networking": "Web page networking (Safari and other apps)",
 };
 
 export function displayName(name: string): string {

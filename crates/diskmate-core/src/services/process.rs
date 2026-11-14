@@ -48,10 +48,13 @@ impl ProcessService {
 
     /// The apps using the most memory, largest first. DiskMate itself is never
     /// offered a Quit here: closing it is what its own Quit is for.
+    ///
+    /// Nor is Finder: macOS opens it again the moment it quits, so a Quit would
+    /// free nothing and only make the desktop blink.
     pub fn top_apps(&self, limit: usize) -> Result<Vec<ProcessMemory>> {
         let mut apps = self.probe.top_apps(limit)?;
         for app in &mut apps {
-            if app.pid == self.own_pid {
+            if app.pid == self.own_pid || reopened_by_macos(app) {
                 app.can_quit = false;
             }
         }
@@ -79,6 +82,11 @@ impl ProcessService {
                 app.name
             )));
         }
+        if reopened_by_macos(&app) {
+            return Err(CoreError::invalid(format!(
+                "macOS opens {name} again as soon as it quits, so quitting it frees nothing."
+            )));
+        }
         if !app.can_quit {
             return Err(CoreError::invalid(format!(
                 "{name} runs in the background, so Mr Clean does not offer to quit it."
@@ -94,6 +102,11 @@ impl ProcessService {
             .request_quit(pid)
             .map_err(|reason| CoreError::invalid(format!("Could not ask {name} to quit: {reason}")))
     }
+}
+
+/// Apps macOS reopens by itself the moment they quit.
+fn reopened_by_macos(app: &ProcessMemory) -> bool {
+    app.bundle_path.as_deref() == Some("/System/Library/CoreServices/Finder.app")
 }
 
 #[cfg(test)]
@@ -187,6 +200,17 @@ mod tests {
         let (service, recorder) = service(vec![app(7, "syncagent", false)]);
         let error = service.quit_app(7, "syncagent").unwrap_err().to_string();
         assert!(error.contains("background"), "{error}");
+        assert!(recorder.0.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn finder_is_never_offered_a_quit_because_macos_reopens_it() {
+        let mut finder = app(9, "Finder", true);
+        finder.bundle_path = Some("/System/Library/CoreServices/Finder.app".into());
+        let (service, recorder) = service(vec![finder]);
+        assert!(!service.top_apps(5).unwrap()[0].can_quit);
+        let error = service.quit_app(9, "Finder").unwrap_err().to_string();
+        assert!(error.contains("opens Finder again"), "{error}");
         assert!(recorder.0.lock().unwrap().is_empty());
     }
 
