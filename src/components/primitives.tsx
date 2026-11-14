@@ -84,7 +84,7 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
 }
 
 /**
- * A note. DiskMate's only device for "you should know this".
+ * A note. Mr Clean's only device for "you should know this".
  *
  * There is intentionally no `danger` tone: nothing this product reports is an
  * emergency, and styling ordinary facts as alarms is how cleaner apps train
@@ -155,7 +155,7 @@ export function Segmented<T extends string>({
 }
 
 /**
- * How risky DiskMate considers removing something.
+ * How risky Mr Clean considers removing something.
  *
  * Deliberately quiet. "Review" means think about it, not panic, and styling it
  * as an alarm would be the exact behaviour this product exists to avoid.
@@ -165,7 +165,7 @@ export function Safety({ safety }: { safety: "safe" | "review" | "protected" }) 
   const title = {
     safe: "Regeneratable or very low risk.",
     review: "Possibly removable, but only you can judge.",
-    protected: "DiskMate will not remove this.",
+    protected: "Mr Clean will not remove this.",
   }[safety];
   return (
     <span className={`safety safety--${safety}`} title={title}>

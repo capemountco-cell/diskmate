@@ -1,8 +1,10 @@
-# DiskMate
+# Mr Clean
+
+_Formerly DiskMate. The repository and the Rust crates keep the old name for now._
 
 A storage and system-resource manager for macOS.
 
-DiskMate answers one question: **what is using my Mac's resources, and what can I
+Mr Clean answers one question: **what is using my Mac's resources, and what can I
 safely do about it?** It reads your disk, explains what it found, and keeps
 everything it learns on your machine.
 
@@ -62,9 +64,9 @@ npm run lint
 ./scripts/bench.sh --path ~/Library --label library
 
 # Production build
-npm run build                 # DiskMate.app and DiskMate.dmg
-./scripts/build-macos.sh      # DiskMate.app only
-./scripts/build-dmg.sh        # DiskMate.dmg
+npm run build                 # Mr Clean.app and Mr Clean.dmg
+./scripts/build-macos.sh      # Mr Clean.app only
+./scripts/build-dmg.sh        # Mr Clean.dmg
 ./scripts/build-macos.sh --universal   # Apple silicon and Intel in one bundle
 ```
 
@@ -108,7 +110,7 @@ Further reading:
 
 ## Privacy
 
-DiskMate's filesystem intelligence runs entirely on your Mac. It does not
+Mr Clean's filesystem intelligence runs entirely on your Mac. It does not
 upload file names, paths, folder structures, file contents, hashes, application
 lists, scan databases, or process information, and it does not need an internet
 connection. The app declares no network entitlement.
@@ -122,16 +124,16 @@ Your files are none of our business.
   normally; one you downloaded needs a one-time approval in System Settings.
   See [INSTALL.md](INSTALL.md).
 - **Full Disk Access.** Without it macOS hides parts of the disk from every app,
-  DiskMate included. Folders it cannot read are reported as *not readable*
+  Mr Clean included. Folders it cannot read are reported as *not readable*
   rather than counted as empty, and the totals say what was left out. Choosing a
   folder in the picker grants access to that folder without any setting.
 - **Login Items are not listed.** Modern macOS keeps them in a private store
-  with no supported read interface. DiskMate lists launch agents and daemons and
+  with no supported read interface. Mr Clean lists launch agents and daemons and
   says that the list is partial, rather than guessing from legacy locations.
 - **Startup impact is not measured.** Every item reports *unmeasured*. There is
   no code path that invents a launch-time figure.
 - **One scan at a time**, per application instance.
-- **Launch items are read-only.** DiskMate lists them and explains them; it
+- **Launch items are read-only.** Mr Clean lists them and explains them; it
   does not enable, disable or remove any of them.
 - **Duplicates are found within one scan.** Comparing two separately scanned
   volumes is not implemented.

@@ -45,7 +45,7 @@ export function VolumePicker({
 
       {!error && !loading && volumes.length === 0 && (
         <EmptyState title="No volumes found">
-          DiskMate could not read the list of mounted volumes on this system.
+          Mr Clean could not read the list of mounted volumes on this system.
         </EmptyState>
       )}
 
@@ -124,7 +124,7 @@ function describeVolume(volume: VolumeInfo): string {
   }
   if (volume.fsType) parts.push(volume.fsType.toUpperCase());
   if (volume.isReadOnly) parts.push("Read only");
-  if (!volume.isReadable) parts.push("Not readable by DiskMate");
+  if (!volume.isReadable) parts.push("Not readable by Mr Clean");
   parts.push(volume.mountPoint);
   return parts.join(" · ");
 }
@@ -147,14 +147,14 @@ export function CapacitySummary({
   const used = volume.usedBytes ?? 0;
 
   const segments = [
-    // What DiskMate actually walked, and the rest of what the volume reports as
+    // What Mr Clean actually walked, and the rest of what the volume reports as
     // used. Keeping them distinct is what stops the product from implying it
     // understands more of the disk than it does.
     ...(indexedBytes !== null
       ? [
           {
             id: "indexed",
-            label: "Indexed by DiskMate",
+            label: "Indexed by Mr Clean",
             value: Math.min(indexedBytes, used),
             color: "var(--accent)",
           },

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build DiskMate.dmg.
+# Build Mr Clean.dmg.
 #
 # Wraps build-macos.sh and asks Tauri's bundler for the disk image, which lays
 # out the drag-to-Applications window described in src-tauri/tauri.conf.json.
@@ -37,14 +37,14 @@ npm run tauri -- build --bundles dmg "${TARGET_ARGS[@]}"
 
 # Searched rather than assumed: in a Cargo workspace the bundle lands in the
 # workspace target directory, not under src-tauri.
-DMG="$(find . -type f -path '*/release/bundle/dmg/DiskMate_*.dmg' -print -quit)"
+DMG="$(find . -type f -path '*/release/bundle/dmg/Mr Clean_*.dmg' -print -quit)"
 if [[ -z "$DMG" ]]; then
   echo "error: the build finished but no .dmg was found." >&2
-  echo "       looked for */release/bundle/dmg/DiskMate_*.dmg under $PWD" >&2
+  echo "       looked for */release/bundle/dmg/Mr Clean_*.dmg under $PWD" >&2
   exit 1
 fi
 
-FINAL="$(dirname "$DMG")/DiskMate.dmg"
+FINAL="$(dirname "$DMG")/Mr Clean.dmg"
 mv -f "$DMG" "$FINAL"
 
 echo

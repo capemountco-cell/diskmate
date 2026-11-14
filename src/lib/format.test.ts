@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formatBytes, formatCount, formatPercent, truncatePath } from "./format";
 
 describe("formatBytes", () => {
-  it("uses decimal units so DiskMate agrees with Finder", () => {
+  it("uses decimal units so Mr Clean agrees with Finder", () => {
     expect(formatBytes(1000)).toBe("1.0 KB");
     expect(formatBytes(1_500_000)).toBe("1.5 MB");
     expect(formatBytes(8_300_000_000)).toBe("8.3 GB");

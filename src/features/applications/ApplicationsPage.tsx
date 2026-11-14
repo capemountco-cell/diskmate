@@ -101,14 +101,14 @@ export function ApplicationsPage({
 
   if (!engineAvailable()) {
     return (
-      <EmptyState title="The DiskMate engine is not running">
+      <EmptyState title="The Mr Clean engine is not running">
         Start the application with <code className="mono">npm run dev</code>.
       </EmptyState>
     );
   }
 
   return (
-    <div className="apps surface-light">
+    <div className="apps">
       <header className="apps__bar">
         <div>
           <button type="button" className="apps__ghost" onClick={onBack}>
@@ -236,7 +236,7 @@ export function ApplicationsPage({
                 ) : leftovers === null ? (
                   <Spinner />
                 ) : leftovers.length === 0 ? (
-                  <p className="muted">DiskMate found nothing for this app in your Library.</p>
+                  <p className="muted">Mr Clean found nothing for this app in your Library.</p>
                 ) : (
                   <ul>
                     {leftovers.map((item) => (
@@ -262,7 +262,7 @@ export function ApplicationsPage({
           ) : (
             !loadingApps && (
               <EmptyState title="No applications found">
-                DiskMate looks in Applications and your home Applications folder.
+                Mr Clean looks in Applications and your home Applications folder.
               </EmptyState>
             )
           )}

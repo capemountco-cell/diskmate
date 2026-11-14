@@ -62,7 +62,7 @@ impl ProcessService {
     pub fn quit_app(&self, pid: i32, name: &str) -> Result<()> {
         if pid == self.own_pid {
             return Err(CoreError::invalid(
-                "DiskMate does not quit itself this way.",
+                "Mr Clean does not quit itself this way.",
             ));
         }
         let current = self
@@ -81,7 +81,7 @@ impl ProcessService {
         }
         if !app.can_quit {
             return Err(CoreError::invalid(format!(
-                "{name} runs in the background, so DiskMate does not offer to quit it."
+                "{name} runs in the background, so Mr Clean does not offer to quit it."
             )));
         }
         tracing::info!(
@@ -193,9 +193,9 @@ mod tests {
     #[test]
     fn never_offers_or_performs_quitting_itself() {
         let own = std::process::id() as i32;
-        let (service, recorder) = service(vec![app(own, "DiskMate", true)]);
+        let (service, recorder) = service(vec![app(own, "Mr Clean", true)]);
         assert!(!service.top_apps(5).unwrap()[0].can_quit);
-        assert!(service.quit_app(own, "DiskMate").is_err());
+        assert!(service.quit_app(own, "Mr Clean").is_err());
         assert!(recorder.0.lock().unwrap().is_empty());
     }
 }

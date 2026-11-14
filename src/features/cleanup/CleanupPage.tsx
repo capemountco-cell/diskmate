@@ -12,13 +12,7 @@ import {
   FileIcon,
   LeftBehindIcon,
 } from "../../components/icons";
-import {
-  FindingCard,
-  GlassTile,
-  Hero,
-  PageHeader,
-  findingLayout,
-} from "../../components/layout";
+import { Hero, PageHeader } from "../../components/layout";
 import { Button, EmptyState, Note, Panel, Safety, Spinner } from "../../components/primitives";
 import { formatBytes, formatCount, truncatePath } from "../../lib/format";
 import { engineAvailable } from "../../lib/ipc";
@@ -32,7 +26,7 @@ import type { CleanupController } from "./useCleanup";
  *
  * First a sentence and a card per kind of finding, so the whole picture fits
  * on one screen. Opening a card shows every item in it, each with the reason
- * DiskMate proposed it. Nothing is removed from here: items go to the queue,
+ * Mr Clean proposed it. Nothing is removed from here: items go to the queue,
  * and the queue is the only thing with a remove button.
  */
 export function CleanupPage({
@@ -49,7 +43,7 @@ export function CleanupPage({
 
   if (!engineAvailable()) {
     return (
-      <EmptyState title="The DiskMate engine is not running">
+      <EmptyState title="The Mr Clean engine is not running">
         Start the application with <code className="mono">npm run dev</code>.
       </EmptyState>
     );
@@ -61,7 +55,7 @@ export function CleanupPage({
         <PageHeader title="Cleanup" />
         <Hero
           title="Cleanup works from a scan."
-          subtitle="There is nothing to explain until DiskMate has looked at a volume."
+          subtitle="There is nothing to explain until Mr Clean has looked at a volume."
           action={
             <Button variant="primary" onClick={onGoToStorage}>
               Go to Storage
@@ -125,53 +119,50 @@ export function CleanupPage({
       ) : groups.length === 0 ? (
         <Hero
           title="Nothing worth suggesting."
-          subtitle="DiskMate found no caches, build output, old downloads or long-untouched files large enough to be worth your attention. That is a good result."
+          subtitle="Mr Clean found no caches, build output, old downloads or long-untouched files large enough to be worth your attention. That is a good result."
         />
       ) : (
         <>
-          <Hero
-            title={
-              <>
-                DiskMate can explain <span className="num">{formatBytes(total)}</span> on your
-                Mac.
-              </>
-            }
-            subtitle="Nothing is removed by looking. Open a group to see every item and why it is there."
-            action={<Button onClick={() => setOpen("all")}>Review All Findings</Button>}
-          />
-          <section className="findings" aria-label="Findings">
+          <section className="reclaim-head">
+            <div>
+              <p className="reclaim-head__kicker">Found in the latest scan</p>
+              <p className="reclaim-head__figure num">{formatBytes(total)}</p>
+              <p className="reclaim-head__lede">
+                is taken up by things Mr Clean can explain. Nothing is removed by looking: open
+                a group to see every item and why it is there.
+              </p>
+            </div>
+            <Button onClick={() => setOpen("all")}>Review All</Button>
+          </section>
+          <section className="finding-list" aria-label="Findings">
             {groups.map((group, index) => (
-              <FindingCard
-                key={groupKey(group)}
-                layout={findingLayout(index, groups.length)}
-                title={
-                  <>
-                    <span className="num">{formatBytes(group.bytes)}</span> {phrase(group)}
-                  </>
-                }
-                body={group.summary}
-                emblem={
-                  <GlassTile
-                    size={findingLayout(index, groups.length) === "tall" ? "lg" : "md"}
+              <div key={groupKey(group)} className="finding-row">
+                <span className="finding-row__tile" aria-hidden="true">
+                  <KindIcon kind={group.kind} />
+                </span>
+                <div className="finding-row__text">
+                  <div className="finding-row__name">{group.label}</div>
+                  <div className="finding-row__why">{group.summary}</div>
+                </div>
+                <Safety safety={group.safety} />
+                <div className="finding-row__size">
+                  <div
+                    className={
+                      group.kind === "duplicateCopy" ? "tone-copies num" : "tone-reclaim num"
+                    }
                   >
-                    <KindIcon kind={group.kind} />
-                  </GlassTile>
-                }
-                footnote={
-                  <>
-                    <Safety safety={group.safety} />
-                    <span className="num">{formatCount(group.count)} items</span>
-                  </>
-                }
-                actions={
-                  <Button
-                    variant={index === 0 ? "primary" : "default"}
-                    onClick={() => setOpen(groupKey(group))}
-                  >
-                    Review
-                  </Button>
-                }
-              />
+                    {formatBytes(group.bytes)}
+                  </div>
+                  <div className="finding-row__count num">{formatCount(group.count)} items</div>
+                </div>
+                <Button
+                  variant={index === 0 ? "primary" : "default"}
+                  aria-label={`Review ${group.label}`}
+                  onClick={() => setOpen(groupKey(group))}
+                >
+                  Review
+                </Button>
+              </div>
             ))}
           </section>
         </>
@@ -182,20 +173,6 @@ export function CleanupPage({
 
 function groupKey(group: CandidateGroup): string {
   return `${group.kind}-${group.safety}`;
-}
-
-/** How a group reads after its size: "6.1 GB of caches". */
-function phrase(group: CandidateGroup): string {
-  switch (group.kind) {
-    case "trash":
-      return "in the Trash";
-    case "bigAndUntouched":
-      return "in big, untouched files";
-    case "duplicateCopy":
-      return "in extra copies";
-    default:
-      return `of ${group.label.charAt(0).toLowerCase()}${group.label.slice(1)}`;
-  }
 }
 
 function KindIcon({ kind }: { kind: CandidateKind }) {

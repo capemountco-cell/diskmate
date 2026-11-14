@@ -6,8 +6,8 @@
 //! the window, so the same checks apply.
 //!
 //! Reading is cheap (one memory snapshot and one process walk), so it refreshes
-//! every few seconds for as long as DiskMate is running. Closing the window
-//! keeps DiskMate in the menu bar; "Quit DiskMate" in this menu ends it.
+//! every few seconds for as long as Mr Clean is running. Closing the window
+//! keeps Mr Clean in the menu bar; "Quit Mr Clean" in this menu ends it.
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -51,8 +51,8 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         slots.push(Slot { menu, quit });
     }
 
-    let open = MenuItem::with_id(app, "open", "Open DiskMate", true, None::<&str>)?;
-    let exit = MenuItem::with_id(app, "exit", "Quit DiskMate", true, Some("CmdOrCtrl+Q"))?;
+    let open = MenuItem::with_id(app, "open", "Open Mr Clean", true, None::<&str>)?;
+    let exit = MenuItem::with_id(app, "exit", "Quit Mr Clean", true, Some("CmdOrCtrl+Q"))?;
 
     let menu = Menu::new(app)?;
     menu.append_items(&[
@@ -73,7 +73,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(dot(MemoryPressure::Unknown))
         .icon_as_template(false)
-        .tooltip("DiskMate: memory")
+        .tooltip("Mr Clean: memory")
         .menu(&menu)
         .on_menu_event(move |app, event| match event.id().as_ref() {
             "open" => show_window(app),
@@ -91,7 +91,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
                     .and_then(|s| s.get(index).cloned().flatten());
                 if let Some((pid, name)) = target {
                     if let Err(error) = ProcessService::new().quit_app(pid, &name) {
-                        eprintln!("DiskMate: quit from the menu bar was refused: {error}");
+                        eprintln!("Mr Clean: quit from the menu bar was refused: {error}");
                     }
                 }
             }

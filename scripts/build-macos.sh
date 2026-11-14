@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# Build DiskMate.app.
+# Build Mr Clean.app.
 #
 # Produces an unsigned, un-notarized bundle. That is deliberate for this phase:
-# DiskMate does not require an Apple Developer Program membership to build or to
+# Mr Clean does not require an Apple Developer Program membership to build or to
 # run, and development is not blocked waiting for a certificate. See
 # docs/permissions.md for what an unsigned build means for the person running it.
 #
@@ -15,7 +15,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
-  echo "error: DiskMate.app can only be built on macOS (this is $(uname -s))." >&2
+  echo "error: Mr Clean.app can only be built on macOS (this is $(uname -s))." >&2
   echo "       The engine itself builds and tests anywhere: cargo test -p diskmate-core" >&2
   exit 1
 fi
@@ -62,10 +62,10 @@ npm run tauri -- build --bundles app "${TARGET_ARGS[@]}"
 # Searched rather than assumed: this is a Cargo workspace, so the bundle lands
 # in the workspace target directory, not under src-tauri as a single-crate Tauri
 # project would put it.
-APP="$(find . -type d -path '*/release/bundle/macos/DiskMate.app' -print -quit)"
+APP="$(find . -type d -path '*/release/bundle/macos/Mr Clean.app' -print -quit)"
 if [[ -z "$APP" ]]; then
-  echo "error: the build finished but DiskMate.app was not found." >&2
-  echo "       looked for */release/bundle/macos/DiskMate.app under $PWD" >&2
+  echo "error: the build finished but Mr Clean.app was not found." >&2
+  echo "       looked for */release/bundle/macos/Mr Clean.app under $PWD" >&2
   exit 1
 fi
 

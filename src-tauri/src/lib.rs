@@ -1,4 +1,4 @@
-//! DiskMate's Tauri adapter.
+//! Mr Clean's Tauri adapter.
 //!
 //! This crate contains no product logic. Its job is to own the application
 //! state, expose the engine's services as IPC commands, and forward scan
@@ -27,8 +27,8 @@ pub fn run() {
             tray::install(app.handle())?;
             Ok(())
         })
-        // Closing the window keeps DiskMate running in the menu bar, so the
-        // memory readout stays visible. "Quit DiskMate" in that menu ends it.
+        // Closing the window keeps Mr Clean running in the menu bar, so the
+        // memory readout stays visible. "Quit Mr Clean" in that menu ends it.
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
@@ -86,7 +86,7 @@ pub fn run() {
             commands::monitor_sample,
         ])
         .build(tauri::generate_context!())
-        .expect("failed to start DiskMate")
+        .expect("failed to start Mr Clean")
         .run(|app, event| {
             // Clicking the Dock icon brings the hidden window back.
             #[cfg(target_os = "macos")]

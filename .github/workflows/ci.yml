@@ -90,7 +90,7 @@ jobs:
 
       # Unsigned on purpose: no Apple Developer Program membership is used in
       # this phase, and development is not blocked waiting for a certificate.
-      - name: Build DiskMate.app and DiskMate.dmg
+      - name: Build Mr Clean.app and its .dmg
         run: npm run tauri -- build --bundles app dmg
 
       # The runner is Apple silicon, so the artifact name says so. An Intel Mac
@@ -99,41 +99,42 @@ jobs:
       # been downloaded, which reads as corruption rather than as the missing
       # Developer ID it actually is. The bundle is ad-hoc signed
       # (bundle.macOS.signingIdentity), so verify that actually happened.
+      # The product name has a space in it, so every path below is quoted.
       - name: Verify the bundle is signed
         run: |
-          app=target/release/bundle/macos/DiskMate.app
+          app="target/release/bundle/macos/Mr Clean.app"
           codesign --verify --deep --strict --verbose=2 "$app"
           codesign -dv "$app" 2>&1 | grep -q 'Signature=adhoc' || {
-            echo "::error::DiskMate.app is not ad-hoc signed; a download would report it as damaged"
+            echo "::error::Mr Clean.app is not ad-hoc signed; a download would report it as damaged"
             codesign -dv "$app" 2>&1 || true
             exit 1
           }
-          echo "DiskMate.app is ad-hoc signed."
+          echo "Mr Clean.app is ad-hoc signed."
 
       # Locate the image rather than assuming where it lands, and say where we
       # looked if it is not there. A silent path assumption is what broke this
       # step the first time the build actually succeeded.
       - name: Name the disk image
         run: |
-          dmg="$(find target/release/bundle/dmg -name 'DiskMate_*.dmg' -print -quit 2>/dev/null || true)"
+          dmg="$(find target/release/bundle/dmg -name 'Mr Clean_*.dmg' -print -quit 2>/dev/null || true)"
           if [ -z "$dmg" ]; then
             echo "::error::the build produced no .dmg; contents of target/release/bundle:"
             ls -R target/release/bundle || true
             exit 1
           fi
-          mv "$dmg" target/release/bundle/dmg/DiskMate.dmg
-          shasum -a 256 target/release/bundle/dmg/DiskMate.dmg
+          mv "$dmg" "target/release/bundle/dmg/Mr Clean.dmg"
+          shasum -a 256 "target/release/bundle/dmg/Mr Clean.dmg"
 
-      - name: Upload DiskMate.dmg
+      - name: Upload Mr Clean.dmg
         uses: actions/upload-artifact@v4
         with:
-          name: DiskMate-dmg-unsigned-arm64
-          path: target/release/bundle/dmg/DiskMate.dmg
+          name: MrClean-dmg-unsigned-arm64
+          path: target/release/bundle/dmg/Mr Clean.dmg
           if-no-files-found: error
 
-      - name: Upload DiskMate.app
+      - name: Upload Mr Clean.app
         uses: actions/upload-artifact@v4
         with:
-          name: DiskMate-app-unsigned-arm64
-          path: target/release/bundle/macos/DiskMate.app
+          name: MrClean-app-unsigned-arm64
+          path: target/release/bundle/macos/Mr Clean.app
           if-no-files-found: error
