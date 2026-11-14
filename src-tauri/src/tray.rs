@@ -1,14 +1,15 @@
-//! The menu bar: Mr Clean's broom, memory in use beside it, and a panel.
+//! The menu bar: a dot in the colour of memory pressure, memory in use beside
+//! it, and a panel.
 //!
-//! Clicking the broom opens a small window drawn by the same interface as the
+//! Clicking it opens a small window drawn by the same interface as the
 //! app (the "panel" window): memory now, the last few minutes, the apps using
 //! the most with a Quit for each, free space, and a way into wipe-down mode.
 //! Clicking away closes it. Right-clicking shows a plain menu with Open and
 //! Quit, for anyone who expects one.
 //!
-//! The broom is a template image, so macOS draws it white or black to match
-//! the menu bar. It turns orange when memory is under pressure and red when
-//! pressure is high: colour only when something is true.
+//! The dot is the pressure macOS reports, not a score: green normal, orange
+//! elevated, red high, grey when it cannot be read. Its colour is the point,
+//! so it is never drawn as a template image.
 //!
 //! Reading is cheap (one memory snapshot), so the title refreshes every few
 //! seconds for as long as Mr Clean is running. Closing the main window keeps
@@ -29,11 +30,8 @@ const TRAY_ID: &str = "memory";
 pub const PANEL: &str = "panel";
 const REFRESH: Duration = Duration::from_secs(3);
 /// The panel's size in points. The interface lays itself out to fit.
-const PANEL_WIDTH: f64 = 360.0;
-const PANEL_HEIGHT: f64 = 660.0;
-/// The broom: 36 × 36 RGBA, black with alpha, drawn for 18 points at 2x.
-const BROOM: &[u8] = include_bytes!("../icons/tray-broom.rgba");
-const BROOM_SIZE: u32 = 36;
+const PANEL_WIDTH: f64 = 340.0;
+const PANEL_HEIGHT: f64 = 600.0;
 
 pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     build_panel(app)?;
@@ -43,8 +41,8 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let menu = Menu::with_items(app, &[&open, &PredefinedMenuItem::separator(app)?, &exit])?;
 
     TrayIconBuilder::with_id(TRAY_ID)
-        .icon(broom(MemoryPressure::Unknown))
-        .icon_as_template(true)
+        .icon(dot(MemoryPressure::Unknown))
+        .icon_as_template(false)
         .tooltip("Mr Clean")
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -80,7 +78,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     Ok(())
 }
 
-/// The panel window, made once and hidden; the broom shows and hides it.
+/// The panel window, made once and hidden; clicking the dot shows and hides it.
 fn build_panel<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<WebviewWindow<R>> {
     WebviewWindowBuilder::new(app, PANEL, WebviewUrl::App("index.html".into()))
         .title("Mr Clean")
@@ -107,7 +105,7 @@ fn toggle_panel<R: Runtime>(app: &AppHandle<R>, icon: tauri::Rect) {
     let at = icon.position.to_physical::<f64>(scale);
     let size = icon.size.to_physical::<f64>(scale);
     let width = PANEL_WIDTH * scale;
-    // Centred under the broom, a few points below the menu bar, and kept on
+    // Centred under the dot, a few points below the menu bar, and kept on
     // screen at the right-hand edge.
     let mut x = at.x + size.width / 2.0 - width / 2.0;
     if let Ok(Some(monitor)) = panel.current_monitor() {
@@ -132,15 +130,8 @@ fn refresh<R: Runtime>(app: &AppHandle<R>, memory: &MemoryService) {
     };
     match memory.snapshot() {
         Ok(snapshot) => {
-            let alert = matches!(
-                snapshot.pressure,
-                MemoryPressure::Warning | MemoryPressure::Critical
-            );
             let _ = tray.set_title(Some(gb(snapshot.used_bytes)));
-            let _ = tray.set_icon(Some(broom(snapshot.pressure)));
-            // Template images take the menu bar's own colour; an alert
-            // needs its colour kept.
-            let _ = tray.set_icon_as_template(!alert);
+            let _ = tray.set_icon(Some(dot(snapshot.pressure)));
             let _ = tray.set_tooltip(Some(format!(
                 "Mr Clean: {} of {} memory in use, pressure {}",
                 gb(snapshot.used_bytes),
@@ -182,28 +173,33 @@ fn gb(bytes: i64) -> String {
     }
 }
 
-/// The broom, black for the template, or in a status colour when pressure is
-/// up (the same orange and red the app uses).
-fn broom(pressure: MemoryPressure) -> Image<'static> {
-    let colour = match pressure {
-        MemoryPressure::Warning => Some((251, 146, 60)),
-        MemoryPressure::Critical => Some((248, 113, 113)),
-        MemoryPressure::Normal | MemoryPressure::Unknown => None,
+/// A filled circle in the pressure colour, the same green, orange and red the
+/// app uses for status. Drawn here: four colours of one circle need no files.
+fn dot(pressure: MemoryPressure) -> Image<'static> {
+    let (r, g, b) = match pressure {
+        MemoryPressure::Normal => (74, 222, 128),
+        MemoryPressure::Warning => (251, 146, 60),
+        MemoryPressure::Critical => (248, 113, 113),
+        MemoryPressure::Unknown => (142, 142, 147),
     };
-    let mut rgba = BROOM.to_vec();
-    if let Some((r, g, b)) = colour {
-        for pixel in rgba.chunks_exact_mut(4) {
-            pixel[0] = r;
-            pixel[1] = g;
-            pixel[2] = b;
+    const SIZE: u32 = 36;
+    let centre = (SIZE as f64 - 1.0) / 2.0;
+    let radius = 10.5;
+    let mut rgba = Vec::with_capacity((SIZE * SIZE * 4) as usize);
+    for y in 0..SIZE {
+        for x in 0..SIZE {
+            let distance = ((x as f64 - centre).powi(2) + (y as f64 - centre).powi(2)).sqrt();
+            // One pixel of anti-aliasing at the edge.
+            let alpha = ((radius + 0.5 - distance).clamp(0.0, 1.0) * 255.0) as u8;
+            rgba.extend_from_slice(&[r, g, b, alpha]);
         }
     }
-    Image::new_owned(rgba, BROOM_SIZE, BROOM_SIZE)
+    Image::new_owned(rgba, SIZE, SIZE)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{broom, gb, BROOM, BROOM_SIZE};
+    use super::{dot, gb};
     use diskmate_core::model::MemoryPressure;
 
     #[test]
@@ -216,8 +212,11 @@ mod tests {
     }
 
     #[test]
-    fn the_broom_is_a_whole_image() {
-        assert_eq!(BROOM.len(), (BROOM_SIZE * BROOM_SIZE * 4) as usize);
-        let _ = broom(MemoryPressure::Critical);
+    fn the_dot_is_opaque_in_the_middle_and_clear_at_the_corner() {
+        let image = dot(MemoryPressure::Normal);
+        let rgba = image.rgba();
+        let at = |x: usize, y: usize| rgba[(y * 36 + x) * 4 + 3];
+        assert_eq!(at(18, 18), 255);
+        assert_eq!(at(0, 0), 0);
     }
 }

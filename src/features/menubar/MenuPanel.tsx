@@ -1,33 +1,33 @@
 import { useCallback, useEffect, useState } from "react";
 
-import brandMark from "../../assets/brand-broom.png";
-import { Button } from "../../components/primitives";
 import { Sparkline } from "../../components/Sparkline";
 import { formatBytes } from "../../lib/format";
 import { describeError, engine, engineAvailable, requestWipe } from "../../lib/ipc";
 import { foldByName } from "../../lib/processes";
-import type { MemoryReport, ProcessMemory, VolumeInfo } from "../../lib/types";
-import { StatusChip } from "../overview/OverviewPage";
+import type { MemoryPressure, MemoryReport, ProcessMemory, VolumeInfo } from "../../lib/types";
 
 const POLL_MS = 2_000;
 /** About three minutes of readings at one every two seconds. */
 const KEEP = 90;
 const TOP = 5;
 
-const PRESSURE = {
-  normal: { tone: "good", word: "Normal", quiet: true },
-  warning: { tone: "attention", word: "Under pressure" },
-  critical: { tone: "act", word: "High" },
-  unknown: null,
-} as const;
+/** The word beside the dot, in the dot's colour. */
+const WORD: Record<MemoryPressure, string> = {
+  normal: "Normal",
+  warning: "Elevated",
+  critical: "High",
+  unknown: "Unknown",
+};
 
 /**
- * The panel that opens from the broom in the menu bar.
+ * The panel that opens from the dot in the menu bar.
  *
- * The same look as the app, at the size of a menu: memory now and over the
- * last few minutes, what is using it with a Quit for each ordinary app, free
- * space, and the ways into the app and into wipe-down mode. It reads only
- * while it is open (has focus), so a closed panel costs nothing.
+ * Memory, always in view: the dot is the pressure macOS reports, not a score,
+ * and the top of the panel takes its colour. Below that, what is using memory
+ * with a Quit for each ordinary app (Quit asks the app to quit the way its own
+ * menu would; nothing is force-closed or purged), free space, and the app's
+ * own commands. It reads only while it is open, so a closed panel costs
+ * nothing.
  */
 export function MenuPanel() {
   const [report, setReport] = useState<MemoryReport | null>(null);
@@ -64,10 +64,24 @@ export function MenuPanel() {
       .catch(() => setDisk(null));
     const timer = window.setInterval(() => document.hasFocus() && void read(), POLL_MS);
     const onFocus = () => void read();
+    // The shortcuts the panel shows: ⌘O opens Mr Clean, ⌘Q quits it.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") void engine.hidePanel();
+      if (!event.metaKey) return;
+      if (event.key === "o") {
+        event.preventDefault();
+        void engine.openMainWindow();
+      } else if (event.key === "q") {
+        event.preventDefault();
+        void engine.quitMrClean();
+      }
+    };
     window.addEventListener("focus", onFocus);
+    window.addEventListener("keydown", onKey);
     return () => {
       window.clearInterval(timer);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("keydown", onKey);
     };
   }, [read]);
 
@@ -77,6 +91,7 @@ export function MenuPanel() {
     return () => window.clearTimeout(timer);
   }, [armed]);
 
+  /** Two clicks: the first arms the button, the second asks the app to quit. */
   const quit = async (app: ProcessMemory) => {
     setArmed(null);
     try {
@@ -88,106 +103,89 @@ export function MenuPanel() {
     }
   };
 
-  const quitButton = (app: ProcessMemory) =>
-    armed === app.pid ? (
-      <Button
-        variant="primary"
-        aria-label={`Confirm: quit ${app.name}`}
-        onClick={() => void quit(app)}
-      >
-        Confirm
-      </Button>
-    ) : (
-      <Button aria-label={`Quit ${app.name}`} onClick={() => setArmed(app.pid)}>
-        Quit
-      </Button>
-    );
-
   const snapshot = report?.snapshot ?? null;
   const pressure = snapshot?.pressure ?? "unknown";
-  const status = PRESSURE[pressure];
-  const heaviest = apps?.find((app) => app.canQuit) ?? null;
-  const largest = apps?.[0]?.residentBytes ?? 0;
-  const diskShare =
-    disk && disk.usedBytes !== null && disk.totalBytes
-      ? disk.usedBytes / disk.totalBytes
-      : null;
+  const total = snapshot?.totalBytes ?? 0;
+  const share = (bytes: number) => (total > 0 ? `${Math.min(bytes / total, 1) * 100}%` : "0%");
 
   return (
-    <div className="shell panel-shell" data-section="memory">
-      <header className="mp__head">
-        <span className="mp__brand">
-          <img src={brandMark} alt="" width={22} height={22} />
-          Mr Clean
-        </span>
-        <button
-          type="button"
-          className="link-button"
-          onClick={() => void engine.openMainWindow()}
-        >
-          Open app
-        </button>
-      </header>
-
-      <section className="mp__section" aria-label="Memory">
-        <p className="kicker">Memory</p>
-        <div className="mp__figure">
-          <p className="bigline">
-            <b className="num">{snapshot ? formatBytes(snapshot.usedBytes) : "—"}</b>
-            {snapshot && <span>of {formatBytes(snapshot.totalBytes)}</span>}
-          </p>
-          {status && <StatusChip status={status} />}
+    <div className="shell mp" data-pressure={pressure}>
+      <section className="mp__memory" aria-label="Memory in use">
+        <div className="mp__row">
+          <span className="mp__label">Memory in use</span>
+          <span className="mp__pressure">
+            <i aria-hidden="true" />
+            {WORD[pressure]}
+          </span>
         </div>
-        {history.length > 1 && (
-          <Sparkline
-            values={history}
-            max={snapshot?.totalBytes ?? 1}
-            height={56}
-            label="Memory in use over the last few minutes"
-          />
-        )}
-        <p className="mp__meta">
-          {snapshot?.swapUsedBytes
-            ? `${formatBytes(snapshot.swapUsedBytes)} moved to disk · `
-            : ""}
-          {snapshot ? `${formatBytes(snapshot.cachedBytes)} cached files` : "Reading…"}
+        <p className="mp__figure">
+          <b className="num">{snapshot ? formatBytes(snapshot.usedBytes) : "—"}</b>
+          {snapshot && <span>of {formatBytes(snapshot.totalBytes)}</span>}
         </p>
+        {snapshot && (
+          <div
+            className="mp__meter"
+            role="img"
+            aria-label={`${formatBytes(snapshot.usedBytes)} in use and ${formatBytes(snapshot.cachedBytes)} cached, of ${formatBytes(total)}`}
+          >
+            <i className="mp__meter-used" style={{ width: share(snapshot.usedBytes) }} />
+            <i className="mp__meter-cached" style={{ width: share(snapshot.cachedBytes) }} />
+          </div>
+        )}
+        {snapshot && (
+          <div className="mp__row mp__small">
+            <span>
+              Apps {formatBytes(snapshot.usedBytes)} · Cached{" "}
+              {formatBytes(snapshot.cachedBytes)}
+            </span>
+            <span>
+              Swap{" "}
+              <b>{snapshot.swapUsedBytes ? formatBytes(snapshot.swapUsedBytes) : "0 bytes"}</b>
+            </span>
+          </div>
+        )}
+        <div className="mp__chart">
+          {history.length > 1 && (
+            <Sparkline
+              values={history}
+              max={total || 1}
+              height={44}
+              label="Memory in use over the last few minutes"
+            />
+          )}
+        </div>
+        <p className="mp__headline">{report ? report.headline : "Reading memory…"}</p>
       </section>
 
-      {heaviest && (pressure === "warning" || pressure === "critical") && (
-        <div className={`banner banner--${pressure === "critical" ? "act" : "attention"}`}>
-          <div className="banner__text">
-            <p className="banner__title">Memory is short</p>
-            <p>
-              Quitting {heaviest.name} would free about {formatBytes(heaviest.residentBytes)}.
-            </p>
-          </div>
-          {quitButton(heaviest)}
-        </div>
-      )}
-
       <section className="mp__section" aria-label="Using the most memory">
-        <p className="kicker">Using the most</p>
+        <p className="mp__label">Using the most memory</p>
         {message && <p className="mp__message">{message}</p>}
         <ul className="mp__apps">
           {(apps ?? []).map((app) => (
             <li key={`${app.pid}-${app.name}`} className="mp__app">
-              <span className="app-tile app-tile--small" aria-hidden="true">
-                {app.name.trim().charAt(0).toUpperCase() || "?"}
-              </span>
-              <span className="mp__app-text">
-                <span className="mp__app-name">{app.name}</span>
-                <span className="procs__bar" aria-hidden="true">
-                  <i
-                    style={{
-                      width: `${largest > 0 ? Math.max(3, (app.residentBytes / largest) * 100) : 0}%`,
-                    }}
-                  />
-                </span>
-              </span>
+              <span className="mp__app-name">{app.name}</span>
               <span className="num mp__app-size">{formatBytes(app.residentBytes)}</span>
               <span className="mp__app-action">
-                {app.canQuit ? quitButton(app) : <span className="faint">Background</span>}
+                {app.canQuit &&
+                  (armed === app.pid ? (
+                    <button
+                      type="button"
+                      className="mp__quit mp__quit--armed"
+                      aria-label={`Confirm: quit ${app.name}`}
+                      onClick={() => void quit(app)}
+                    >
+                      Confirm
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="mp__quit"
+                      aria-label={`Quit ${app.name}`}
+                      onClick={() => setArmed(app.pid)}
+                    >
+                      Quit
+                    </button>
+                  ))}
               </span>
             </li>
           ))}
@@ -195,39 +193,34 @@ export function MenuPanel() {
       </section>
 
       {disk && (
-        <section className="mp__section" aria-label="Disk">
-          <p className="kicker">{disk.name}</p>
-          <p className="mp__disk">
+        <section className="mp__section mp__row" aria-label="Disk">
+          <span className="mp__label">{disk.name}</span>
+          <span className="mp__disk">
             <b className="num">
               {disk.availableBytes !== null ? formatBytes(disk.availableBytes) : "—"}
             </b>{" "}
-            free
-            {disk.totalBytes ? ` of ${formatBytes(disk.totalBytes)}` : ""}
-          </p>
-          {diskShare !== null && (
-            <div className="ov__bar ov__bar--thin" aria-hidden="true">
-              <i style={{ width: `${Math.min(diskShare, 1) * 100}%` }} />
-            </div>
-          )}
+            free{disk.totalBytes ? ` of ${formatBytes(disk.totalBytes)}` : ""}
+          </span>
         </section>
       )}
 
-      <footer className="mp__foot">
-        <Button
+      <nav className="mp__menu" aria-label="Mr Clean">
+        <button type="button" onClick={() => void engine.openMainWindow()}>
+          Open Mr Clean <kbd>⌘O</kbd>
+        </button>
+        <button
+          type="button"
           onClick={() => {
             void requestWipe();
             void engine.openMainWindow();
           }}
         >
           Wipe down this Mac…
-        </Button>
-        <Button variant="primary" onClick={() => void engine.openMainWindow()}>
-          Open Mr Clean
-        </Button>
-        <button type="button" className="link-button" onClick={() => void engine.quitMrClean()}>
-          Quit
         </button>
-      </footer>
+        <button type="button" onClick={() => void engine.quitMrClean()}>
+          Quit Mr Clean <kbd>⌘Q</kbd>
+        </button>
+      </nav>
     </div>
   );
 }
