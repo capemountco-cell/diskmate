@@ -17,5 +17,6 @@ pub fn hide_panel<R: Runtime>(app: AppHandle<R>) {
 
 #[tauri::command]
 pub fn quit_mr_clean<R: Runtime>(app: AppHandle<R>) {
+    crate::window_state::save(&app);
     app.exit(0);
 }

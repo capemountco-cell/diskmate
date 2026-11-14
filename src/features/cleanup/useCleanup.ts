@@ -16,6 +16,8 @@ import {
   onDuplicateFailed,
   onDuplicateFinished,
   onDuplicateProgress,
+  onRemovalProgress,
+  type RemovalProgress,
 } from "../../lib/ipc";
 import type {
   Application,
@@ -38,6 +40,7 @@ export function useCleanup(scanId: number | null) {
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
   const [duplicateProgress, setDuplicateProgress] = useState<DuplicateProgress | null>(null);
   const [duplicateStats, setDuplicateStats] = useState<DuplicateStats | null>(null);
+  const [removal, setRemoval] = useState<RemovalProgress | null>(null);
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [loadingApps, setLoadingApps] = useState(false);
@@ -179,6 +182,14 @@ export function useCleanup(scanId: number | null) {
   const removeApproved = useCallback(async () => {
     if (staged.length === 0) return;
     setBusy(true);
+    setRemoval({
+      done: 0,
+      total: staged.length,
+      doneBytes: 0,
+      totalBytes: stagedTotal,
+      current: null,
+    });
+    const unlisten = await onRemovalProgress(setRemoval);
     try {
       const result = await engine.removeApproved({
         candidateIds: staged.map((candidate) => candidate.id),
@@ -190,6 +201,8 @@ export function useCleanup(scanId: number | null) {
     } catch (cause) {
       setError(describeError(cause));
     } finally {
+      unlisten();
+      setRemoval(null);
       setBusy(false);
     }
   }, [staged, stagedTotal, refresh]);
@@ -210,6 +223,8 @@ export function useCleanup(scanId: number | null) {
     error,
     busy,
     report,
+    /** While the queue is moving to the Trash: how far it has got. */
+    removal,
     dismissReport: () => setReport(null),
     refresh,
     stage,

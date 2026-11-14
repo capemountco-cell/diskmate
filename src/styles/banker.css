@@ -2504,3 +2504,26 @@ html[data-window="panel"] #root {
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
+
+.review__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.candidate__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+/* A real app icon, as Finder shows it. */
+.app-icon {
+  flex: none;
+  display: block;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}

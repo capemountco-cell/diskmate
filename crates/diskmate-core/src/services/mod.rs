@@ -6,6 +6,7 @@
 //! layer, which is why it can be exercised by tests with no Tauri present.
 
 mod cleanup;
+mod icons;
 mod memory;
 mod monitor;
 mod process;
@@ -13,7 +14,10 @@ mod rules;
 mod startup;
 mod storage;
 
-pub use cleanup::{CleanupService, DryRunRemover, Remover, TrashRemover, UNINSTALL_BUNDLE_RULE};
+pub use cleanup::{
+    CleanupService, DryRunRemover, RemovalProgress, Remover, TrashRemover, UNINSTALL_BUNDLE_RULE,
+};
+pub use icons::IconService;
 pub use memory::{MemoryReport, MemoryService};
 pub use monitor::{MonitorReport, MonitorService, Sample};
 pub use process::ProcessService;

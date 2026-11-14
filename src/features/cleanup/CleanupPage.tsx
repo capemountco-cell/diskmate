@@ -16,6 +16,7 @@ import { Hero, PageHeader } from "../../components/layout";
 import { Button, EmptyState, Note, Panel, Safety, Spinner } from "../../components/primitives";
 import { formatBytes, formatCount, truncatePath } from "../../lib/format";
 import { engineAvailable } from "../../lib/ipc";
+import { reveal } from "../../lib/reveal";
 import type { CandidateGroup, CandidateKind, CleanupCandidate } from "../../lib/types";
 
 import { DuplicatesView } from "../duplicates/DuplicatesPage";
@@ -307,7 +308,17 @@ function CandidateRow({
         </div>
       </div>
       <span className="candidate__size">{formatBytes(candidate.bytes)}</span>
-      <Safety safety={candidate.safety} />
+      <span className="candidate__actions">
+        <Safety safety={candidate.safety} />
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => void reveal(candidate.path)}
+          aria-label={`Show ${candidate.name} in Finder`}
+        >
+          Show in Finder
+        </button>
+      </span>
     </div>
   );
 }

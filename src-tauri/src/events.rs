@@ -15,3 +15,6 @@ pub const DUPLICATE_PROGRESS: &str = "diskmate://duplicate-progress";
 /// The duplicate search finished, carrying its statistics.
 pub const DUPLICATE_FINISHED: &str = "diskmate://duplicate-finished";
 pub const DUPLICATE_FAILED: &str = "diskmate://duplicate-failed";
+
+/// How far moving the approved queue to the Trash has got, after each batch.
+pub const REMOVAL_PROGRESS: &str = "diskmate://removal-progress";

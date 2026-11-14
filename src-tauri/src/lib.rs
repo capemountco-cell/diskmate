@@ -9,6 +9,7 @@ mod commands;
 mod events;
 mod state;
 mod tray;
+mod window_state;
 mod wipe;
 
 pub use state::AppState;
@@ -25,6 +26,8 @@ pub fn run() {
             // swallowed into a window that silently does nothing.
             let state = AppState::initialise()?;
             app.manage(state);
+            app.manage(window_state::WindowState::default());
+            window_state::restore(app.handle());
             tray::install(app.handle())?;
             Ok(())
         })
@@ -34,7 +37,18 @@ pub fn run() {
             // Closing the window keeps Mr Clean in the menu bar.
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
+                if window.label() == "main" {
+                    window_state::save(window.app_handle());
+                }
                 let _ = window.hide();
+            }
+            // Remember where the window is, in memory, as it moves.
+            tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_)
+                if window.label() == "main" =>
+            {
+                if let Some(webview) = window.app_handle().get_webview_window("main") {
+                    window_state::note(&webview);
+                }
             }
             // The menu bar panel closes when you click anywhere else.
             tauri::WindowEvent::Focused(false) if window.label() == tray::PANEL => {
@@ -60,6 +74,7 @@ pub fn run() {
             commands::memory_report,
             commands::top_apps,
             commands::quit_app,
+            commands::app_icon,
             commands::startup_report,
             // Cleanup. Every one of these proposes or reviews; only
             // `remove_approved` removes, and the engine checks the approval

@@ -358,6 +358,18 @@ impl StorageService {
         self.with_conn(|conn| self.cleanup.remove_approved(conn, confirmation))
     }
 
+    /// `remove_approved`, reporting progress after every batch.
+    pub fn remove_approved_with_progress(
+        &self,
+        confirmation: &Confirmation,
+        progress: impl FnMut(&crate::services::RemovalProgress),
+    ) -> Result<RemovalReport> {
+        self.with_conn(|conn| {
+            self.cleanup
+                .remove_approved_with_progress(conn, confirmation, progress)
+        })
+    }
+
     pub fn cleanup_history(&self, limit: u32) -> Result<Vec<crate::model::RemovalOutcome>> {
         self.with_conn(|conn| CleanupService::history(conn, limit))
     }

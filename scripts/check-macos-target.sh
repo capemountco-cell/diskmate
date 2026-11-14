@@ -102,6 +102,9 @@ pub mod platform {
         fn top_apps(&self, limit: usize) -> Result<Vec<ProcessMemory>>;
         fn startup_items(&self) -> Result<Vec<StartupItem>>;
         fn skip_mount_points(&self, root: &std::path::Path) -> Vec<std::path::PathBuf>;
+        fn icon_png(&self, _path: &std::path::Path, _size: u32) -> Option<Vec<u8>> {
+            None
+        }
     }
 
     #[path = "$CORE/platform/grouping.rs"]

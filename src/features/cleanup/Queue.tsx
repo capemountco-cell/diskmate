@@ -162,6 +162,36 @@ function Queue({ cleanup, onClose }: { cleanup: CleanupController; onClose: () =
       {!empty && (
         <div className="review__foot">
           <RemovalFlow />
+          {cleanup.removal && (
+            <div className="review__progress">
+              <div
+                className="scan-bar__track"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={cleanup.removal.total}
+                aria-valuenow={cleanup.removal.done}
+                aria-label={`${cleanup.removal.done} of ${cleanup.removal.total} dealt with`}
+              >
+                <div
+                  className="scan-bar__fill"
+                  style={{
+                    width: `${cleanup.removal.total > 0 ? (cleanup.removal.done / cleanup.removal.total) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+              <p className="scan-bar__measure">
+                <span>
+                  Moving {formatCount(cleanup.removal.done)} of{" "}
+                  {formatCount(cleanup.removal.total)}
+                  {cleanup.removal.current ? ` · ${cleanup.removal.current}` : ""}
+                </span>
+                <span className="num">
+                  {formatBytes(cleanup.removal.doneBytes)} of{" "}
+                  {formatBytes(cleanup.removal.totalBytes)}
+                </span>
+              </p>
+            </div>
+          )}
           <div className="review__actions">
             <Button
               variant="quiet"
