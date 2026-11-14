@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { AppIcon } from "../../components/AppIcon";
 import { Button, EmptyState, Note, Spinner } from "../../components/primitives";
 import { formatBytes, formatCount, truncatePath } from "../../lib/format";
 import { describeError, engine, engineAvailable } from "../../lib/ipc";
@@ -329,9 +330,7 @@ function AppRow({
           aria-expanded={open}
           onClick={onToggleOpen}
         >
-          <span className="app-tile" aria-hidden="true">
-            {app.name.trim().charAt(0).toUpperCase() || "?"}
-          </span>
+          <AppIcon path={app.path} name={app.name} />
           <span className="app-row__text">
             <span className="app-row__name">{app.name}</span>
             <span className="app-row__sub">{sub}</span>

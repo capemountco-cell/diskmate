@@ -510,3 +510,83 @@ fn a_removed_candidate_stops_being_offered() {
     let after = CleanupService::candidates(&conn, 1, None, 100).unwrap();
     assert_eq!(after.len(), 1, "a removed candidate is never re-proposed");
 }
+
+/// Moves in batches like the real Trash, but its batch request always fails
+/// and one named file never moves, so the per-item fallback is exercised.
+struct StubbornTrash {
+    inner: TempTrash,
+    batches: Mutex<usize>,
+}
+
+impl Remover for StubbornTrash {
+    fn move_to_trash(&self, path: &Path) -> Result<(), String> {
+        if path.file_name().is_some_and(|n| n == "stuck.bin") {
+            return Err("it is in use".into());
+        }
+        self.inner.move_to_trash(path)
+    }
+
+    fn move_all_to_trash(&self, _paths: &[PathBuf]) -> Result<(), String> {
+        *self.batches.lock().unwrap() += 1;
+        Err("one of these could not be moved".into())
+    }
+
+    fn name(&self) -> &'static str {
+        "stubborn-trash"
+    }
+}
+
+#[test]
+fn a_batch_that_fails_falls_back_to_one_at_a_time_and_reports_progress() {
+    let (dir, conn) = fixture();
+    let mut candidates = Vec::new();
+    for index in 0..29 {
+        let path = file(dir.path(), &format!("item-{index}.bin"), 100);
+        candidates.push(candidate(&path, 100, SafetyClass::Safe));
+    }
+    let stuck = file(dir.path(), "stuck.bin", 100);
+    candidates.push(candidate(&stuck, 100, SafetyClass::Safe));
+    CleanupService::record_candidates(&conn, &candidates).unwrap();
+    let ids: Vec<i64> = CleanupService::candidates(&conn, 1, None, 100)
+        .unwrap()
+        .iter()
+        .map(|c| c.id)
+        .collect();
+    CleanupService::stage(&conn, &ids).unwrap();
+
+    let trash = tempfile::tempdir().unwrap();
+    let remover = Arc::new(StubbornTrash {
+        inner: TempTrash::new(trash.path().into()),
+        batches: Mutex::new(0),
+    });
+    let service = CleanupService::with_remover(remover.clone());
+    let mut seen = Vec::new();
+    let report = service
+        .remove_approved_with_progress(
+            &conn,
+            &Confirmation {
+                candidate_ids: ids.clone(),
+                expected_total_bytes: 3000,
+            },
+            |progress| seen.push((progress.done, progress.done_bytes)),
+        )
+        .unwrap();
+
+    assert_eq!(report.removed_count, 29);
+    assert_eq!(report.failed_count, 1);
+    assert!(
+        stuck.exists(),
+        "the file that would not move is still there"
+    );
+    assert_eq!(
+        *remover.batches.lock().unwrap(),
+        2,
+        "30 items go in two batches"
+    );
+    assert_eq!(seen.first(), Some(&(0, 0)));
+    assert_eq!(seen.last(), Some(&(30, 3000)));
+    assert!(
+        seen.windows(2).all(|pair| pair[0].0 <= pair[1].0),
+        "progress only moves forward"
+    );
+}

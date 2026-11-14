@@ -35,3 +35,10 @@ pub fn top_apps(state: State<'_, AppState>, limit: usize) -> CommandResult<Vec<P
 pub fn quit_app(state: State<'_, AppState>, pid: i32, name: String) -> CommandResult<()> {
     state.process.quit_app(pid, &name).map_err(to_command_error)
 }
+
+/// The icon Finder shows for the app at `path`, as a PNG `data:` URL, or
+/// nothing when it is not an app or has no readable icon.
+#[tauri::command]
+pub fn app_icon(state: State<'_, AppState>, path: String, size: u32) -> Option<String> {
+    state.icons.app_icon(&path, size)
+}

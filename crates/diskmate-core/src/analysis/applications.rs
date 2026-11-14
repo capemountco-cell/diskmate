@@ -96,6 +96,20 @@ const HOME_LOCATIONS: &[Location] = &[
         consequence: "web content this app cached",
     },
     Location {
+        relative: "Library/Cookies",
+        suffix: Some("binarycookies"),
+        label: "cookies",
+        safety: SafetyClass::Safe,
+        consequence: "sign-ins and site data this app kept",
+    },
+    Location {
+        relative: "Library/Application Scripts",
+        suffix: None,
+        label: "application scripts",
+        safety: SafetyClass::Safe,
+        consequence: "helper scripts for this app's extensions",
+    },
+    Location {
         relative: "Library/Saved Application State",
         suffix: Some("savedState"),
         label: "saved window state",
@@ -145,6 +159,33 @@ const HOME_LOCATIONS: &[Location] = &[
         consequence: "what made this app start automatically",
     },
 ];
+
+/// Adds `candidate` to `out` if it exists, measured.
+fn add_leftover(
+    out: &mut BTreeMap<String, Leftover>,
+    candidate: &Path,
+    name: &str,
+    label: &str,
+    safety: SafetyClass,
+    consequence: &str,
+) {
+    let Ok(metadata) = std::fs::symlink_metadata(candidate) else {
+        return;
+    };
+    let bytes = if metadata.is_dir() {
+        directory_size(candidate)
+    } else {
+        metadata.len() as i64
+    };
+    let path = candidate.to_string_lossy().into_owned();
+    out.entry(path.clone()).or_insert(Leftover {
+        path,
+        location: label.to_string(),
+        bytes,
+        safety,
+        reason: format!("{name} left this behind in {label}: {consequence}."),
+    });
+}
 
 pub struct ApplicationInspector;
 
@@ -236,27 +277,58 @@ impl ApplicationInspector {
                     Some(ext) => base.join(format!("{key}.{ext}")),
                     None => base.join(key),
                 };
-                let Ok(metadata) = std::fs::symlink_metadata(&candidate) else {
-                    continue;
-                };
-                let bytes = if metadata.is_dir() {
-                    directory_size(&candidate)
-                } else {
-                    metadata.len() as i64
-                };
-                let path = candidate.to_string_lossy().into_owned();
-                out.entry(path.clone()).or_insert(Leftover {
-                    path,
-                    location: location.label.to_string(),
-                    bytes,
-                    safety: location.safety,
-                    reason: format!(
-                        "{name} left this behind in {}: {}.",
-                        location.label, location.consequence
-                    ),
-                });
+                add_leftover(
+                    &mut out,
+                    &candidate,
+                    name,
+                    location.label,
+                    location.safety,
+                    location.consequence,
+                );
             }
         }
+
+        // Crash reports are named after the app with a date after it
+        // ("Name-2026-03-01-101500.ips"). Matched on the exact name followed by
+        // a separator, never on a fragment of it.
+        let reports = home.join("Library/Logs/DiagnosticReports");
+        if let Ok(entries) = std::fs::read_dir(&reports) {
+            for entry in entries.flatten() {
+                let file_name = entry.file_name().to_string_lossy().into_owned();
+                let is_report = [".ips", ".crash", ".hang", ".diag", ".spin"]
+                    .iter()
+                    .any(|ext| file_name.ends_with(ext));
+                let named = file_name
+                    .strip_prefix(name)
+                    .is_some_and(|rest| rest.starts_with('-') || rest.starts_with('_'));
+                if is_report && named {
+                    add_leftover(
+                        &mut out,
+                        &entry.path(),
+                        name,
+                        "crash reports",
+                        SafetyClass::Safe,
+                        "records of times it crashed, kept only for diagnosis",
+                    );
+                }
+            }
+        }
+
+        // The per-user cache and temporary folders macOS keeps outside the
+        // home folder, where files are named after the bundle identifier.
+        if let Some(id) = bundle_id {
+            for root in crate::platform::per_user_dirs() {
+                add_leftover(
+                    &mut out,
+                    &root.join(id),
+                    name,
+                    "temporary files",
+                    SafetyClass::Safe,
+                    "temporary files and caches macOS kept for it",
+                );
+            }
+        }
+
         out.into_values().collect()
     }
 

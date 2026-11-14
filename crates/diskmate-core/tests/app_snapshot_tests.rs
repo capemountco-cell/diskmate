@@ -416,3 +416,54 @@ fn pruning_never_removes_a_scan_a_snapshot_points_at() {
         .compare_snapshots(snapshot.id, later.id)
         .is_ok());
 }
+
+#[test]
+fn crash_reports_cookies_and_scripts_are_found_by_exact_name_only() {
+    let tmp = tempfile::tempdir().unwrap();
+    let apps = tmp.path().join("Applications");
+    let home = tmp.path().join("home");
+    std::fs::create_dir_all(&apps).unwrap();
+    app_bundle(&apps, "Note", "com.example.note", 1_000);
+
+    file(&home, "Library/Cookies/com.example.note.binarycookies", 300);
+    file(
+        &home,
+        "Library/Application Scripts/com.example.note/run.scpt",
+        200,
+    );
+    file(
+        &home,
+        "Library/Logs/DiagnosticReports/Note-2026-03-01-101500.ips",
+        400,
+    );
+    file(
+        &home,
+        "Library/Logs/DiagnosticReports/Note_2026-02-11-090000.crash",
+        500,
+    );
+    // Another app whose name starts the same way, and a file that is not a report.
+    file(
+        &home,
+        "Library/Logs/DiagnosticReports/Notebook-2026-03-01-101500.ips",
+        600,
+    );
+    file(&home, "Library/Logs/DiagnosticReports/Note-readme.txt", 700);
+
+    let found = ApplicationInspector::inspect(&home, &[(apps, false)]);
+    let (_, leftovers) = &found[0];
+    let mut locations: Vec<&str> = leftovers.iter().map(|l| l.location.as_str()).collect();
+    locations.sort_unstable();
+    assert_eq!(
+        locations,
+        [
+            "application scripts",
+            "cookies",
+            "crash reports",
+            "crash reports"
+        ]
+    );
+    assert!(leftovers
+        .iter()
+        .all(|l| !l.path.contains("Notebook") && !l.path.ends_with(".txt")));
+    assert!(leftovers.iter().all(|l| l.safety == SafetyClass::Safe));
+}

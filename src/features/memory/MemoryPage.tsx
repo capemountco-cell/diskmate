@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { AppIcon } from "../../components/AppIcon";
 import { Button, Note, Spinner } from "../../components/primitives";
 import { Sparkline } from "../../components/Sparkline";
 import { formatBytes } from "../../lib/format";
@@ -236,9 +237,7 @@ export function MemoryPage({
           <ul className="procs">
             {apps.map((app) => (
               <li key={`${app.pid}-${app.name}`} className="procs__row">
-                <span className="app-tile" aria-hidden="true">
-                  {app.name.trim().charAt(0).toUpperCase() || "?"}
-                </span>
+                <AppIcon path={app.bundlePath} name={app.name} />
                 <div className="procs__text">
                   <p className="procs__name">{app.name}</p>
                   <p className="procs__sub">

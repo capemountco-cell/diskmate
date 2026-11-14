@@ -50,6 +50,24 @@ export const EVENT_SCAN_FINISHED = "diskmate://scan-finished";
 export const EVENT_DUPLICATE_PROGRESS = "diskmate://duplicate-progress";
 export const EVENT_DUPLICATE_FINISHED = "diskmate://duplicate-finished";
 export const EVENT_DUPLICATE_FAILED = "diskmate://duplicate-failed";
+export const EVENT_REMOVAL_PROGRESS = "diskmate://removal-progress";
+
+/** How far moving the approved queue to the Trash has got. */
+export interface RemovalProgress {
+  done: number;
+  total: number;
+  doneBytes: number;
+  totalBytes: number;
+  current: string | null;
+}
+
+/** Subscribe to removal progress, sent after every batch moved to the Trash. */
+export function onRemovalProgress(
+  handler: (progress: RemovalProgress) => void,
+): Promise<UnlistenFn> {
+  if (!engineAvailable()) return Promise.resolve(() => {});
+  return listen<RemovalProgress>(EVENT_REMOVAL_PROGRESS, (event) => handler(event.payload));
+}
 
 /** True when the app is running inside its Tauri window. */
 export function engineAvailable(): boolean {
@@ -142,6 +160,9 @@ export const engine = {
   monitorStop: () => call<void>("monitor_stop"),
   monitorReport: () => call<MonitorReport>("monitor_report"),
   monitorSample: () => call<Sample>("monitor_sample"),
+
+  /** The app's icon as a PNG data URL, or null when it has none. */
+  appIcon: (path: string, size: number) => call<string | null>("app_icon", { path, size }),
 
   // Windows: the menu bar panel and the app.
   openMainWindow: () => call<void>("open_main_window"),

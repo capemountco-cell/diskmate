@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { AppIcon } from "../../components/AppIcon";
 import { Button, Note, Spinner } from "../../components/primitives";
 import { describeError, engine, engineAvailable } from "../../lib/ipc";
 import type { StartupItem, StartupReport } from "../../lib/types";
@@ -100,9 +101,7 @@ function ItemGroup({
         ) : (
           items.map((item) => (
             <div key={`${item.configPath}:${item.id}`} className="row-item row-item--compact">
-              <span className="app-tile" aria-hidden="true">
-                {item.name.trim().charAt(0).toUpperCase() || "?"}
-              </span>
+              <AppIcon path={item.program ?? item.configPath} name={item.name} />
               <div className="row-item__text">
                 <p className="row-item__title">{item.name}</p>
                 <p className="row-item__detail mono" title={item.program ?? item.configPath}>

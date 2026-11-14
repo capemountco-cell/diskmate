@@ -51,6 +51,12 @@ pub trait SystemProbe: Send + Sync {
     /// Mount points a volume scan should not descend into: other volumes,
     /// network shares and synthetic filesystems.
     fn skip_mount_points(&self, root: &std::path::Path) -> Vec<std::path::PathBuf>;
+
+    /// The icon Finder shows for `path`, `size` pixels square, as PNG bytes.
+    /// `None` where the platform has no such thing or it cannot be read.
+    fn icon_png(&self, _path: &std::path::Path, _size: u32) -> Option<Vec<u8>> {
+        None
+    }
 }
 
 /// The one process action DiskMate has: asking an app to quit.
@@ -101,6 +107,41 @@ pub fn probe() -> &'static dyn SystemProbe {
 }
 
 /// Human-readable host description for diagnostics and benchmark records.
+/// The per-user cache and temporary folders macOS keeps outside the home
+/// folder (under /private/var/folders). Apps leave files there in folders
+/// named after their bundle identifier. Empty on other systems.
+pub fn per_user_dirs() -> Vec<std::path::PathBuf> {
+    #[cfg(target_os = "macos")]
+    {
+        // From <unistd.h>: _CS_DARWIN_USER_TEMP_DIR and _CS_DARWIN_USER_CACHE_DIR.
+        const TEMP: libc::c_int = 65537;
+        const CACHE: libc::c_int = 65538;
+        [TEMP, CACHE]
+            .into_iter()
+            .filter_map(|name| {
+                let mut buffer = vec![0u8; 1024];
+                // SAFETY: confstr writes at most `buffer.len()` bytes, including
+                // the terminating NUL, and returns the length it needed.
+                let needed =
+                    unsafe { libc::confstr(name, buffer.as_mut_ptr().cast(), buffer.len()) };
+                if needed == 0 || needed > buffer.len() {
+                    return None;
+                }
+                let text = std::ffi::CStr::from_bytes_until_nul(&buffer)
+                    .ok()?
+                    .to_str()
+                    .ok()?;
+                let path = std::path::PathBuf::from(text.trim_end_matches('/'));
+                path.is_dir().then_some(path)
+            })
+            .collect()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Vec::new()
+    }
+}
+
 pub fn host_description() -> String {
     format!("{} {}", std::env::consts::OS, std::env::consts::ARCH)
 }

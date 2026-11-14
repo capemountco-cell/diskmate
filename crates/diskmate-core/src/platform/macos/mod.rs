@@ -7,6 +7,7 @@
 //! use private frameworks, does not try to work around TCC, and degrades to
 //! partial information when macOS withholds access.
 
+mod icons;
 mod memory;
 mod processes;
 mod startup;
@@ -39,6 +40,10 @@ impl SystemProbe for MacOsProbe {
 
     fn top_apps(&self, limit: usize) -> Result<Vec<ProcessMemory>> {
         processes::top_apps(limit)
+    }
+
+    fn icon_png(&self, path: &Path, size: u32) -> Option<Vec<u8>> {
+        icons::icon_png(path, size)
     }
 
     fn startup_items(&self) -> Result<Vec<StartupItem>> {

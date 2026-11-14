@@ -27,7 +27,7 @@
 //!   specific set of ids and a specific total. If either has changed since they
 //!   looked, the whole operation is refused rather than partially applied.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use rusqlite::{params, Connection};
@@ -40,12 +40,6 @@ use crate::model::{
 };
 use crate::platform;
 
-/// How a file actually leaves.
-///
-/// Behind a trait for one reason: it makes "there is exactly one destructive
-/// operation in DiskMate" a fact the type system can show, and it lets the
-/// refusal logic be tested exhaustively without a test ever being able to
-/// delete something by accident.
 /// Whether a candidate sits somewhere Mr Clean will not touch.
 ///
 /// Protected locations stay protected, with one narrow exception: the bundle
@@ -62,11 +56,53 @@ fn is_protected_candidate(candidate: &CleanupCandidate, path: &Path) -> bool {
     platform::is_protected_path(path)
 }
 
+/// How many items go to the Trash in one request.
+const REMOVAL_BATCH: usize = 24;
+
+/// How far an approved removal has got: items and bytes dealt with so far
+/// (moved, refused or failed alike), out of the total that was approved.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemovalProgress {
+    pub done: usize,
+    pub total: usize,
+    pub done_bytes: i64,
+    pub total_bytes: i64,
+    /// The first item of the batch being moved, while it moves.
+    pub current: Option<String>,
+}
+
+impl RemovalProgress {
+    fn record(&mut self, candidate: &CleanupCandidate) {
+        self.done += 1;
+        self.done_bytes += candidate.bytes;
+    }
+}
+
 /// The rule an uninstall gives the app's own bundle.
 pub const UNINSTALL_BUNDLE_RULE: &str = "uninstall:bundle";
 
+/// How a file actually leaves.
+///
+/// Behind a trait for one reason: it makes "there is exactly one destructive
+/// operation in Mr Clean" a fact the type system can show, and it lets the
+/// refusal logic be tested exhaustively without a test ever being able to
+/// delete something by accident.
 pub trait Remover: Send + Sync {
     fn move_to_trash(&self, path: &Path) -> std::result::Result<(), String>;
+
+    /// Moves several paths in one request. On macOS each request to the
+    /// Trash goes through Finder (which is what makes Put Back work), and
+    /// that round trip is the slow part, so one request for many paths is
+    /// much faster than one per path. An error means "not all of these
+    /// moved"; the caller works out which.
+    fn move_all_to_trash(&self, paths: &[PathBuf]) -> std::result::Result<(), String> {
+        for path in paths {
+            self.move_to_trash(path)?;
+        }
+        Ok(())
+    }
+
     fn name(&self) -> &'static str;
 }
 
@@ -77,6 +113,10 @@ pub struct TrashRemover;
 impl Remover for TrashRemover {
     fn move_to_trash(&self, path: &Path) -> std::result::Result<(), String> {
         trash::delete(path).map_err(|e| e.to_string())
+    }
+
+    fn move_all_to_trash(&self, paths: &[PathBuf]) -> std::result::Result<(), String> {
+        trash::delete_all(paths).map_err(|e| e.to_string())
     }
 
     fn name(&self) -> &'static str {
@@ -310,6 +350,17 @@ impl CleanupService {
         conn: &Connection,
         confirmation: &Confirmation,
     ) -> Result<RemovalReport> {
+        self.remove_approved_with_progress(conn, confirmation, |_| {})
+    }
+
+    /// `remove_approved`, reporting how far it has got after every batch, so
+    /// the interface can show a real progress bar while things move.
+    pub fn remove_approved_with_progress(
+        &self,
+        conn: &Connection,
+        confirmation: &Confirmation,
+        mut progress: impl FnMut(&RemovalProgress),
+    ) -> Result<RemovalReport> {
         if confirmation.candidate_ids.is_empty() {
             return Ok(RemovalReport::from_outcomes(Vec::new()));
         }
@@ -342,69 +393,90 @@ impl CleanupService {
             )));
         }
 
+        let mut tally = RemovalProgress {
+            done: 0,
+            total: approved.len(),
+            done_bytes: 0,
+            total_bytes: total,
+            current: None,
+        };
+        progress(&tally);
+
+        // First every item is checked on its own (protected, gone, changed),
+        // then what passed moves in batches.
         let mut outcomes = Vec::with_capacity(approved.len());
+        let mut ready: Vec<&CleanupCandidate> = Vec::new();
         for candidate in &approved {
-            outcomes.push(self.remove_one(conn, candidate)?);
+            match self.check(conn, candidate)? {
+                Some(outcome) => {
+                    tally.record(candidate);
+                    outcomes.push(outcome);
+                }
+                None => ready.push(candidate),
+            }
+        }
+        progress(&tally);
+
+        for batch in ready.chunks(REMOVAL_BATCH) {
+            tally.current = batch.first().map(|c| c.name.clone());
+            progress(&tally);
+            for outcome in self.move_batch(conn, batch)? {
+                outcomes.push(outcome);
+            }
+            for candidate in batch {
+                tally.record(candidate);
+            }
+            tally.current = None;
+            progress(&tally);
         }
         Ok(RemovalReport::from_outcomes(outcomes))
     }
 
-    /// The single destructive path. Everything above funnels here.
-    fn remove_one(
+    /// Moves a batch that passed its checks, in one request where possible.
+    ///
+    /// If the one request fails, each item is tried on its own, so a single
+    /// file that will not move does not take the others with it, and every
+    /// outcome names what really happened to that item.
+    fn move_batch(
+        &self,
+        conn: &Connection,
+        batch: &[&CleanupCandidate],
+    ) -> Result<Vec<RemovalOutcome>> {
+        let paths: Vec<PathBuf> = batch.iter().map(|c| c.path_buf()).collect();
+        let together = if batch.len() > 1 {
+            self.remover.move_all_to_trash(&paths).is_ok()
+        } else {
+            false
+        };
+        let mut outcomes = Vec::with_capacity(batch.len());
+        for (candidate, path) in batch.iter().zip(&paths) {
+            let moved = if together {
+                Ok(())
+            } else if std::fs::symlink_metadata(path).is_err() {
+                // A batch that half-worked already moved this one.
+                Ok(())
+            } else {
+                self.remover.move_to_trash(path)
+            };
+            outcomes.push(self.settle(conn, candidate, path, moved)?);
+        }
+        Ok(outcomes)
+    }
+
+    /// Records what happened to one item, verifying rather than assuming.
+    fn settle(
         &self,
         conn: &Connection,
         candidate: &CleanupCandidate,
+        path: &Path,
+        moved: std::result::Result<(), String>,
     ) -> Result<RemovalOutcome> {
-        let path = candidate.path_buf();
-
-        let refusal = self.refusal_reason(candidate, &path);
-        if let Some(detail) = refusal {
-            return self.finish(conn, candidate, CandidateState::Refused, Some(detail));
-        }
-
-        let metadata = match std::fs::symlink_metadata(&path) {
-            Ok(metadata) => metadata,
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-                return self.finish(
-                    conn,
-                    candidate,
-                    CandidateState::Vanished,
-                    Some("it was already gone".to_string()),
-                );
-            }
-            Err(err) => {
-                return self.finish(
-                    conn,
-                    candidate,
-                    CandidateState::Failed,
-                    Some(format!("could not read it: {err}")),
-                );
-            }
-        };
-
-        // Guard against the file changing between review and approval. A cache
-        // that grew is still a cache, but a file that changed is one somebody
-        // may now be using, and the honest response is to put it back in front
-        // of the user rather than to trash it on stale information.
-        if metadata.is_file() && metadata.len() as i64 != candidate.bytes {
-            return self.finish(
-                conn,
-                candidate,
-                CandidateState::Refused,
-                Some(format!(
-                    "it changed since you reviewed it ({} bytes now, {} then)",
-                    metadata.len(),
-                    candidate.bytes
-                )),
-            );
-        }
-
-        match self.remover.move_to_trash(&path) {
+        match moved {
             Ok(()) => {
-                // Verify rather than assume. A remover that reports success
-                // while leaving the file in place would otherwise show up as a
-                // number that does not match the disk.
-                if std::fs::symlink_metadata(&path).is_ok() && self.remover.name() != "dry-run" {
+                // A remover that reports success while leaving the file in
+                // place would otherwise show up as a number that does not
+                // match the disk.
+                if std::fs::symlink_metadata(path).is_ok() && self.remover.name() != "dry-run" {
                     return self.finish(
                         conn,
                         candidate,
@@ -418,7 +490,69 @@ impl CleanupService {
         }
     }
 
-    /// Every reason DiskMate declines to remove something, in one place.
+    /// Everything that must be true before an item may move. `Some` is the
+    /// outcome for an item that will not move; `None` means it may.
+    fn check(
+        &self,
+        conn: &Connection,
+        candidate: &CleanupCandidate,
+    ) -> Result<Option<RemovalOutcome>> {
+        let path = candidate.path_buf();
+
+        let refusal = self.refusal_reason(candidate, &path);
+        if let Some(detail) = refusal {
+            return self
+                .finish(conn, candidate, CandidateState::Refused, Some(detail))
+                .map(Some);
+        }
+
+        let metadata = match std::fs::symlink_metadata(&path) {
+            Ok(metadata) => metadata,
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                return self
+                    .finish(
+                        conn,
+                        candidate,
+                        CandidateState::Vanished,
+                        Some("it was already gone".to_string()),
+                    )
+                    .map(Some);
+            }
+            Err(err) => {
+                return self
+                    .finish(
+                        conn,
+                        candidate,
+                        CandidateState::Failed,
+                        Some(format!("could not read it: {err}")),
+                    )
+                    .map(Some);
+            }
+        };
+
+        // Guard against the file changing between review and approval. A cache
+        // that grew is still a cache, but a file that changed is one somebody
+        // may now be using, and the honest response is to put it back in front
+        // of the user rather than to trash it on stale information.
+        if metadata.is_file() && metadata.len() as i64 != candidate.bytes {
+            return self
+                .finish(
+                    conn,
+                    candidate,
+                    CandidateState::Refused,
+                    Some(format!(
+                        "it changed since you reviewed it ({} bytes now, {} then)",
+                        metadata.len(),
+                        candidate.bytes
+                    )),
+                )
+                .map(Some);
+        }
+
+        Ok(None)
+    }
+
+    /// Every reason Mr Clean declines to remove something, in one place.
     fn refusal_reason(&self, candidate: &CleanupCandidate, path: &Path) -> Option<String> {
         if candidate.safety == SafetyClass::Protected {
             return Some("Mr Clean protects this and will not remove it".to_string());

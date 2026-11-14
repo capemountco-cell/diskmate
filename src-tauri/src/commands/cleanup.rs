@@ -78,14 +78,20 @@ pub fn staged_cleanup(state: State<'_, AppState>) -> CommandResult<Vec<CleanupCa
 /// The engine refuses the whole operation if either no longer matches the
 /// queue, so this command cannot be used to remove something the user did not
 /// see.
-#[tauri::command]
+///
+/// Runs off the main thread, so the window keeps drawing (and its progress bar
+/// keeps moving) while things move to the Trash.
+#[tauri::command(async)]
 pub fn remove_approved(
+    app: AppHandle,
     state: State<'_, AppState>,
     confirmation: Confirmation,
 ) -> CommandResult<RemovalReport> {
     state
         .storage
-        .remove_approved(&confirmation)
+        .remove_approved_with_progress(&confirmation, |progress| {
+            let _ = app.emit(events::REMOVAL_PROGRESS, progress);
+        })
         .map_err(to_command_error)
 }
 
