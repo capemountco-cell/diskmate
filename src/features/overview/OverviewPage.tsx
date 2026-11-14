@@ -1,53 +1,56 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { DisplayTitle, MetricCard } from "../../components/layout";
+import {
+  ApplicationsIcon,
+  CleanupIcon,
+  DuplicatesIcon,
+  MemoryIcon,
+  StartupIcon,
+} from "../../components/icons";
 import { Button, EmptyState } from "../../components/primitives";
-import { formatBytes, formatCount, formatDuration, formatRelative } from "../../lib/format";
+import { formatBytes, formatCount, formatRelative } from "../../lib/format";
 import { engine, engineAvailable } from "../../lib/ipc";
 import type {
-  AppInfo,
-  CandidateGroup,
+  MemoryPressure,
   MemoryReport,
   ScanSummary,
   StartupReport,
   VolumeInfo,
 } from "../../lib/types";
+import type { SectionId } from "../../app/TopNav";
+import type { CleanupController } from "../cleanup/useCleanup";
+
+/** How often the memory row is refreshed while Overview is open. */
+const MEMORY_POLL_MS = 5_000;
 
 /**
- * The findings bar. Teal means space you can get back, so every group is a
- * shade of it, told apart by lightness; extra copies keep their violet.
- */
-const RECLAIM_SHADES = ["#99f6e4", "#5eead4", "#2dd4bf", "#14b8a6", "#0d9488", "#0f766e"];
-const COPIES = "#c4b5fd";
-function findingColor(group: CandidateGroup, index: number): string {
-  return group.kind === "duplicateCopy"
-    ? COPIES
-    : RECLAIM_SHADES[index % RECLAIM_SHADES.length]!;
-}
-
-/**
- * This Mac.
+ * Overview.
  *
- * A summary of what the other sections have measured, and nothing else. There
- * is no health grade and no "time saved": a grade would be an opinion dressed
- * as a measurement, and Mr Clean has no way to know what anyone's time is
- * worth. A card with nothing measured behind it says so and offers the button
- * that would measure it.
+ * One headline (the disk the last scan read) and one list, a row per section,
+ * in the order you would work through them. Every number is white: a size is a
+ * size whatever section it belongs to. Colour appears only for something true,
+ * always with a word: green for freed or healthy, orange for worth a look, red
+ * for act now. A row with nothing measured behind it says so and offers the
+ * button that would measure it.
  */
 export function OverviewPage({
-  info,
   scan,
-  groups,
+  scanning,
+  cleanup,
   startup,
+  onPressure,
   onGo,
+  onGoToStartup,
 }: {
-  info: AppInfo | null;
   scan: ScanSummary | null;
-  groups: CandidateGroup[];
+  scanning: boolean;
+  cleanup: CleanupController;
   startup: StartupReport | null;
-  onGo: (section: "storage" | "cleanup" | "startup" | "memory") => void;
+  onPressure: (pressure: MemoryPressure) => void;
+  onGo: (section: SectionId) => void;
+  onGoToStartup: () => void;
 }) {
-  const [volumes, setVolumes] = useState<VolumeInfo[]>([]);
+  const [volumes, setVolumes] = useState<VolumeInfo[] | null>(null);
   const [memory, setMemory] = useState<MemoryReport | null>(null);
 
   useEffect(() => {
@@ -56,11 +59,18 @@ export function OverviewPage({
       .listVolumes()
       .then(setVolumes)
       .catch(() => setVolumes([]));
-    engine
-      .memoryReport()
-      .then(setMemory)
-      .catch(() => setMemory(null));
-  }, []);
+    const readMemory = () =>
+      engine
+        .memoryReport()
+        .then((report) => {
+          setMemory(report);
+          onPressure(report.snapshot.pressure);
+        })
+        .catch(() => setMemory(null));
+    void readMemory();
+    const timer = window.setInterval(readMemory, MEMORY_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [onPressure]);
 
   if (!engineAvailable()) {
     return (
@@ -70,215 +80,265 @@ export function OverviewPage({
     );
   }
 
-  const boot =
-    volumes.find((volume) => volume.mountPoint === "/") ??
-    volumes.find((volume) => volume.kind === "internal") ??
-    volumes[0] ??
+  const list = volumes ?? [];
+  const volume =
+    (scan && list.find((candidate) => candidate.mountPoint === scan.rootPath)) ??
+    list.find((candidate) => candidate.mountPoint === "/") ??
+    list.find((candidate) => candidate.kind === "internal") ??
+    list[0] ??
     null;
-  const share =
-    boot && boot.usedBytes !== null && boot.totalBytes
-      ? boot.usedBytes / boot.totalBytes
+  const capacity =
+    volume && volume.usedBytes !== null && volume.totalBytes
+      ? {
+          used: volume.usedBytes,
+          total: volume.totalBytes,
+          share: volume.usedBytes / volume.totalBytes,
+        }
       : null;
+  const fullness: Status | null = !capacity
+    ? null
+    : capacity.share >= 0.95
+      ? { tone: "act", word: "Almost full" }
+      : capacity.share >= 0.85
+        ? { tone: "attention", word: "Getting full" }
+        : null;
 
-  const findingsTotal = groups.reduce((sum, group) => sum + group.bytes, 0);
-  const topGroups = [...groups].sort((a, b) => b.bytes - a.bytes).slice(0, 4);
-  const largest = topGroups[0] ?? null;
+  const reclaimGroups = cleanup.groups.filter((group) => group.kind !== "duplicateCopy");
+  const copyGroups = cleanup.groups.filter((group) => group.kind === "duplicateCopy");
+  const reclaimBytes = reclaimGroups.reduce((sum, group) => sum + group.bytes, 0);
+  const copyBytes = copyGroups.reduce((sum, group) => sum + group.bytes, 0);
+  const copyCount = copyGroups.reduce((sum, group) => sum + group.count, 0);
+  const freed = cleanup.report && cleanup.report.removedBytes > 0 ? cleanup.report : null;
+
+  const apps = cleanup.applications;
+  const appBytes = apps.reduce((sum, app) => sum + app.bundleBytes, 0);
   const userStartup = startup ? startup.items.filter((item) => !item.isOsProvided) : [];
 
+  const pressure = memory?.snapshot.pressure ?? "unknown";
+  const memoryStatus: Status | null =
+    pressure === "normal"
+      ? { tone: "good", word: "Normal", quiet: true }
+      : pressure === "warning"
+        ? { tone: "attention", word: "Under pressure" }
+        : pressure === "critical"
+          ? { tone: "act", word: "High" }
+          : null;
+
+  const kicker = scan
+    ? scanning
+      ? `Showing the scan from ${formatRelative(scan.startedAt)}. A new one is running.`
+      : `${scanTarget(scan, volume)}, scanned ${formatRelative(scan.startedAt)}`
+    : "Nothing scanned yet";
+
   return (
-    <div className="page page--dashboard">
-      <DisplayTitle
-        title="This Mac"
-        aside={scan ? `Last scanned ${formatRelative(scan.startedAt)}` : "Not scanned yet"}
-      />
-
-      <section className="dashboard">
-        <article className="metric metric--hero">
-          <span className="metric__glow" aria-hidden="true" />
-          <span className="laptop" aria-hidden="true">
-            <span className="laptop__screen" />
-            <span className="laptop__base" />
-          </span>
-          <div className="metric__copy">
-            <div className="metric__label">This Mac</div>
-            {info && <div className="metric__measured">{describeSystem(info)}</div>}
-          </div>
-          <div className="metric__spacer" />
-          {boot ? (
-            <div className="capacity">
-              <div className="capacity__row">
-                <span className="capacity__name">{boot.name}</span>
-                <span className="num capacity__used">
-                  {boot.usedBytes !== null && boot.totalBytes
-                    ? `${formatBytes(boot.usedBytes)} of ${formatBytes(boot.totalBytes)} used`
-                    : "Capacity unknown"}
-                </span>
-              </div>
-              {share !== null && (
-                <div
-                  className="capacity__track"
-                  role="img"
-                  aria-label={`${Math.round(share * 100)} percent used`}
-                >
-                  <div className="capacity__fill" style={{ width: `${share * 100}%` }} />
-                </div>
-              )}
+    <div className="page ov">
+      <header className="ov__head">
+        <p className="kicker">
+          {kicker}
+          {fullness && <StatusChip status={fullness} />}
+        </p>
+        {capacity ? (
+          <>
+            <p className="bigline">
+              <b className="num">{formatBytes(capacity.used)}</b>
+              <span>of {formatBytes(capacity.total)} used</span>
+            </p>
+            <div
+              className="ov__bar"
+              role="img"
+              aria-label={`${Math.round(capacity.share * 100)} percent of ${volume?.name ?? "the disk"} is used`}
+            >
+              <i
+                className={fullness ? `ov__bar-fill--${fullness.tone}` : undefined}
+                style={{ width: `${Math.min(capacity.share, 1) * 100}%` }}
+              />
             </div>
-          ) : (
-            <div className="metric__measured">Reading volumes…</div>
-          )}
-        </article>
+          </>
+        ) : (
+          <p className="bigline">
+            <span>{volumes === null ? "Reading volumes…" : "Capacity unknown"}</span>
+          </p>
+        )}
+        <div className="ov__lede-row">
+          <p className="lede">
+            {capacity && `${formatBytes(capacity.total - capacity.used)} free. `}
+            {reclaimBytes + copyBytes > 0 ? (
+              <>
+                <strong className="num">{formatBytes(reclaimBytes + copyBytes)}</strong> could
+                be removed, after you look.
+              </>
+            ) : scan ? (
+              "Cleanup has nothing to suggest from the last scan."
+            ) : (
+              "Scan a volume and Mr Clean will explain where the space went."
+            )}
+          </p>
+          <Button onClick={() => onGo("storage")}>
+            {scan ? "Scan again" : "Scan a volume"}
+          </Button>
+        </div>
+      </header>
 
-        <MetricCard
-          label="Cleanup Can Explain"
-          value={scan && groups.length > 0 ? formatBytes(findingsTotal) : "Not looked yet"}
-          measured={
-            scan
-              ? groups.length > 0
-                ? `From the scan ${formatRelative(scan.startedAt)}`
-                : "Open Cleanup to look"
-              : "Needs a scan first"
+      <section className="rows" aria-label="Sections">
+        <Row
+          icon={<CleanupIcon size={20} />}
+          title="Cleanup"
+          detail={
+            reclaimGroups.length > 0
+              ? `${sentenceCase(
+                  reclaimGroups
+                    .map((group) => group.label.toLowerCase())
+                    .slice(0, 3)
+                    .join(", "),
+                )}. Each one explained.`
+              : scan
+                ? "Caches, build output, old downloads"
+                : "Works from a scan"
           }
-        >
-          {topGroups.length > 0 ? (
-            <>
-              <div
-                className="segbar"
-                role="img"
-                aria-label={topGroups
-                  .map((group) => `${group.label} ${formatBytes(group.bytes)}`)
-                  .join(", ")}
-              >
-                {topGroups.map((group, index) => (
-                  <i
-                    key={`${group.kind}-${group.safety}`}
-                    style={{
-                      flexGrow: group.bytes,
-                      background: findingColor(group, index),
-                    }}
-                  />
-                ))}
-              </div>
-              <ul className="metric__rows">
-                {topGroups.map((group, index) => (
-                  <li key={`${group.kind}-${group.safety}`}>
-                    <span>
-                      <i className="dot" style={{ background: findingColor(group, index) }} />
-                      {group.label}
-                    </span>
-                    <b className="num">{formatBytes(group.bytes)}</b>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <div className="metric__foot">
-              <Button onClick={() => onGo(scan ? "cleanup" : "storage")}>
-                {scan ? "Open Cleanup" : "Scan a Volume"}
-              </Button>
-            </div>
-          )}
-        </MetricCard>
-
-        <MetricCard
-          label="Last Scan"
-          value={scan ? formatDuration(scan.durationMs) : "None yet"}
-          measured={
-            scan
-              ? `to read ${scan.rootPath === "/" ? "the startup disk" : scan.rootPath}`
-              : "Storage has not scanned anything"
+          status={
+            freed ? { tone: "good", word: `Freed ${formatBytes(freed.removedBytes)}` } : null
           }
-        >
-          {scan ? (
-            <ul className="metric__rows">
-              <li>
-                <span>Files read</span>
-                <b className="num">{formatCount(scan.fileCount)}</b>
-              </li>
-              <li>
-                <span>Folders read</span>
-                <b className="num">{formatCount(scan.dirCount)}</b>
-              </li>
-              <li>
-                <span>Could not read</span>
-                <b className="num">{formatCount(scan.errorCount)}</b>
-              </li>
-            </ul>
-          ) : (
-            <div className="metric__foot">
-              <Button onClick={() => onGo("storage")}>Go to Storage</Button>
-            </div>
-          )}
-        </MetricCard>
-
-        <article className="metric metric--tip">
-          {largest ? (
-            <>
-              <div className="metric__measured">Where to start</div>
-              <div className="metric__tip-title">
-                {largest.label} {largest.label.endsWith("s") ? "are" : "is"} the largest group
-              </div>
-              <p className="metric__tip-body">
-                {formatBytes(largest.bytes)} in {formatCount(largest.count)} items.{" "}
-                {largest.summary}
-              </p>
-              <div className="metric__foot">
-                <Button onClick={() => onGo("cleanup")}>Open Cleanup</Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="metric__measured">Where to start</div>
-              <div className="metric__tip-title">Scan a volume</div>
-              <p className="metric__tip-body">
-                Everything on this page that is about storage comes from a scan. Until there is
-                one, Mr Clean has nothing to point at.
-              </p>
-              <div className="metric__foot">
-                <Button onClick={() => onGo("storage")}>Go to Storage</Button>
-              </div>
-            </>
-          )}
-        </article>
-
-        <MetricCard
-          label="Startup"
-          value={startup ? `${formatCount(userStartup.length)} items` : "Not looked yet"}
-          measured={
-            startup
-              ? `installed by apps or by you · ${formatCount(startup.osCount)} more from macOS`
-              : "Reads launch settings only"
+          value={reclaimGroups.length > 0 ? formatBytes(reclaimBytes) : scan ? "Nothing" : "—"}
+          sub={
+            reclaimGroups.length > 0
+              ? `${formatCount(reclaimGroups.length)} ${reclaimGroups.length === 1 ? "group" : "groups"}`
+              : scan
+                ? "worth suggesting"
+                : "needs a scan"
           }
-        >
-          {!startup && (
-            <div className="metric__foot">
-              <Button onClick={() => onGo("startup")}>Open Startup</Button>
-            </div>
-          )}
-        </MetricCard>
-
-        <MetricCard
-          label="Memory Right Now"
-          value={memory ? formatBytes(memory.snapshot.usedBytes) : "Reading…"}
-          unit={memory ? `of ${formatBytes(memory.snapshot.totalBytes)}` : undefined}
-          measured={memory ? memory.headline : undefined}
-        >
-          <div className="metric__foot">
-            <Button onClick={() => onGo("memory")}>Watch Memory</Button>
-          </div>
-        </MetricCard>
+          action={scan ? "Open" : "Scan"}
+          onOpen={() => onGo(scan ? "cleanup" : "storage")}
+        />
+        <Row
+          icon={<DuplicatesIcon size={20} />}
+          title="Extra copies"
+          detail="Identical contents in more than one place"
+          value={copyGroups.length > 0 ? formatBytes(copyBytes) : "—"}
+          sub={
+            copyGroups.length > 0
+              ? `${formatCount(copyCount)} ${copyCount === 1 ? "copy" : "copies"}`
+              : "not compared yet"
+          }
+          action="Open"
+          onOpen={() => onGo("duplicates")}
+        />
+        <Row
+          icon={<ApplicationsIcon size={20} />}
+          title="Apps"
+          detail="Plus what each one keeps outside its own folder"
+          value={apps.length > 0 ? formatBytes(appBytes) : "—"}
+          sub={apps.length > 0 ? `${formatCount(apps.length)} apps` : "not measured yet"}
+          action="Open"
+          onOpen={() => onGo("applications")}
+        />
+        <Row
+          icon={<StartupIcon size={20} />}
+          title="Starts with your Mac"
+          detail="Login items and background items"
+          value={startup ? formatCount(userStartup.length) : "—"}
+          sub={startup ? (userStartup.length === 1 ? "item" : "items") : "not looked yet"}
+          action="Open"
+          onOpen={onGoToStartup}
+        />
+        <Row
+          icon={<MemoryIcon size={20} />}
+          title="Memory now"
+          detail={
+            memory
+              ? memory.snapshot.swapUsedBytes === null
+                ? memory.headline
+                : memory.snapshot.swapUsedBytes === 0
+                  ? "Nothing moved to disk"
+                  : `${formatBytes(memory.snapshot.swapUsedBytes)} moved to disk (swap)`
+              : "Reading…"
+          }
+          status={memoryStatus}
+          tone={pressure === "critical" ? "act" : undefined}
+          value={memory ? formatBytes(memory.snapshot.usedBytes) : "—"}
+          sub={memory ? `of ${formatBytes(memory.snapshot.totalBytes)}` : ""}
+          action={pressure === "warning" || pressure === "critical" ? "See heavy apps" : "Open"}
+          onOpen={() => onGo("memory")}
+        />
       </section>
+
+      <footer className="ov__foot">
+        <span>Everything Mr Clean learns stays on this Mac.</span>
+        <Button onClick={() => onGo("storage")}>Open Storage</Button>
+      </footer>
     </div>
   );
 }
 
-function describeSystem(info: AppInfo): string {
-  const os = info.os === "macos" ? "macOS" : info.os;
-  const chip =
-    info.os === "macos" && info.arch === "aarch64"
-      ? "Apple silicon"
-      : info.os === "macos" && info.arch === "x86_64"
-        ? "Intel"
-        : info.arch;
-  return `${os} · ${chip} · Mr Clean ${info.version}`;
+type Tone = "good" | "attention" | "act";
+type Status = { tone: Tone; word: string; quiet?: boolean };
+
+/** A status: a dot and a word. Quiet ones (healthy) keep the word grey. */
+export function StatusChip({ status }: { status: Status }) {
+  return (
+    <span
+      className={[
+        "status-chip",
+        `status-chip--${status.tone}`,
+        status.quiet ? "status-chip--quiet" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <i aria-hidden="true" />
+      {status.word}
+    </span>
+  );
+}
+
+function Row({
+  icon,
+  title,
+  detail,
+  status,
+  tone,
+  value,
+  sub,
+  action,
+  onOpen,
+}: {
+  icon: ReactNode;
+  title: string;
+  detail: string;
+  status?: Status | null;
+  /** Tints the whole row; only for "act now". */
+  tone?: "act";
+  value: string;
+  sub: string;
+  action: string;
+  onOpen: () => void;
+}) {
+  return (
+    <div className={tone ? `row-item row-item--${tone}` : "row-item"}>
+      <span className="row-item__tile" aria-hidden="true">
+        {icon}
+      </span>
+      <div className="row-item__text">
+        <p className="row-item__title">{title}</p>
+        <p className="row-item__detail">{detail}</p>
+      </div>
+      <div className="row-item__status">{status && <StatusChip status={status} />}</div>
+      <div className="row-item__value">
+        <p className="num">{value}</p>
+        <p>{sub}</p>
+      </div>
+      <Button onClick={onOpen} aria-label={`${action}: ${title}`}>
+        {action}
+      </Button>
+    </div>
+  );
+}
+
+function scanTarget(scan: ScanSummary, volume: VolumeInfo | null): string {
+  if (volume && volume.mountPoint === scan.rootPath) return volume.name;
+  if (scan.rootPath === "/") return "The startup disk";
+  return scan.rootPath.replace(/\/+$/, "").split("/").pop() ?? scan.rootPath;
+}
+
+function sentenceCase(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

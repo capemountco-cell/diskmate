@@ -28,9 +28,18 @@ export function QueueBar({
         {cleanup.staged.length === 1 ? "item" : "items"} in your queue ·{" "}
         <b className="num">{formatBytes(cleanup.stagedTotal)}</b>
       </span>
-      <Button variant="primary" onClick={onOpen}>
-        Review queue
-      </Button>
+      <span className="queue-bar__actions">
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => cleanup.unstage(cleanup.staged.map((c) => c.id))}
+        >
+          Clear
+        </button>
+        <Button variant="primary" onClick={onOpen}>
+          Review and move to Trash
+        </Button>
+      </span>
     </div>
   );
 }
