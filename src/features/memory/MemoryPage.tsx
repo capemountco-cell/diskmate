@@ -143,10 +143,7 @@ export function MemoryPage({
                 <span>App memory</span>
               </li>
               <li className="legend-item">
-                <span
-                  className="legend-item__swatch"
-                  style={{ background: "var(--grey-6)" }}
-                />
+                <span className="legend-item__swatch" style={{ background: "var(--grey-6)" }} />
                 <span>Cached</span>
               </li>
             </ul>

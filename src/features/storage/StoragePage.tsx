@@ -96,7 +96,12 @@ export function StoragePage({
         )}
 
         {phase === "scanning" && (
-          <ScanStatusBar progress={storage.progress} onCancel={storage.cancelScan} />
+          <ScanStatusBar
+            progress={storage.progress}
+            onCancel={storage.cancelScan}
+            usedBytes={selectedVolume?.usedBytes ?? null}
+            targetName={targetName(storage)}
+          />
         )}
 
         {phase === "failed" && storage.scanError && (

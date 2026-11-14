@@ -80,9 +80,23 @@ export function DuplicatesPage({
         <>
           <Hero title="Comparing files…" subtitle={progress.stage} />
           <div className="scan-bar">
-            <div className="scan-bar__track">
-              <div className="scan-bar__indicator" />
-            </div>
+            {progress.total > 0 && (
+              // The comparison does know its total: the files that shared a
+              // size. So this one is a true fraction of the work.
+              <div
+                className="scan-bar__track"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={progress.total}
+                aria-valuenow={progress.done}
+                aria-label={`${progress.done} of ${progress.total} compared`}
+              >
+                <div
+                  className="scan-bar__fill"
+                  style={{ width: `${Math.min(progress.done / progress.total, 1) * 100}%` }}
+                />
+              </div>
+            )}
             {progress.total > 0 && (
               <div className="scan-bar__stats">
                 <span>
