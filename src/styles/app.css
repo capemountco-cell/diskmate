@@ -589,37 +589,6 @@
   background: var(--surface-sunken);
 }
 
-/*
- * The scanner cannot know a total entry count before it has walked the tree, so
- * an indeterminate track is the honest shape. A fake percentage would be a lie
- * that the user can feel.
- */
-.scan-bar__indicator {
-  position: absolute;
-  inset-block: 0;
-  width: 36%;
-  border-radius: 2px;
-  background: var(--accent);
-  animation: scan-sweep 1.5s var(--ease) infinite;
-}
-
-@keyframes scan-sweep {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(320%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scan-bar__indicator {
-    width: 100%;
-    opacity: 0.35;
-    animation: none;
-  }
-}
-
 .scan-bar__stats {
   display: flex;
   flex-wrap: wrap;
